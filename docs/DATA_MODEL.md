@@ -4,7 +4,7 @@
 
 Schema mínimo e normalizado. Tudo que não é essencial para a V1 fica fora. Adicionar é fácil; remover é caro.
 
-> **Status:** decisões da Letícia incorporadas. Schema congelado para implementação da Fase 1.
+> **Status:** decisões da Letícia incorporadas + ajustes do pivot pra PWA (04/mai/2026). Schema congelado para implementação da Fase 1.
 
 ## Tabelas
 
@@ -13,17 +13,30 @@ Schema mínimo e normalizado. Tudo que não é essencial para a V1 fica fora. Ad
 |---|---|---|
 | id | uuid PK | `auth.users.id` do Supabase |
 | nome | text | "Victor", "Letícia" |
-| apelido | text | "Vitim", "Gaia" — usado nas respostas do bot |
-| whatsapp | text UNIQUE | E.164: `+5532999999999` |
+| apelido | text | "Vitim", "Gaia" — usado em toda a UI |
 | email | text UNIQUE | Para magic link |
 | created_at | timestamptz | default now() |
 
 **Seed inicial:**
 ```sql
-INSERT INTO users (nome, apelido, whatsapp, email) VALUES
-  ('Victor',  'Vitim', '<NUMERO_VICTOR>',  'victor.aragao@umode.com.br'),
-  ('Letícia', 'Gaia',  '<NUMERO_LETICIA>', '<EMAIL_LETICIA>');
+INSERT INTO users (nome, apelido, email) VALUES
+  ('Victor',  'Vitim', 'victor.aragao@umode.com.br'),
+  ('Letícia', 'Gaia',  '<EMAIL_LETICIA>');
 ```
+
+### `push_subscriptions`
+Cada navegador/dispositivo onde o PWA foi instalado gera uma subscription. Usado para mandar o push diário.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK → users | |
+| endpoint | text UNIQUE | URL do push service do navegador |
+| p256dh | text | chave pública do navegador |
+| auth | text | secret de autenticação |
+| user_agent | text | pra debug ("iPhone Safari", "Android Chrome") |
+| ativo | bool | default true; vira false se push falhar |
+| created_at | timestamptz | |
 
 ### `categories`
 | Coluna | Tipo | Notas |
@@ -62,9 +75,8 @@ Representa **uma compra/registro lógico**. Se for parcelado, gera N linhas em `
 | data_compra | date | default current_date |
 | divisao | text | enum: `50_50` (default), `so_pagador`, `customizada` |
 | split_pagador_pct | numeric | apenas para `customizada`; senão null |
-| origem | text | enum: `whatsapp`, `web`, `import`, `recorrente` |
+| origem | text | enum: `pwa` (default), `import`, `recorrente` |
 | recurring_template_id | uuid FK → recurring_templates | null para gastos avulsos |
-| raw_message | text | Mensagem original do WhatsApp (debug do parser) |
 | cancelado | bool | default false (soft delete) |
 | created_at | timestamptz | default now() |
 
@@ -168,8 +180,9 @@ Todo valor monetário em **centavos como inteiro**. Nunca float, nunca decimal. 
   - `002_categories_seed.sql`
   - `003_installments.sql` (tabela + trigger)
   - `004_recurring_templates.sql`
-  - `005_views.sql`
-  - `006_rls.sql` (Row Level Security)
+  - `005_push_subscriptions.sql`
+  - `006_views.sql`
+  - `007_rls.sql` (Row Level Security)
 - Nunca alterar migration já aplicada — sempre criar nova
 - Rollback documentado para cada migration que altera dados
 

@@ -1,81 +1,112 @@
 # Arquitetura — DinDin
 
+> **Pivot 04/mai/2026:** WhatsApp/Meta removidos do escopo. Stack PWA-first.
+
 ## Diagrama lógico
 
 ```
-┌──────────────┐         ┌──────────────────┐         ┌──────────────┐
-│   WhatsApp   │ ──────→ │  API / Webhook   │ ──────→ │   Supabase   │
-│  (Cloud API) │         │   (Vercel        │         │ (Postgres +  │
-│              │ ←────── │   serverless)    │ ←────── │   Auth)      │
-└──────────────┘         └──────────────────┘         └──────────────┘
-                                  ↑                           ↑
-                                  │                           │
-                                  ↓                           │
-                         ┌──────────────────┐                 │
-                         │   Web App PWA    │ ────────────────┘
-                         │ (Next.js/Vercel) │
-                         └──────────────────┘
+┌──────────────────────┐         ┌────────────────────┐         ┌──────────────┐
+│   PWA no celular     │ ──────→ │  Next.js no Vercel │ ──────→ │   Supabase   │
+│  (Vitim e Gaia)      │         │  (front + APIs)    │         │ (Postgres +  │
+│                      │ ←────── │                    │ ←────── │   Auth)      │
+└──────────────────────┘         └────────────────────┘         └──────────────┘
+        ↑                                  ↑                            ↑
+        │                                  │                            │
+        │ Web Push notification            │ Edge Function (cron)       │
+        └──────────────────────────────────┴────────────────────────────┘
+                              "Registrou os gastos de hoje?"
 ```
+
+## Princípio reafirmado
+
+**Cada segundo entre "gastei" e "registrado" é desperdício.** No PWA, traduz pra: 3 toques pra registrar um gasto comum, contados a partir do ícone na tela inicial.
 
 ## Stack escolhida
 
 | Camada | Tecnologia | Motivo |
 |---|---|---|
-| Input principal | WhatsApp Cloud API (Meta) | Casal já vive no WhatsApp; zero fricção; gratuito até 1.000 conversas/mês |
-| Webhook / API | Next.js API Routes em Vercel (serverless) | Mesmo deploy do front; sem servidor pra gerenciar |
-| Banco de dados | Supabase (Postgres) | Free tier generoso; SQL real; RLS para segurança; auth pronta |
-| Autenticação | Supabase Auth (magic link por e-mail) | Sem senha, simples para Letícia |
-| Front-end | Next.js 14 (App Router) + Tailwind | Padrão de mercado, PWA fácil, deploy 1-clique no Vercel |
-| Hosting | Vercel | Gratuito para uso pessoal, integração nativa com Next.js |
-| Parser de mensagens | TypeScript + regex/heurísticas | Começar simples; evoluir para LLM se necessário |
+| Front + back | Next.js 14 (App Router) + Tailwind CSS | Stack única, deploy 1-clique no Vercel |
+| Hosting | Vercel | Gratuito; PWA serve perfeitamente |
+| Banco | Supabase (Postgres) | Free tier generoso, SQL real, RLS |
+| Auth | Supabase Auth (magic link) | Sem senha, simples pra Gaia |
+| PWA | Web App Manifest + Service Worker (`next-pwa`) | Instala como app na tela inicial; offline-first |
+| Notificações | Web Push API + VAPID | Push diário "registrou os gastos de hoje?" |
+| Cron | Supabase Edge Functions com `pg_cron` | Geração mensal de recorrentes + disparo do push diário |
 | Observabilidade | Vercel Analytics + Supabase logs | Built-in, sem custo |
+| Linguagem | TypeScript estrito | Padrão de mercado, manutenção fácil |
+| Validação | Zod | Em toda fronteira (forms, APIs) |
+| Testes | Vitest (unit) + Playwright (e2e) | Cobertura do fluxo principal |
 
-## Decisões arquiteturais (ADRs resumidos)
+## Decisões arquiteturais (ADRs)
 
-### ADR-001: WhatsApp como input principal, não app dedicado
-**Decisão:** O canal primário de registro é o WhatsApp.
-**Motivo:** O problema-raiz declarado pelo Victor é "esquecemos de registrar". A causa é fricção de abrir um app extra. Lean: eliminar o passo desnecessário (abrir app) acelera o fluxo.
-**Trade-off:** Parser de linguagem natural exige cuidado. Mitigação: vocabulário restrito e feedback explícito do bot ("Registrei R$ 120 em Mercado, dividido 50/50").
+### ADR-001 (revisada): PWA como canal único de input
+**Decisão:** O DinDin é um PWA instalado na tela inicial. Não há canal de mensagens.
+**Motivo:** A primeira versão considerou WhatsApp como canal por estar onde o casal já vive. Na prática, a Meta exige verificação de empresa (CNPJ + documentos + 1-2 semanas de espera) e mantém o controle da regra futura. PWA elimina dependência externa, custo e burocracia, e permite UX guiada (interface visual reduz erro de input).
+**Trade-off aceito:** vocês precisam abrir o app em vez de mandar mensagem. Mitigação: ícone na tela inicial, FAB grande "+ Gasto", autofocus no campo de valor, push diário.
 
 ### ADR-002: Supabase em vez de Firebase
 **Decisão:** Postgres no Supabase.
-**Motivo:** SQL é melhor para análises de padrões (camada de inteligência do DinDin); Row Level Security mantém dados isolados; export simples se quisermos migrar.
+**Motivo:** SQL é melhor para análises de padrões (camada de inteligência da Fase 2); Row Level Security mantém dados isolados por casal; export simples se quisermos migrar.
 
 ### ADR-003: Monorepo único
-**Decisão:** Front, API e migrations no mesmo repo.
-**Motivo:** Time de 1 dev (Claude Code), 2 usuários. Polirepo é overhead desnecessário. Vercel deploya o monorepo nativamente.
+**Decisão:** Front, APIs e migrations no mesmo repo.
+**Motivo:** Time de 1 dev (Claude Code), 2 usuários. Polirepo é overhead desnecessário.
 
-### ADR-004: Sem servidor próprio
-**Decisão:** Tudo serverless (Vercel + Supabase).
+### ADR-004: Tudo serverless
+**Decisão:** Vercel + Supabase, zero servidor próprio.
 **Motivo:** Custo zero, zero manutenção de infra. Escala suficiente pra 2 usuários por anos.
 
-### ADR-005: Parser começa por regex, não LLM
-**Decisão:** V1 do parser usa regras determinísticas.
-**Motivo:** LLM tem latência (3-8s), custo por chamada e pode errar de forma imprevisível. Comandos curtos (`120 mercado vic`) são facilmente parseáveis com regex. LLM entra na V2 para mensagens livres ("paguei o jantar ontem").
+### ADR-005: PWA com `next-pwa`
+**Decisão:** Usar a biblioteca `next-pwa` para gerar manifest e service worker.
+**Motivo:** Cobre 95% dos casos com configuração mínima; integra bem com Next 14 App Router; permite offline básico (cache de shell e dados recentes) sem complexidade.
+
+### ADR-006: Push diário como mecanismo principal de lembrete
+**Decisão:** Web Push API às 22h BRT pergunta "Registrou os gastos de hoje?".
+**Motivo:** O problema-raiz declarado pelo CEO é "esquecemos de registrar". Notificação proativa ataca a causa diretamente. Web Push funciona em Android Chrome nativo e em iOS Safari (16.4+) **quando o PWA está instalado** — instalar é parte do onboarding obrigatório.
+
+### ADR-007: Sem parser de linguagem natural na V1
+**Decisão:** Input via formulário guiado, não texto livre.
+**Motivo:** Reduz erro de input a quase zero; categoria sempre selecionada; sem ambiguidade de "ifood" vs "delivery". Texto livre / áudio / OCR ficam pra Fase 2/3 como aceleradores opcionais.
 
 ## Fluxos principais
 
-### Registrar gasto via WhatsApp
-1. Usuário envia: `120 mercado`
-2. Meta Cloud API → POST no webhook `/api/whatsapp/webhook`
-3. Parser extrai: `{ valor: 120, categoria: 'mercado', pagador: <inferido pelo número>, divisao: '50/50' }`
-4. Insert no Postgres (tabela `expenses`)
-5. Bot responde: `✅ R$ 120 em Mercado. Saldo: você deve R$ 30 à Letícia.`
+### Registrar gasto
+1. Usuária toca no ícone do DinDin na tela inicial → PWA abre
+2. Tela principal: saldo no topo, lista do mês abaixo, FAB "+ Gasto" no canto inferior direito
+3. Toca no FAB → modal full-screen sobe com keypad numérico em foco
+4. Digita valor → toca uma das 9 chips de categoria → toca "Salvar"
+5. Modal fecha, toast de confirmação ("✅ R$ 120 — 🛒 Mercado · 50/50"), saldo e lista atualizam
 
-### Consultar saldo via WhatsApp
-1. Usuário envia: `saldo`
-2. Webhook chama view `v_saldo_atual`
-3. Bot responde com 1 linha resumida
+Total: 3 toques + digitação do valor.
 
-### Visualizar painel
-1. Letícia/Victor acessa `dindin.vercel.app` no celular
-2. Magic link via e-mail (Supabase Auth)
-3. PWA carrega: saldo do mês, gastos por categoria, gráfico de tendência, insights gerados
+### Consultar saldo
+Aparece **sempre no topo da tela principal**. Não é uma ação — é informação ambiente.
 
-## Segurança (resumo)
+### Gasto parcelado
+No modal de novo gasto, expandir a seção "+ avançado" → campo "parcelas" (default 1). Sistema calcula e mostra preview ("3x de R$ 93,33"). Persistência gera 1 `expense` + N `expense_installments`.
 
-- **Row Level Security** no Supabase: cada usuário só lê dados do casal a que pertence
-- **Webhook do WhatsApp** valida assinatura HMAC da Meta
-- **Autenticação por número** no bot: só números cadastrados (Victor + Letícia) são aceitos
-- **Variáveis de ambiente** apenas no Vercel; nada de secrets no repo
-- **Backup:** export semanal do Postgres para Google Drive (configurar na Fase 2)
+### Recorrentes
+Acesso via menu lateral → "Recorrentes" → tela de listagem com botão "+ Novo". Edge Function diária às 08:00 BRT cria os lançamentos do dia.
+
+### Push diário
+Edge Function às 22:00 BRT consulta quem tem `push_subscription` ativa, dispara push. Ao tocar na notificação, abre o PWA já no modal de novo gasto.
+
+### Acerto entre o casal (PIX)
+Botão "Acerto" no menu → modal simples (de quem, pra quem, valor, data, nota). Persiste em `transfers`.
+
+## Segurança
+
+- **Row Level Security** no Supabase: cada casal isolado (preparação pra Fase 4)
+- **Magic link** com expiração curta (10 min) e single-use
+- **CSP estrito** no Next.js
+- **Validação Zod** em todo input (form e API)
+- **VAPID keys** em env var; chave privada nunca no client
+- **HTTPS-only** (forçado pelo Vercel)
+- **Backup:** export semanal do Postgres pra Google Drive (configurar Fase 2)
+
+## Performance
+
+- Tempo de carregamento da tela principal **<1.5s** em 4G
+- Tempo entre toque no FAB e modal aberto **<100ms**
+- Persistência de gasto **<300ms** p95
+- PWA funciona offline para visualização (mostra dados em cache); registro offline entra na fila de sync

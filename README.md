@@ -1,6 +1,6 @@
 # DinDin
 
-Sistema financeiro do casal Victor e Letícia. Foco em **fricção zero** para registrar gastos no dia a dia e clareza total sobre quem deve para quem.
+Sistema financeiro do casal Vitim e Gaia. Foco em **fricção zero** para registrar gastos no dia a dia e clareza total sobre quem deve para quem.
 
 ## Visão
 
@@ -13,23 +13,25 @@ Evolução do Splitwise/Tricount com inteligência: além de registrar e dividir
 ## Arquitetura em 1 minuto
 
 ```
-[WhatsApp]  ──→  [Webhook/API]  ──→  [Supabase (Postgres)]  ←──  [Web App / Vercel]
-   input já          parser de             fonte única               painel,
-   onde o casal      mensagem              de verdade                relatórios,
-   está                                                              insights
+[PWA no celular]  ←──→  [Next.js no Vercel]  ←──→  [Supabase (Postgres)]
+   instalado na          front + APIs +              fonte única
+   tela inicial          Edge Functions              de verdade
+        ↑                       ↓
+        └──── Web Push ─────────┘
+        "Registrou os gastos de hoje?"
 ```
 
-- **Input principal:** mensagens curtas no WhatsApp (`120 mercado`, `saldo`, `mês`)
+- **Canal único:** PWA instalável (manifest + service worker), aberto direto da tela inicial
 - **Backend:** Supabase (Postgres + Auth, free tier)
-- **Front:** Next.js no Vercel, instalável como PWA no celular
-- **Custo:** R$ 0/mês no início (todos os tiers gratuitos cobrem o uso de 2 pessoas)
+- **Lembrete:** Web Push diária às 22h, pra atacar a causa-raiz ("esquecemos")
+- **Custo:** R$ 0/mês permanente (todos os tiers gratuitos cobrem o uso de 2 pessoas)
 
 ## Time
 
 | Papel | Responsável | Função |
 |---|---|---|
-| CEO / Orquestrador | Victor | Direção, decisões de produto, prioridades |
-| Usuária principal | Letícia | Validação de UX, feedback de uso real |
+| CEO / Orquestrador | Vitim (Victor) | Direção, decisões de produto, prioridades |
+| Usuária principal | Gaia (Letícia) | Validação de UX, feedback de uso real |
 | Gestor de Projetos | Claude.ai | Documentação, planejamento, kanban, decisões de arquitetura |
 | CTO / Desenvolvedor | Claude Code | Implementação, code review, deploy |
 
@@ -39,11 +41,11 @@ Evolução do Splitwise/Tricount com inteligência: além de registrar e dividir
 DinDin/
 ├── README.md              ← você está aqui
 ├── HANDOFF.md             ← brief de entrada para o Claude Code (Dev)
-├── NEXT_STEPS.md          ← checklist de ações do CEO (concluído)
+├── NEXT_STEPS.md          ← checklist do CEO (3 passos)
 ├── docs/
-│   ├── ARCHITECTURE.md    ← stack, decisões técnicas
+│   ├── ARCHITECTURE.md    ← stack, decisões técnicas, ADRs
 │   ├── DATA_MODEL.md      ← schema do banco (congelado para Fase 1)
-│   ├── BOT_SPEC.md        ← comandos e parser do WhatsApp
+│   ├── INPUT_UX.md        ← fluxo do PWA (telas, modal, push)
 │   ├── ROADMAP.md         ← fases do projeto
 │   └── KANBAN.md          ← board de tarefas
 ├── web/                   ← (a criar pelo Claude Code) Next.js app
@@ -53,13 +55,17 @@ DinDin/
 
 ## Status atual
 
-**Fase 0 concluída ✅. Fase 1 destravada para o Claude Code.**
+**Fase 0 concluída ✅. Pivot pra PWA cravado. Fase 1 destravada para o Claude Code.**
 
-Toda a fundação documental e os pré-requisitos do CEO estão prontos:
-- Conta Meta + WhatsApp Cloud API ✅
-- Projeto Supabase ✅
-- Repositório GitHub ✅
-- Conta Vercel ✅
-- Decisões da Gaia (categorias, divisão, parcelas, recorrentes, apelidos) ✅
+Pronto:
+- Stack final: Next.js + Vercel + Supabase + Web Push
+- Schema do banco congelado
+- UX do PWA desenhada (`docs/INPUT_UX.md`)
+- Decisões da Gaia incorporadas (categorias, divisão, parcelas, recorrentes, apelidos)
+- Conta Supabase, GitHub e Vercel já existentes
 
-Próximo passo: o Claude Code lê `HANDOFF.md` e começa pelo card **F1-04** do `docs/KANBAN.md`.
+Próximo passo: o Claude Code lê `HANDOFF.md` e começa pelo card **F1-01** do `docs/KANBAN.md`.
+
+## Histórico de pivots
+
+- **04/mai/2026** — Canal de input mudou de WhatsApp pra PWA puro. Motivo: Meta passou a exigir verificação de empresa mesmo para uso restrito; análise mostrou que PWA tem UX comparável e elimina dependência externa permanente.
