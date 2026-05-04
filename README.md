@@ -38,18 +38,28 @@ Evolução do Splitwise/Tricount com inteligência: além de registrar e dividir
 ```
 DinDin/
 ├── README.md              ← você está aqui
-├── NEXT_STEPS.md          ← checklist de ações do Victor (CEO)
+├── HANDOFF.md             ← brief de entrada para o Claude Code (Dev)
+├── NEXT_STEPS.md          ← checklist de ações do CEO (concluído)
 ├── docs/
 │   ├── ARCHITECTURE.md    ← stack, decisões técnicas
-│   ├── DATA_MODEL.md      ← schema do banco
+│   ├── DATA_MODEL.md      ← schema do banco (congelado para Fase 1)
 │   ├── BOT_SPEC.md        ← comandos e parser do WhatsApp
 │   ├── ROADMAP.md         ← fases do projeto
 │   └── KANBAN.md          ← board de tarefas
-├── web/                   ← (a criar) Next.js app
-├── api/                   ← (a criar) webhook do WhatsApp
-└── db/                    ← (a criar) migrations Supabase
+├── web/                   ← (a criar pelo Claude Code) Next.js app
+├── db/                    ← (a criar pelo Claude Code) migrations Supabase
+└── supabase/              ← (a criar pelo Claude Code) Edge Functions
 ```
 
 ## Status atual
 
-**Fase 0 — Planejamento.** Documentação de fundação concluída. Aguardando ações do CEO (ver `NEXT_STEPS.md`) para liberar Fase 1 (MVP).
+**Fase 0 concluída ✅. Fase 1 destravada para o Claude Code.**
+
+Toda a fundação documental e os pré-requisitos do CEO estão prontos:
+- Conta Meta + WhatsApp Cloud API ✅
+- Projeto Supabase ✅
+- Repositório GitHub ✅
+- Conta Vercel ✅
+- Decisões da Gaia (categorias, divisão, parcelas, recorrentes, apelidos) ✅
+
+Próximo passo: o Claude Code lê `HANDOFF.md` e começa pelo card **F1-04** do `docs/KANBAN.md`.

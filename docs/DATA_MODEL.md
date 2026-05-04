@@ -4,6 +4,8 @@
 
 Schema mínimo e normalizado. Tudo que não é essencial para a V1 fica fora. Adicionar é fácil; remover é caro.
 
+> **Status:** decisões da Letícia incorporadas. Schema congelado para implementação da Fase 1.
+
 ## Tabelas
 
 ### `users`
@@ -11,34 +13,103 @@ Schema mínimo e normalizado. Tudo que não é essencial para a V1 fica fora. Ad
 |---|---|---|
 | id | uuid PK | `auth.users.id` do Supabase |
 | nome | text | "Victor", "Letícia" |
+| apelido | text | "Vitim", "Gaia" — usado nas respostas do bot |
 | whatsapp | text UNIQUE | E.164: `+5532999999999` |
 | email | text UNIQUE | Para magic link |
 | created_at | timestamptz | default now() |
+
+**Seed inicial:**
+```sql
+INSERT INTO users (nome, apelido, whatsapp, email) VALUES
+  ('Victor',  'Vitim', '<NUMERO_VICTOR>',  'victor.aragao@umode.com.br'),
+  ('Letícia', 'Gaia',  '<NUMERO_LETICIA>', '<EMAIL_LETICIA>');
+```
 
 ### `categories`
 | Coluna | Tipo | Notas |
 |---|---|---|
 | id | serial PK | |
-| nome | text UNIQUE | "mercado", "restaurante", "fixo", "lazer", "saúde", "transporte", "viagem", "outros" |
-| emoji | text | Para o painel |
-| aliases | text[] | ["super", "mercadinho", "feira"] — para o parser |
+| nome | text UNIQUE | Decidido com Letícia (ver seed abaixo) |
+| emoji | text | Para o painel e respostas do bot |
+| aliases | text[] | Variações que o parser aceita |
+| ordem | int | Ordem de exibição no painel |
 
-Lista inicial de categorias decidida em conjunto com Letícia (ver KANBAN, tarefa de UX).
+**Seed final (decidido em sessão com Letícia):**
+```sql
+INSERT INTO categories (nome, emoji, aliases, ordem) VALUES
+  ('mercado',     '🛒', ARRAY['super','supermercado','mercadinho','feira'], 1),
+  ('restaurante', '🍽️', ARRAY['rest','almoço','jantar','ifood','delivery'], 2),
+  ('fixo',        '🏠', ARRAY['aluguel','condomínio','luz','água','internet','assinatura'], 3),
+  ('lazer',       '🎉', ARRAY['cinema','bar','show','passeio','rolê'], 4),
+  ('saúde',       '⚕️', ARRAY['saude','farmácia','farmacia','médico','medico','dentista','plano'], 5),
+  ('transporte',  '🚗', ARRAY['uber','99','combustível','gasolina','metro','ônibus','onibus'], 6),
+  ('viagem',      '✈️', ARRAY['hotel','passagem','airbnb','turismo'], 7),
+  ('presente',    '🎁', ARRAY['presentinho','aniversário','natal'], 8),
+  ('outros',      '📦', ARRAY['outro','diversos','etc'], 9);
+```
 
 ### `expenses`
+Representa **uma compra/registro lógico**. Se for parcelado, gera N linhas em `expense_installments`.
+
 | Coluna | Tipo | Notas |
 |---|---|---|
 | id | uuid PK | gen_random_uuid() |
 | pagador_id | uuid FK → users | Quem pagou |
 | categoria_id | int FK → categories | |
-| valor_centavos | int | Sempre em centavos para evitar float |
+| valor_total_centavos | int | Valor cheio da compra (sempre em centavos) |
+| parcelas | int | default 1; >1 quando parcelado |
 | descricao | text | Opcional, livre |
-| data | date | default current_date |
-| divisao | text | enum: `50_50`, `so_pagador`, `customizada` |
-| split_pagador_pct | numeric | Para `customizada`; senão null |
-| origem | text | enum: `whatsapp`, `web`, `import` |
-| raw_message | text | Mensagem original do WhatsApp (para debug do parser) |
+| data_compra | date | default current_date |
+| divisao | text | enum: `50_50` (default), `so_pagador`, `customizada` |
+| split_pagador_pct | numeric | apenas para `customizada`; senão null |
+| origem | text | enum: `whatsapp`, `web`, `import`, `recorrente` |
+| recurring_template_id | uuid FK → recurring_templates | null para gastos avulsos |
+| raw_message | text | Mensagem original do WhatsApp (debug do parser) |
+| cancelado | bool | default false (soft delete) |
 | created_at | timestamptz | default now() |
+
+**Decisão da Letícia:** divisão padrão é **50/50** para tudo. Override na própria mensagem (`50 livro só`, `200 viagem 70/30`).
+
+### `expense_installments`
+Cada parcela vira uma linha. Materialização física (em vez de view derivada) facilita consulta de "gastos do mês" e cálculo de saldo.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | uuid PK | |
+| expense_id | uuid FK → expenses | ON DELETE CASCADE |
+| numero | int | 1, 2, 3... (para "1/3", "2/3" no painel) |
+| valor_centavos | int | valor_total / parcelas; ajuste de arredondamento na última |
+| data_competencia | date | mês ao qual a parcela pertence (ex: 1ª = data_compra; 2ª = +1 mês; etc) |
+| created_at | timestamptz | |
+
+**Trigger:** ao inserir em `expenses`, gerar automaticamente N linhas em `expense_installments`. Implementação fica em `db/migrations/003_installments_trigger.sql`.
+
+**Fórmula de divisão de centavos** (para evitar perda):
+```
+valor_por_parcela = floor(valor_total / parcelas)
+ajuste_ultima     = valor_total - (valor_por_parcela * (parcelas - 1))
+```
+Exemplo: R$280 em 3x → 9333, 9333, 9334 centavos.
+
+### `recurring_templates`
+Decisão da Letícia: **cadastrar gastos recorrentes como template** que gera lançamento automático todo mês.
+
+| Coluna | Tipo | Notas |
+|---|---|---|
+| id | uuid PK | |
+| pagador_id | uuid FK → users | |
+| categoria_id | int FK → categories | |
+| valor_centavos | int | |
+| descricao | text | "Aluguel", "Netflix", "Plano de saúde" |
+| divisao | text | mesmo enum de `expenses` |
+| split_pagador_pct | numeric | |
+| dia_do_mes | int | 1-28 (evitar 29-31 por mêses curtos) |
+| ativo | bool | default true |
+| created_at | timestamptz | |
+
+**Execução:** Edge Function (Supabase Cron) roda **diariamente às 08:00 BRT** e cria registros em `expenses` para todos os templates ativos com `dia_do_mes = current_date_day` que ainda não geraram lançamento neste mês.
+
+Idempotência: index único em `(recurring_template_id, EXTRACT(YEAR FROM data_compra), EXTRACT(MONTH FROM data_compra))` em `expenses`.
 
 ### `transfers` (acertos entre o casal)
 | Coluna | Tipo | Notas |
@@ -51,7 +122,7 @@ Lista inicial de categorias decidida em conjunto com Letícia (ver KANBAN, taref
 | nota | text | "PIX do mês", "acerto da viagem" |
 | created_at | timestamptz | |
 
-### `insights` (camada de inteligência — V1.5)
+### `insights` (Fase 2)
 | Coluna | Tipo | Notas |
 |---|---|---|
 | id | uuid PK | |
@@ -66,44 +137,41 @@ Lista inicial de categorias decidida em conjunto com Letícia (ver KANBAN, taref
 ## Views
 
 ### `v_saldo_atual`
-Quanto cada um deve ao outro **agora**.
+Saldo entre o casal **considerando apenas parcelas com `data_competencia <= current_date`**.
 
-```sql
--- Conceito (a refinar na implementação):
--- Para cada despesa, calcula a parte que cada um deveria ter pago vs. quem pagou.
--- Soma tudo, descontando transfers já realizados.
--- Retorna 1 linha: { devedor_id, credor_id, valor_centavos }
-```
+Lógica:
+1. Para cada `expense_installment` ativo (expense não cancelado, competência <= hoje), calcula a parte que cada um deveria ter pago vs. quem pagou.
+2. Soma as diferenças.
+3. Subtrai `transfers` já realizados.
+4. Retorna 1 linha: `{ devedor_id, credor_id, valor_centavos }` (ou saldo zerado).
 
 ### `v_gastos_por_categoria_mes`
-Agregação para o painel.
+Agrega `expense_installments` por categoria + mês de competência.
 
 ### `v_gastos_mensais`
-Série temporal para o gráfico de tendência.
+Série temporal para o gráfico de tendência (12 meses corridos).
 
 ## Regras de divisão (defaults)
 
-- **50/50** → divisão padrão de tudo que afeta os dois (mercado, fixo, lazer compartilhado)
-- **só pagador** → gastos pessoais (ex: presente individual, hobby de um só)
-- **customizada** → percentual livre (ex: 70/30 quando a renda muda muito)
+- **50/50** → padrão fixo (decisão da Letícia)
+- **só pagador** → palavra-chave `só` ou `solo` na mensagem (gastos pessoais — presente individual, hobby de um só)
+- **customizada** → percentual livre (ex: 70/30) só quando explicitado na mensagem
 
-A regra deve ser **fácil de sobrescrever** na mensagem do WhatsApp:
+## Política de centavos
 
-```
-120 mercado          → 50/50 (default)
-80 livro só          → 100% do pagador
-200 viagem 70/30     → split customizado
-```
+Todo valor monetário em **centavos como inteiro**. Nunca float, nunca decimal. Conversão para reais só na camada de apresentação.
 
-## Migrações
+## Migrations
 
-- Migrations versionadas em `db/migrations/` (formato Supabase CLI: `001_initial.sql`, `002_categories_seed.sql`, etc.)
+- Migrations versionadas em `db/migrations/` (formato Supabase CLI):
+  - `001_initial_schema.sql` (users, categories, expenses, transfers)
+  - `002_categories_seed.sql`
+  - `003_installments.sql` (tabela + trigger)
+  - `004_recurring_templates.sql`
+  - `005_views.sql`
+  - `006_rls.sql` (Row Level Security)
 - Nunca alterar migration já aplicada — sempre criar nova
 - Rollback documentado para cada migration que altera dados
 
-## Decisões pendentes (a discutir com Letícia)
-
-- [ ] Lista final de categorias e emojis
-- [ ] Default de divisão (50/50 confirmado? ou proporcional à renda?)
-- [ ] Como tratar parcelamento (cartão em 6x): registra tudo na compra ou mês a mês?
-- [ ] Recorrentes (aluguel, streaming): cadastrar como template para auto-registrar?
+## Decisões pendentes
+*(nenhuma — schema congelado para Fase 1)*

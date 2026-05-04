@@ -9,25 +9,6 @@
 
 ### Fase 1 — MVP
 
-#### [F1-01] Criar conta Meta Business + WhatsApp Cloud API
-- **Dono:** Victor (CEO)
-- **Estimativa:** 1h
-- **Bloqueador para:** F1-04 (webhook)
-- **DoD:** `phone_number_id` e `access_token` em mãos, número de teste enviando mensagem para o webhook fake (ngrok)
-- **Notas:** Tutorial em developers.facebook.com/docs/whatsapp/cloud-api/get-started
-
-#### [F1-02] Criar projeto no Supabase
-- **Dono:** Victor (CEO)
-- **Estimativa:** 15min
-- **Bloqueador para:** F1-05 (migrations)
-- **DoD:** Projeto criado, URL e `service_role_key` salvos em local seguro, compartilhados com Claude Code via secret manager (não por chat)
-
-#### [F1-03] Criar repositório GitHub privado `dindin`
-- **Dono:** Victor (CEO)
-- **Estimativa:** 5min
-- **Bloqueador para:** todos os F1-XX de código
-- **DoD:** Repo criado, Claude Code com acesso de write, branch `main` protegida
-
 #### [F1-04] Setup Next.js + estrutura de monorepo
 - **Dono:** Claude Code
 - **Estimativa:** 2h
@@ -35,57 +16,56 @@
 
 #### [F1-05] Migrations iniciais do Supabase
 - **Dono:** Claude Code
-- **Estimativa:** 3h
-- **Depende:** F1-02
-- **DoD:** Tabelas `users`, `categories`, `expenses`, `transfers` criadas; seed das categorias rodado; RLS habilitado e testado
+- **Estimativa:** 4h
+- **DoD:** Tabelas `users`, `categories`, `expenses`, `expense_installments`, `recurring_templates`, `transfers` criadas; trigger de geração de parcelas testado; seed das 9 categorias rodado; RLS habilitado e testado
 
 #### [F1-06] Webhook do WhatsApp (recebe e ecoa)
 - **Dono:** Claude Code
 - **Estimativa:** 4h
-- **Depende:** F1-01, F1-04
-- **DoD:** Mensagem enviada no WhatsApp aparece nos logs do Vercel; bot responde "recebi: <texto>"
+- **Depende:** F1-04
+- **DoD:** Mensagem enviada no WhatsApp aparece nos logs do Vercel; bot responde "recebi: <texto>"; validação HMAC da Meta implementada
 
 #### [F1-07] Parser V1 (regex + heurísticas)
 - **Dono:** Claude Code
-- **Estimativa:** 6h
+- **Estimativa:** 8h
 - **Depende:** F1-06
-- **DoD:** Mensagens da `BOT_SPEC.md` são parseadas corretamente; cobertura de testes >80%
+- **DoD:** Todos os comandos da `BOT_SPEC.md` (V1) parseados corretamente, incluindo apelidos Vitim/Gaia e parcelas (`280 em 3x`); cobertura de testes >80%
 
 #### [F1-08] Persistência + cálculo de saldo
 - **Dono:** Claude Code
 - **Estimativa:** 4h
 - **Depende:** F1-05, F1-07
-- **DoD:** Mensagem `120 mercado` cria linha em `expenses`; comando `saldo` retorna valor correto (validado com 5 cenários manuais)
+- **DoD:** Mensagem `120 mercado` cria linha em `expenses` + 1 em `expense_installments`; `280 mercado em 3x` cria 1+3; comando `saldo` retorna valor correto (validado com 5 cenários manuais documentados)
 
-#### [F1-09] Comandos auxiliares (saldo, mês, apagar)
+#### [F1-09] Comandos auxiliares (saldo, mês, apagar, recorrentes)
 - **Dono:** Claude Code
-- **Estimativa:** 4h
+- **Estimativa:** 5h
 - **Depende:** F1-08
-- **DoD:** Todos os comandos da `BOT_SPEC.md` (V1) funcionando
+- **DoD:** Todos os comandos da `BOT_SPEC.md` (V1) funcionando, incluindo cadastro/listagem/pausa de recorrentes
+
+#### [F1-09b] Cron de recorrentes
+- **Dono:** Claude Code
+- **Estimativa:** 2h
+- **Depende:** F1-09
+- **DoD:** Edge Function rodando diariamente 08:00 BRT, gera `expenses` para templates ativos; idempotente (não duplica se rodar 2x); testado avançando data manualmente
 
 #### [F1-10] Web app — login + lista de gastos
 - **Dono:** Claude Code
 - **Estimativa:** 6h
 - **Depende:** F1-05
-- **DoD:** Magic link funciona, lista do mês paginada, saldo no topo, mobile-first, instalável como PWA
+- **DoD:** Magic link funciona, lista do mês paginada, saldo no topo, mobile-first, instalável como PWA, mostra ícone de parcela (1/3) quando aplicável
 
-#### [F1-11] Validação UX com Letícia
-- **Dono:** Letícia + Victor
+#### [F1-11] Validação UX com Gaia
+- **Dono:** Gaia + Vitim
 - **Estimativa:** 30min de sessão
 - **Depende:** F1-09, F1-10
-- **DoD:** Letícia consegue registrar 3 gastos diferentes sem ajuda; feedback colhido em ata
-
-#### [F1-12] Decisões com Letícia (categorias, divisão, recorrentes)
-- **Dono:** Victor + Letícia
-- **Estimativa:** 30min
-- **Bloqueador para:** F1-05 (seed final)
-- **DoD:** Lista de categorias congelada, regra de divisão default decidida, decisão sobre parcelamento documentada em `DATA_MODEL.md`
+- **DoD:** Gaia consegue registrar 3 gastos diferentes (1 simples, 1 parcelado, 1 recorrente) sem ajuda; feedback colhido em ata
 
 #### [F1-13] Piloto de 30 dias
-- **Dono:** Victor + Letícia
+- **Dono:** Vitim + Gaia
 - **Estimativa:** 30 dias corridos
 - **Depende:** F1-11
-- **DoD:** Casal usa o sistema diariamente; abandono = falha da Fase 1
+- **DoD:** Casal usa o sistema diariamente; abandono = falha da Fase 1, retrospectiva e replanejamento
 
 ---
 
@@ -99,7 +79,7 @@
 ---
 
 ## 🚧 Em andamento
-*(vazio)*
+*(vazio — aguardando handoff para Claude Code)*
 
 ---
 
@@ -110,21 +90,33 @@
 
 ## ✅ Concluído
 
-### Fase 0
+### Fase 0 — Planejamento
 - [F0-01] Definição de stack e arquitetura — Claude.ai
-- [F0-02] README, ARCHITECTURE, DATA_MODEL, BOT_SPEC, ROADMAP, KANBAN — Claude.ai
-- [F0-03] Definição de papéis do time — Victor
+- [F0-02] README, ARCHITECTURE, DATA_MODEL, BOT_SPEC, ROADMAP, KANBAN, NEXT_STEPS — Claude.ai
+- [F0-03] Definição de papéis do time — Vitim
+- [F0-04] HANDOFF.md preparado para Claude Code — Claude.ai
+
+### Fase 1 — pré-trabalho do CEO
+- [F1-01] ✅ Conta Meta Business + WhatsApp Cloud API criada — Vitim
+- [F1-02] ✅ Projeto Supabase provisionado — Vitim
+- [F1-03] ✅ Repositório GitHub privado `dindin` criado — Vitim
+- [F1-12] ✅ Decisões com Gaia (categorias, divisão, parcelas, recorrentes, apelidos) — Vitim + Gaia
+  - Categorias: mercado, restaurante, fixo, lazer, saúde, transporte, viagem, presente, outros
+  - Divisão default: 50/50
+  - Parcelas: registrar valor cheio + N parcelas; sistema gera lançamentos mensais
+  - Recorrentes: template automático
+  - Apelidos: Vitim e Gaia
 
 ---
 
-## Indicadores do projeto (atualizar semanalmente)
+## Indicadores do projeto
 
 | Indicador | Meta | Atual |
 |---|---|---|
-| Cards F1 concluídos | 13 | 0 (0%) |
+| Cards F1 concluídos | 13 | 4 (31%) |
 | Lead time médio (Backlog → Concluído) | <5 dias | n/a |
 | WIP | ≤2 simultâneos | 0 |
-| Bloqueios ativos | 0 | 3 (F1-04, F1-05, F1-06 dependem do CEO) |
+| Bloqueios ativos | 0 | **0 — Fase 1 destravada para Claude Code** ✅ |
 
 ---
 
