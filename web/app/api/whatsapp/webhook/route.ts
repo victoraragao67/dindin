@@ -1,0 +1,8 @@
+// Placeholder — implementado no card F1-06
+export async function GET() {
+  return new Response('ok')
+}
+
+export async function POST() {
+  return new Response('ok')
+}

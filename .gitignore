@@ -1,0 +1,23 @@
+# Dependências
+node_modules/
+.pnpm-store/
+
+# Next.js
+web/.next/
+web/out/
+
+# Variáveis de ambiente — NUNCA commitar
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+web/next-env.d.ts
+
+# OS
+.DS_Store
+Thumbs.db
