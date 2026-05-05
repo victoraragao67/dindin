@@ -1,0 +1,29 @@
+# Dependências
+node_modules/
+.pnpm-store/
+
+# Next.js
+web/.next/
+web/out/
+
+# SW gerado pelo next-pwa
+web/public/workbox-*.js
+web/public/sw.js
+web/public/worker-*.js
+web/public/fallback-*.js
+
+# Variáveis de ambiente — NUNCA commitar
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+web/next-env.d.ts
+
+# OS
+.DS_Store
+Thumbs.db
