@@ -110,11 +110,6 @@
 
 ## 🚧 Em andamento
 
-#### [F1-03] Configuração PWA (manifest + service worker)
-- **Dono:** Claude Code
-- **Estimativa:** 3h
-- **Depende:** F1-01 ✅
-
 #### [F1-04] Auth (magic link)
 - **Dono:** Claude Code
 - **Estimativa:** 3h
@@ -130,6 +125,9 @@
 ## ✅ Concluído
 
 ### Fase 1 — MVP PWA
+
+#### [F1-03] Configuração PWA — Claude Code ✅ *06/mai/2026*
+- next-pwa configurado; manifest gerado; ícones criados; PWA instalado na tela inicial ✅
 
 #### [F1-02] Migrations Supabase + seeds — Claude Code ✅ *06/mai/2026*
 - 7 migrations aplicadas; todas as tabelas criadas; trigger de parcelas funcional (R$280 em 3x → 9333/9333/9334 ✅); seed das 9 categorias + Victor e Letícia ✅; v_saldo_atual ok ✅; RLS habilitado
@@ -160,7 +158,7 @@
 
 | Indicador | Meta | Atual |
 |---|---|---|
-| Cards F1 concluídos | 15 | 2 (13%) — F1-01 e F1-02 ✅ |
+| Cards F1 concluídos | 15 | 3 (20%) — F1-01, F1-02, F1-03 ✅ |
 | Lead time médio (Backlog → Concluído) | <5 dias | n/a |
 | WIP | ≤2 simultâneos | 2 |
 | Bloqueios ativos | 0 | 0 ✅ |
