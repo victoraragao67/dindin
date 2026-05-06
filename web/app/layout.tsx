@@ -11,11 +11,15 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: { default: 'DinDin', template: '%s · DinDin' },
-  description: 'Controle financeiro do casal — registe gastos em segundos',
+  description: 'Controle financeiro do casal',
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'DinDin',
+  },
+  icons: {
+    apple: '/apple-touch-icon.png',
   },
 }
 
