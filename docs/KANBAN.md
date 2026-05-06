@@ -109,7 +109,11 @@
 ---
 
 ## 🚧 Em andamento
-*(vazio — aguardando handoff para Claude Code)*
+
+#### [F1-02] Migrations Supabase + seeds
+- **Dono:** Claude Code
+- **Estimativa:** 4h
+- **DoD:** Migrations 001-007 aplicadas; tabelas `users`, `categories`, `expenses`, `expense_installments`, `recurring_templates`, `transfers`, `push_subscriptions` criadas; trigger de geração de parcelas testado; seed das 9 categorias rodado; RLS habilitado
 
 ---
 
@@ -119,6 +123,13 @@
 ---
 
 ## ✅ Concluído
+
+### Fase 1 — MVP PWA
+
+#### [F1-01] Setup Next.js + monorepo + Vercel — Claude Code ✅ *06/mai/2026*
+- Monorepo pnpm com workspace `web/`; Next.js 14 + Tailwind + ESLint + Prettier
+- `.env.example` populado; `web/README.md` completo
+- Deploy no Vercel (`dindin-web-virid.vercel.app`) mostrando "Hello DinDin" ✅
 
 ### Fase 0 — Planejamento
 - [F0-01] Definição de stack e arquitetura — Claude.ai
@@ -141,10 +152,10 @@
 
 | Indicador | Meta | Atual |
 |---|---|---|
-| Cards F1 concluídos | 15 | 0 (0%) |
+| Cards F1 concluídos | 15 | 1 (7%) |
 | Lead time médio (Backlog → Concluído) | <5 dias | n/a |
-| WIP | ≤2 simultâneos | 0 |
-| Bloqueios ativos | 0 | **0 — pronto pro Claude Code começar F1-01** ✅ |
+| WIP | ≤2 simultâneos | 1 |
+| Bloqueios ativos | 0 | 0 ✅ |
 
 ---
 
