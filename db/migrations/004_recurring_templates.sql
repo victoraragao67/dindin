@@ -34,10 +34,11 @@ ALTER TABLE public.expenses
 -- ── Índice de idempotência do cron ───────────────────────────
 -- Garante que o Edge Function de cron não gere 2 lançamentos
 -- do mesmo template no mesmo mês, mesmo se rodar mais de uma vez.
+-- Usa date_trunc('month', ...) em vez de EXTRACT()::int porque
+-- expressões de índice não aceitam o operador :: no Postgres.
 CREATE UNIQUE INDEX uq_expense_recurring_mes
   ON public.expenses (
     recurring_template_id,
-    EXTRACT(YEAR  FROM data_compra)::int,
-    EXTRACT(MONTH FROM data_compra)::int
+    date_trunc('month', data_compra::timestamp)
   )
   WHERE recurring_template_id IS NOT NULL;
