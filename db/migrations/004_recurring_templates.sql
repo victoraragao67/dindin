@@ -39,6 +39,6 @@ ALTER TABLE public.expenses
 CREATE UNIQUE INDEX uq_expense_recurring_mes
   ON public.expenses (
     recurring_template_id,
-    date_trunc('month', data_compra::timestamptz)
+    date_trunc('month', data_compra::timestamp)
   )
   WHERE recurring_template_id IS NOT NULL;
