@@ -119,10 +119,13 @@ function buildCrcTable() {
   return t
 }
 
+// #0f172a = slate-900 (cor de fundo do DinDin)
+const BRAND_COLOR = '0f172a'
+
 const icons = [
-  { name: 'icon-192.png',        size: 192, color: '22c55e' },
-  { name: 'icon-512.png',        size: 512, color: '22c55e' },
-  { name: 'apple-touch-icon.png', size: 180, color: '22c55e' },
+  { name: 'icon-192.png',         size: 192, color: BRAND_COLOR },
+  { name: 'icon-512.png',         size: 512, color: BRAND_COLOR },
+  { name: 'apple-touch-icon.png', size: 180, color: BRAND_COLOR },
 ]
 
 for (const { name, size, color } of icons) {

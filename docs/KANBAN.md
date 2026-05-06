@@ -110,10 +110,15 @@
 
 ## 🚧 Em andamento
 
-#### [F1-02] Migrations Supabase + seeds
+#### [F1-03] Configuração PWA (manifest + service worker)
 - **Dono:** Claude Code
-- **Estimativa:** 4h
-- **DoD:** Migrations 001-007 aplicadas; tabelas `users`, `categories`, `expenses`, `expense_installments`, `recurring_templates`, `transfers`, `push_subscriptions` criadas; trigger de geração de parcelas testado; seed das 9 categorias rodado; RLS habilitado
+- **Estimativa:** 3h
+- **Depende:** F1-01 ✅
+
+#### [F1-04] Auth (magic link)
+- **Dono:** Claude Code
+- **Estimativa:** 3h
+- **Depende:** F1-02 ✅
 
 ---
 
@@ -125,6 +130,9 @@
 ## ✅ Concluído
 
 ### Fase 1 — MVP PWA
+
+#### [F1-02] Migrations Supabase + seeds — Claude Code ✅ *06/mai/2026*
+- 7 migrations aplicadas; todas as tabelas criadas; trigger de parcelas funcional (R$280 em 3x → 9333/9333/9334 ✅); seed das 9 categorias + Victor e Letícia ✅; v_saldo_atual ok ✅; RLS habilitado
 
 #### [F1-01] Setup Next.js + monorepo + Vercel — Claude Code ✅ *06/mai/2026*
 - Monorepo pnpm com workspace `web/`; Next.js 14 + Tailwind + ESLint + Prettier
@@ -152,9 +160,9 @@
 
 | Indicador | Meta | Atual |
 |---|---|---|
-| Cards F1 concluídos | 15 | 1 (7%) |
+| Cards F1 concluídos | 15 | 2 (13%) — F1-01 e F1-02 ✅ |
 | Lead time médio (Backlog → Concluído) | <5 dias | n/a |
-| WIP | ≤2 simultâneos | 1 |
+| WIP | ≤2 simultâneos | 2 |
 | Bloqueios ativos | 0 | 0 ✅ |
 
 ---
