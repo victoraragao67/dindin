@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatCurrency } from '@/lib/money'
 import { todayBRTStr } from '@/lib/date'
-import { criarGasto, criarRecorrente, editarRecorrente } from '@/app/(app)/actions'
-import type { RecorrenteInput } from '@/app/(app)/actions'
+import { criarGasto, atualizarGasto, criarRecorrente, editarRecorrente } from '@/app/(app)/actions'
+import type { NovoGastoInput, RecorrenteInput } from '@/app/(app)/actions'
 
 const CATEGORIES = [
   { id: 1, nome: 'mercado',     emoji: '🛒' },
@@ -22,6 +22,7 @@ type Apelido = 'Vitim' | 'Gaia'
 type Divisao = '50_50' | 'so_pagador' | 'customizada'
 
 export type RecorrenteInitial = RecorrenteInput & { id: string }
+export type GastoInitial = NovoGastoInput & { id: string }
 
 type Props = {
   open: boolean
@@ -29,7 +30,8 @@ type Props = {
   currentApelido: Apelido
   onSuccess: (msg: string) => void
   modo?: 'gasto' | 'recorrente'
-  editando?: RecorrenteInitial   // preenche o modal para edição
+  editando?: RecorrenteInitial    // edição de recorrente
+  editandoGasto?: GastoInitial    // edição de gasto
 }
 
 function dateMinus(days: number): string {
@@ -49,13 +51,13 @@ function labelForDate(dateStr: string): string {
   return `${d}/${m}/${y}`
 }
 
-export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo = 'gasto', editando }: Props) {
+export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo = 'gasto', editando, editandoGasto }: Props) {
   const inputRef  = useRef<HTMLInputElement>(null)
   const dateRef   = useRef<HTMLInputElement>(null)
   const isRecorrente = modo === 'recorrente'
   const titulo = isRecorrente
     ? (editando ? 'Editar recorrente' : 'Novo recorrente')
-    : 'Novo gasto'
+    : editandoGasto ? 'Editar gasto' : 'Novo gasto'
 
   // ── Campos básicos ──────────────────────────────────────────
   const [rawDigits, setRawDigits]     = useState('')
@@ -96,7 +98,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
   useEffect(() => {
     if (open) {
       if (editando) {
-        // Preencher com dados existentes
+        // Preencher com dados existentes (recorrente)
         setRawDigits(String(editando.valor_centavos))
         setCategoriaId(editando.categoria_id)
         setPagador(editando.pagador_apelido)
@@ -105,6 +107,19 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
         setSplitPct(editando.split_pagador_pct ?? 50)
         setDiaDoMes(editando.dia_do_mes)
         if (editando.divisao !== '50_50') setAvancadoOpen(true)
+      } else if (editandoGasto) {
+        // Preencher com dados existentes (gasto)
+        setRawDigits(String(editandoGasto.valor_total_centavos))
+        setCategoriaId(editandoGasto.categoria_id)
+        setPagador(editandoGasto.pagador_apelido)
+        setParcelas(editandoGasto.parcelas)
+        setDivisao(editandoGasto.divisao)
+        setSplitPct(editandoGasto.split_pagador_pct ?? 50)
+        setDataCompra(editandoGasto.data_compra ?? todayBRTStr())
+        setDescricao(editandoGasto.descricao ?? '')
+        if (editandoGasto.divisao !== '50_50' || editandoGasto.parcelas > 1 || editandoGasto.descricao) {
+          setAvancadoOpen(true)
+        }
       }
       setTimeout(() => inputRef.current?.focus(), 50)
     } else {
@@ -158,7 +173,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
         ? await editarRecorrente(editando.id, payload)
         : await criarRecorrente(payload)
     } else {
-      result = await criarGasto({
+      const gastoPayload = {
         valor_total_centavos: centavos,
         categoria_id: categoriaId,
         pagador_apelido: pagador,
@@ -167,7 +182,10 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
         split_pagador_pct: divisao === 'customizada' ? splitPct : null,
         data_compra: dataCompra,
         descricao: descricao.trim() || null,
-      })
+      }
+      result = editandoGasto
+        ? await atualizarGasto(editandoGasto.id, gastoPayload)
+        : await criarGasto(gastoPayload)
     }
 
     setSaving(false)

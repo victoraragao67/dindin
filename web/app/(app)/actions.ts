@@ -90,6 +90,72 @@ export async function criarGasto(input: NovoGastoInput): Promise<ActionResult> {
   return { data: { id: data.id } }
 }
 
+export async function atualizarGasto(id: string, input: NovoGastoInput): Promise<ActionResult> {
+  const parsed = NovoGastoSchema.safeParse(input)
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
+
+  const { valor_total_centavos, categoria_id, pagador_apelido, parcelas, divisao, split_pagador_pct, data_compra, descricao } = parsed.data
+
+  if (divisao === 'customizada' && split_pagador_pct === null) {
+    return { error: 'Informe o percentual para divisão customizada' }
+  }
+
+  const pagadorId = await resolverPagadorId(pagador_apelido)
+  if (!pagadorId) return { error: 'Usuário não encontrado.' }
+
+  const supabase = createClient()
+
+  // Cancela o expense atual e cria um novo (recria as installments via trigger)
+  const { error: cancelErr } = await supabase
+    .from('expenses')
+    .update({ cancelado: true })
+    .eq('id', id)
+
+  if (cancelErr) return { error: 'Erro ao cancelar gasto original.' }
+
+  const { data, error } = await supabase
+    .from('expenses')
+    .insert({
+      pagador_id: pagadorId,
+      categoria_id,
+      valor_total_centavos,
+      parcelas,
+      divisao,
+      split_pagador_pct: divisao === 'customizada' ? split_pagador_pct : null,
+      data_compra: data_compra ?? todayBRTStr(),
+      descricao: descricao || null,
+      origem: 'pwa',
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    // Reverte o cancelamento se a recriação falhou
+    await supabase.from('expenses').update({ cancelado: false }).eq('id', id)
+    console.error('[atualizarGasto]', error.message)
+    return { error: 'Erro ao salvar alterações. Tente novamente.' }
+  }
+
+  revalidatePath('/')
+  return { data: { id: data.id } }
+}
+
+export async function cancelarGasto(id: string): Promise<ActionResult> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('expenses')
+    .update({ cancelado: true })
+    .eq('id', id)
+
+  if (error) {
+    console.error('[cancelarGasto]', error.message)
+    return { error: 'Erro ao excluir gasto.' }
+  }
+
+  revalidatePath('/')
+  return { data: { id } }
+}
+
 // ── Recorrentes ───────────────────────────────────────────────
 
 export async function criarRecorrente(input: RecorrenteInput): Promise<ActionResult> {
