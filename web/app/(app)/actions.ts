@@ -186,3 +186,52 @@ export async function removerRecorrente(id: string): Promise<ActionResult> {
   revalidatePath('/recorrentes')
   return { data: { id } }
 }
+
+// ── Acertos (transferências) ──────────────────────────────────
+
+const AcertoSchema = z.object({
+  de_apelido:     z.enum(['Vitim', 'Gaia']),
+  para_apelido:   z.enum(['Vitim', 'Gaia']),
+  valor_centavos: z.number().int().positive().max(5_000_000),
+  data:           z.string().date(),
+  nota:           z.string().max(200).nullable().default(null),
+}).refine(d => d.de_apelido !== d.para_apelido, {
+  message: 'De e Para não podem ser a mesma pessoa',
+})
+
+export type AcertoInput = z.infer<typeof AcertoSchema>
+
+export async function registrarAcerto(input: AcertoInput): Promise<ActionResult> {
+  const parsed = AcertoSchema.safeParse(input)
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
+
+  const { de_apelido, para_apelido, valor_centavos, data, nota } = parsed.data
+
+  const [deId, paraId] = await Promise.all([
+    resolverPagadorId(de_apelido),
+    resolverPagadorId(para_apelido),
+  ])
+  if (!deId)   return { error: 'Usuário "De" não encontrado.' }
+  if (!paraId) return { error: 'Usuário "Para" não encontrado.' }
+
+  const supabase = createClient()
+  const { data: row, error } = await supabase
+    .from('transfers')
+    .insert({
+      de_id:          deId,
+      para_id:        paraId,
+      valor_centavos,
+      data,
+      nota:           nota || null,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    console.error('[registrarAcerto]', error.message)
+    return { error: 'Erro ao registrar acerto. Tente novamente.' }
+  }
+
+  revalidatePath('/')
+  return { data: { id: row.id } }
+}
