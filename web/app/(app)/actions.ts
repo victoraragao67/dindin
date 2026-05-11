@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { todayBRTStr } from '@/lib/date'
 
 const NovoGastoSchema = z.object({
   valor_total_centavos: z
@@ -12,6 +13,11 @@ const NovoGastoSchema = z.object({
     .max(5_000_000, 'Valor muito alto (máximo R$ 50.000)'),
   categoria_id: z.number().int().min(1).max(9),
   pagador_apelido: z.enum(['Vitim', 'Gaia']),
+  parcelas: z.number().int().min(1).max(24).default(1),
+  divisao: z.enum(['50_50', 'so_pagador', 'customizada']).default('50_50'),
+  split_pagador_pct: z.number().min(0).max(100).nullable().default(null),
+  data_compra: z.string().nullable().default(null), // YYYY-MM-DD
+  descricao: z.string().max(200).nullable().default(null),
 })
 
 export type NovoGastoInput = z.infer<typeof NovoGastoSchema>
@@ -23,7 +29,22 @@ export async function criarGasto(input: NovoGastoInput): Promise<ActionResult> {
     return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
   }
 
-  const { valor_total_centavos, categoria_id, pagador_apelido } = parsed.data
+  const {
+    valor_total_centavos,
+    categoria_id,
+    pagador_apelido,
+    parcelas,
+    divisao,
+    split_pagador_pct,
+    data_compra,
+    descricao,
+  } = parsed.data
+
+  // Validação extra: customizada exige split_pagador_pct
+  if (divisao === 'customizada' && split_pagador_pct === null) {
+    return { error: 'Informe o percentual para divisão customizada' }
+  }
+
   const supabase = createClient()
 
   // Resolve pagador_id pelo apelido
@@ -43,8 +64,11 @@ export async function criarGasto(input: NovoGastoInput): Promise<ActionResult> {
       pagador_id: pagador.id,
       categoria_id,
       valor_total_centavos,
-      parcelas: 1,
-      divisao: '50_50',
+      parcelas,
+      divisao,
+      split_pagador_pct: divisao === 'customizada' ? split_pagador_pct : null,
+      data_compra: data_compra ?? todayBRTStr(),
+      descricao: descricao || null,
       origem: 'pwa',
     })
     .select('id')
