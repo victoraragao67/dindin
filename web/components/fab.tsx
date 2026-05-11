@@ -1,13 +1,13 @@
 'use client'
 
-/**
- * FAB — Floating Action Button.
- * Inerte neste card (F1-05). O modal de novo gasto vem no F1-06.
- */
-export function Fab() {
+type Props = {
+  onClick: () => void
+}
+
+export function Fab({ onClick }: Props) {
   return (
     <button
-      onClick={() => console.log('FAB clicado')}
+      onClick={onClick}
       aria-label="Novo gasto"
       className="
         fixed bottom-6 right-6 z-50
