@@ -6,6 +6,7 @@ import { Fab } from '@/components/fab'
 import { NovoGastoModal } from '@/components/novo-gasto-modal'
 import { Toast } from '@/components/toast'
 import { PushBanner } from '@/components/push-banner'
+import { Onboarding } from '@/components/onboarding'
 
 type Apelido = 'Vitim' | 'Gaia'
 
@@ -44,6 +45,9 @@ export function HomeClient({ currentApelido }: Props) {
 
   return (
     <>
+      {/* Onboarding sobrepõe tudo — só aparece no primeiro acesso */}
+      <Onboarding apelido={currentApelido} />
+
       <PushBanner onSubscribed={handlePushSubscribed} />
 
       <Fab onClick={() => setModalOpen(true)} />
