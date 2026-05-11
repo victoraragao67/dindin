@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Fab } from '@/components/fab'
 import { NovoGastoModal } from '@/components/novo-gasto-modal'
 import { Toast } from '@/components/toast'
+import { PushBanner } from '@/components/push-banner'
 
 type Apelido = 'Vitim' | 'Gaia'
 
@@ -24,8 +25,14 @@ export function HomeClient({ currentApelido }: Props) {
 
   const dismissToast = useCallback(() => setToast(null), [])
 
+  function handlePushSubscribed() {
+    setToast('✅ Tudo certo! Te avisamos às 22h.')
+  }
+
   return (
     <>
+      <PushBanner onSubscribed={handlePushSubscribed} />
+
       <Fab onClick={() => setModalOpen(true)} />
 
       <NovoGastoModal

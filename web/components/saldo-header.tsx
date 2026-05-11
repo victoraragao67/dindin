@@ -49,7 +49,7 @@ export async function SaldoHeader() {
     <header className="flex items-center justify-between gap-3 px-4 py-4 bg-slate-800 border-b border-slate-700">
       <p className="text-white font-semibold text-base leading-tight flex-1 min-w-0">{mensagem}</p>
       <div className="flex items-center gap-3 shrink-0">
-        <Link href="/recorrentes" className="text-slate-400 hover:text-white transition-colors text-lg" aria-label="Recorrentes">⚙️</Link>
+        <Link href="/config" className="text-slate-400 hover:text-white transition-colors text-lg" aria-label="Configurações">⚙️</Link>
         <LogoutButton />
       </div>
     </header>
