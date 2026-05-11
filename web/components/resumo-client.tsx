@@ -49,7 +49,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto pb-24 px-4 space-y-5 pt-4">
+      <div className="flex-1 overflow-y-auto px-4 space-y-5 pt-4" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
 
         {/* Seletor de mês */}
         <div className="flex items-center justify-between">
