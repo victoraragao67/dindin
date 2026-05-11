@@ -39,14 +39,12 @@ export default function LoginPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email: parsed.data,
-      options: {
-        // shouldCreateUser: false garante que só emails já cadastrados passam
-        shouldCreateUser: false,
-      },
+      // Sem shouldCreateUser:false — a whitelist acima já é a guarda de acesso
     })
 
     if (error) {
-      setErrorMsg('Falha ao enviar o código. Tente novamente.')
+      console.error('[login] signInWithOtp error:', error.message, error)
+      setErrorMsg(`Falha ao enviar o código: ${error.message}`)
       setStep('error')
       return
     }
