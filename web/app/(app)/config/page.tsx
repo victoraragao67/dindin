@@ -41,6 +41,18 @@ export default async function ConfigPage() {
           <PushToggle pushAtivo={pushAtivo} />
         </div>
 
+        {/* Acerto */}
+        <Link
+          href="/acerto"
+          className="flex items-center justify-between rounded-xl bg-slate-800 px-4 py-4"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-xl">🤝</span>
+            <span className="text-white text-sm">Registrar acerto</span>
+          </div>
+          <span className="text-slate-500 text-sm">›</span>
+        </Link>
+
         {/* Recorrentes */}
         <Link
           href="/recorrentes"
