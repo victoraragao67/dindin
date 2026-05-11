@@ -267,6 +267,55 @@ const AcertoSchema = z.object({
 
 export type AcertoInput = z.infer<typeof AcertoSchema>
 
+// ── Metas de gasto ───────────────────────────────────────────
+
+export async function salvarMeta(
+  categoriaId: number,
+  valorCentavos: number,
+  mes: number,
+  ano: number,
+): Promise<ActionResult> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data, error } = await supabase
+    .from('spending_goals')
+    .upsert(
+      { categoria_id: categoriaId, valor_centavos: valorCentavos, mes, ano, created_by: user?.id ?? null },
+      { onConflict: 'categoria_id,mes,ano' },
+    )
+    .select('id')
+    .single()
+
+  if (error) {
+    console.error('[salvarMeta]', error.message)
+    return { error: 'Erro ao salvar meta.' }
+  }
+
+  revalidatePath('/metas')
+  revalidatePath('/resumo')
+  return { data: { id: data.id } }
+}
+
+export async function removerMeta(categoriaId: number, mes: number, ano: number): Promise<ActionResult> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('spending_goals')
+    .delete()
+    .eq('categoria_id', categoriaId)
+    .eq('mes', mes)
+    .eq('ano', ano)
+
+  if (error) {
+    console.error('[removerMeta]', error.message)
+    return { error: 'Erro ao remover meta.' }
+  }
+
+  revalidatePath('/metas')
+  revalidatePath('/resumo')
+  return { data: { id: `${categoriaId}-${mes}-${ano}` } }
+}
+
 export async function registrarAcerto(input: AcertoInput): Promise<ActionResult> {
   const parsed = AcertoSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }

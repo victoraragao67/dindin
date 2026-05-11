@@ -42,13 +42,14 @@ type RecorrenteItem = {
 }
 
 export type ResumoData = {
-  mesLabel:       string
-  totalMes:       number
-  categorias:     CategoriaRow[]
-  divisao:        DivisaoItem[]
-  recorrentes:    RecorrenteItem[]
-  topGastos:      TopGasto[]
-  gastosMensais:  GastoMensalRow[]
+  mesLabel:             string
+  totalMes:             number
+  categorias:           CategoriaRow[]
+  divisao:              DivisaoItem[]
+  recorrentes:          RecorrenteItem[]
+  metasPorCategoria:    Record<number, number>
+  topGastos:            TopGasto[]
+  gastosMensais:        GastoMensalRow[]
 }
 
 /* ── Helpers ────────────────────────────────────────────────── */
@@ -90,6 +91,7 @@ export default async function ResumoPage({
     mensaisRes,
     usersRes,
     recorrentesRes,
+    metasRes,
   ] = await Promise.all([
     // Gastos por categoria no mês
     supabase
@@ -133,6 +135,13 @@ export default async function ResumoPage({
       .select('pagador_id, descricao, valor_centavos, categoria:categories(emoji)')
       .eq('ativo', true)
       .order('valor_centavos', { ascending: false }),
+
+    // Metas de gasto do mês
+    supabase
+      .from('spending_goals')
+      .select('categoria_id, valor_centavos')
+      .eq('mes', Number(mesStr.split('-')[1]))
+      .eq('ano', Number(mesStr.split('-')[0])),
   ])
 
   const categorias = (categoriasRes.data ?? []) as CategoriaRow[]
@@ -169,6 +178,12 @@ export default async function ResumoPage({
     total_centavos: r.total_centavos,
   }))
 
+  // Metas por categoria
+  const metasPorCategoria: Record<number, number> = {}
+  for (const m of (metasRes.data ?? []) as any[]) {
+    metasPorCategoria[m.categoria_id] = m.valor_centavos
+  }
+
   // Recorrentes — mapeia pagador_id → apelido e normaliza join de categoria
   const recorrentes: RecorrenteItem[] = ((recorrentesRes.data ?? []) as any[]).map(r => {
     const user = users.find(u => u.id === r.pagador_id)
@@ -181,11 +196,12 @@ export default async function ResumoPage({
   })
 
   const resumoData: ResumoData = {
-    mesLabel:      mesParaLabel(mesStr),
+    mesLabel:          mesParaLabel(mesStr),
     totalMes,
     categorias,
     divisao,
     recorrentes,
+    metasPorCategoria,
     topGastos,
     gastosMensais,
   }
