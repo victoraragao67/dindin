@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Fab } from '@/components/fab'
 import { NovoGastoModal } from '@/components/novo-gasto-modal'
 import { Toast } from '@/components/toast'
 import { PushBanner } from '@/components/push-banner'
@@ -51,8 +50,6 @@ export function HomeClient({ currentApelido }: Props) {
 
       <PushBanner onSubscribed={handlePushSubscribed} />
 
-      <Fab onClick={() => setModalOpen(true)} />
-
       <NovoGastoModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -62,7 +59,7 @@ export function HomeClient({ currentApelido }: Props) {
 
       {toast && <Toast message={toast} onDismiss={dismissToast} />}
 
-      <BottomNav />
+      <BottomNav onAddExpense={() => setModalOpen(true)} />
     </>
   )
 }

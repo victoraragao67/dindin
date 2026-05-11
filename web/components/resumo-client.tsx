@@ -2,12 +2,12 @@
 
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/bottom-nav'
-import { Fab } from '@/components/fab'
 import { formatCurrency } from '@/lib/money'
 import type { ResumoData } from '@/app/(app)/resumo/page'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
+
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 
@@ -254,9 +254,6 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
         )}
 
       </div>
-
-      {/* FAB → abre modal de novo gasto na home */}
-      <Fab onClick={() => router.push('/?modal=novo-gasto')} />
 
       <BottomNav />
     </>

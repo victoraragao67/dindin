@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/money'
-import { LogoutButton } from '@/components/logout-button'
 
 type SaldoRow = {
   devedor_id: string
@@ -48,10 +47,7 @@ export async function SaldoHeader() {
   return (
     <header className="flex items-center justify-between gap-3 px-4 py-4 bg-slate-800 border-b border-slate-700">
       <p className="text-white font-semibold text-base leading-tight flex-1 min-w-0">{mensagem}</p>
-      <div className="flex items-center gap-3 shrink-0">
-        <Link href="/config" className="text-slate-400 hover:text-white transition-colors text-lg" aria-label="Configurações">⚙️</Link>
-        <LogoutButton />
-      </div>
+      <Link href="/config" className="text-slate-400 hover:text-white transition-colors text-lg shrink-0" aria-label="Configurações">⚙️</Link>
     </header>
   )
 }
