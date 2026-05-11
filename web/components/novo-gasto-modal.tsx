@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { formatCurrency } from '@/lib/money'
+import { todayBRTStr } from '@/lib/date'
 import { criarGasto } from '@/app/(app)/actions'
 
 const CATEGORIES = [
@@ -16,7 +17,8 @@ const CATEGORIES = [
   { id: 9, nome: 'outros',      emoji: '📦' },
 ] as const
 
-type Apelido = 'Vitim' | 'Gaia'
+type Apelido   = 'Vitim' | 'Gaia'
+type Divisao   = '50_50' | 'so_pagador' | 'customizada'
 
 type Props = {
   open: boolean
@@ -25,32 +27,81 @@ type Props = {
   onSuccess: (msg: string) => void
 }
 
+function dateMinus(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+}
+
+function labelForDate(dateStr: string): string {
+  const today     = todayBRTStr()
+  const yesterday = dateMinus(1)
+  const twoDays   = dateMinus(2)
+  if (dateStr === today)     return 'Hoje'
+  if (dateStr === yesterday) return 'Ontem'
+  if (dateStr === twoDays)   return 'Anteontem'
+  // format as DD/MM/YYYY for display
+  const [y, m, d] = dateStr.split('-')
+  return `${d}/${m}/${y}`
+}
+
 export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef    = useRef<HTMLInputElement>(null)
+  const dateRef     = useRef<HTMLInputElement>(null)
 
-  // Valor armazenado como string de dígitos (representam centavos)
-  const [rawDigits, setRawDigits] = useState('')
+  // ── Campos básicos ──────────────────────────────────────────
+  const [rawDigits, setRawDigits]     = useState('')
   const [categoriaId, setCategoriaId] = useState<number | null>(null)
-  const [pagador, setPagador] = useState<Apelido>(currentApelido)
-  const [loading, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [confirmAlto, setConfirmAlto] = useState(false)
+  const [pagador, setPagador]         = useState<Apelido>(currentApelido)
 
-  const centavos = rawDigits ? parseInt(rawDigits, 10) : 0
+  // ── Avançado ────────────────────────────────────────────────
+  const [avancadoOpen, setAvancadoOpen] = useState(false)
+  const [parcelas, setParcelas]         = useState(1)
+  const [divisao, setDivisao]           = useState<Divisao>('50_50')
+  const [splitPct, setSplitPct]         = useState(50)   // percentual do pagador
+  const [dataCompra, setDataCompra]     = useState(todayBRTStr())
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [descricao, setDescricao]       = useState('')
+
+  // ── Estado da submissão ─────────────────────────────────────
+  const [loading, setSaving]     = useState(false)
+  const [error, setError]        = useState('')
+  const [confirmAlto, setConfirmAlto]   = useState(false)
+  const [confirmParcelas, setConfirmParcelas] = useState(false)
+
+  const centavos     = rawDigits ? parseInt(rawDigits, 10) : 0
   const displayValue = centavos > 0 ? formatCurrency(centavos) : ''
-  const canSave = centavos > 0 && categoriaId !== null && !loading
+  const canSave      = centavos > 0 && categoriaId !== null && !loading
 
-  // Autofocus ao abrir
+  // Preview parcelas
+  const valorPorParcela   = parcelas > 1 ? Math.floor(centavos / parcelas) : centavos
+  const previewParcelas   = parcelas > 1
+    ? `${parcelas}x de ${formatCurrency(valorPorParcela)}`
+    : 'à vista'
+
+  // Preview divisão customizada
+  const pagadorPct  = splitPct
+  const outroPct    = 100 - splitPct
+  const outraApelido: Apelido = pagador === 'Vitim' ? 'Gaia' : 'Vitim'
+
+  // Reset ao fechar
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 50)
     } else {
-      // Reset ao fechar
       setRawDigits('')
       setCategoriaId(null)
       setPagador(currentApelido)
+      setAvancadoOpen(false)
+      setParcelas(1)
+      setDivisao('50_50')
+      setSplitPct(50)
+      setDataCompra(todayBRTStr())
+      setShowDatePicker(false)
+      setDescricao('')
       setError('')
       setConfirmAlto(false)
+      setConfirmParcelas(false)
       setSaving(false)
     }
   }, [open, currentApelido])
@@ -61,12 +112,23 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
     setError('')
   }
 
+  function handleParcelasChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = Math.min(24, Math.max(1, parseInt(e.target.value) || 1))
+    setParcelas(v)
+  }
+
   async function handleSalvar() {
     if (!canSave || categoriaId === null) return
 
-    // Alerta para valor alto (>= R$ 5.000)
+    // Alerta valor alto
     if (centavos >= 500_000 && !confirmAlto) {
       setConfirmAlto(true)
+      return
+    }
+
+    // Alerta parcelas > 12
+    if (parcelas > 12 && !confirmParcelas) {
+      setConfirmParcelas(true)
       return
     }
 
@@ -77,6 +139,11 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
       valor_total_centavos: centavos,
       categoria_id: categoriaId,
       pagador_apelido: pagador,
+      parcelas,
+      divisao,
+      split_pagador_pct: divisao === 'customizada' ? splitPct : null,
+      data_compra: dataCompra,
+      descricao: descricao.trim() || null,
     })
 
     setSaving(false)
@@ -87,7 +154,11 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
     }
 
     const cat = CATEGORIES.find(c => c.id === categoriaId)
-    onSuccess(`✅ ${displayValue} — ${cat?.emoji} ${cat?.nome} · 50/50`)
+    const divisaoLabel = divisao === '50_50' ? '50/50'
+      : divisao === 'so_pagador' ? 'só pagador'
+      : `${pagadorPct}/${outroPct}`
+    const parcelasLabel = parcelas > 1 ? ` · ${parcelas}x` : ''
+    onSuccess(`✅ ${displayValue} — ${cat?.emoji} ${cat?.nome}${parcelasLabel} · ${divisaoLabel}`)
     onClose()
   }
 
@@ -95,11 +166,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
     <>
       {/* Backdrop */}
       {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60"
-          onClick={onClose}
-          aria-hidden="true"
-        />
+        <div className="fixed inset-0 z-40 bg-black/60" onClick={onClose} aria-hidden="true" />
       )}
 
       {/* Modal */}
@@ -109,8 +176,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
         aria-label="Novo gasto"
         className={`
           fixed inset-x-0 bottom-0 z-50
-          flex flex-col
-          bg-slate-800 rounded-t-2xl
+          flex flex-col bg-slate-800 rounded-t-2xl
           max-h-[92dvh] overflow-y-auto
           transition-transform duration-100 ease-out
           ${open ? 'translate-y-0' : 'translate-y-full'}
@@ -118,27 +184,18 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700 shrink-0">
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors p-1"
-            aria-label="Fechar"
-          >
-            ✕
-          </button>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1" aria-label="Fechar">✕</button>
           <span className="text-white font-semibold text-base">Novo gasto</span>
           <div className="w-7" aria-hidden="true" />
         </div>
 
-        <div className="px-4 py-5 space-y-6">
-          {/* Campo valor */}
+        <div className="px-4 py-5 space-y-6 pb-8">
+
+          {/* ── Valor ─────────────────────────────────────────── */}
           <div>
-            <label htmlFor="valor" className="block text-slate-400 text-xs font-medium mb-2">
-              VALOR
-            </label>
+            <label htmlFor="valor" className="block text-slate-400 text-xs font-medium mb-2">VALOR</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg pointer-events-none">
-                R$
-              </span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg pointer-events-none">R$</span>
               <input
                 ref={inputRef}
                 id="valor"
@@ -148,42 +205,27 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
                 onChange={handleValueChange}
                 placeholder="0,00"
                 autoComplete="off"
-                className="
-                  w-full bg-slate-900 border border-slate-700 rounded-xl
-                  pl-12 pr-4 py-4 text-white text-2xl font-semibold
-                  placeholder-slate-600
-                  focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent
-                "
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-12 pr-4 py-4 text-white text-2xl font-semibold placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
           </div>
 
-          {/* Categorias */}
+          {/* ── Categorias ────────────────────────────────────── */}
           <div>
             <p className="text-slate-400 text-xs font-medium mb-3">CATEGORIA</p>
             <div className="grid grid-cols-5 gap-2">
               {CATEGORIES.slice(0, 5).map(cat => (
-                <CategoryChip
-                  key={cat.id}
-                  cat={cat}
-                  selected={categoriaId === cat.id}
-                  onSelect={() => setCategoriaId(cat.id)}
-                />
+                <CategoryChip key={cat.id} cat={cat} selected={categoriaId === cat.id} onSelect={() => setCategoriaId(cat.id)} />
               ))}
             </div>
             <div className="grid grid-cols-4 gap-2 mt-2">
               {CATEGORIES.slice(5).map(cat => (
-                <CategoryChip
-                  key={cat.id}
-                  cat={cat}
-                  selected={categoriaId === cat.id}
-                  onSelect={() => setCategoriaId(cat.id)}
-                />
+                <CategoryChip key={cat.id} cat={cat} selected={categoriaId === cat.id} onSelect={() => setCategoriaId(cat.id)} />
               ))}
             </div>
           </div>
 
-          {/* Pago por */}
+          {/* ── Pago por ──────────────────────────────────────── */}
           <div>
             <p className="text-slate-400 text-xs font-medium mb-3">PAGO POR</p>
             <div className="flex gap-3">
@@ -191,13 +233,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
                 <button
                   key={ap}
                   onClick={() => setPagador(ap)}
-                  className={`
-                    flex-1 py-3 rounded-xl font-medium text-sm transition-colors
-                    ${pagador === ap
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }
-                  `}
+                  className={`flex-1 py-3 rounded-xl font-medium text-sm transition-colors ${pagador === ap ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                 >
                   {ap}
                 </button>
@@ -205,56 +241,167 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
             </div>
           </div>
 
-          {/* Avançado (placeholder — F1-07) */}
-          <button
-            className="flex items-center gap-2 text-slate-500 text-sm py-1"
-            disabled
-            aria-disabled="true"
-          >
-            <span className="text-xs">▸</span>
-            Avançado
-          </button>
+          {/* ── Avançado ──────────────────────────────────────── */}
+          <div className="border border-slate-700 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setAvancadoOpen(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 text-slate-400 hover:text-white transition-colors text-sm"
+            >
+              <span>{avancadoOpen ? '▾' : '▸'} Avançado</span>
+              {(parcelas > 1 || divisao !== '50_50' || dataCompra !== todayBRTStr() || descricao) && (
+                <span className="text-emerald-400 text-xs">editado</span>
+              )}
+            </button>
 
-          {/* Erros */}
-          {error && (
-            <p className="text-red-400 text-sm" role="alert">{error}</p>
-          )}
+            {avancadoOpen && (
+              <div className="px-4 pb-5 space-y-5 border-t border-slate-700">
 
-          {/* Confirmação valor alto */}
-          {confirmAlto && (
-            <div className="rounded-xl bg-amber-900/40 border border-amber-700 px-4 py-3">
-              <p className="text-amber-300 text-sm mb-3">
-                Valor de {displayValue} parece alto. Confirmar?
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setConfirmAlto(false)}
-                  className="flex-1 py-2 rounded-lg bg-slate-700 text-slate-300 text-sm"
-                >
-                  Corrigir
-                </button>
-                <button
-                  onClick={handleSalvar}
-                  className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium"
-                >
-                  Confirmar
-                </button>
+                {/* Parcelas */}
+                <div className="pt-4">
+                  <label className="block text-slate-400 text-xs font-medium mb-3">PARCELAS</label>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setParcelas(v => Math.max(1, v - 1))}
+                      className="w-10 h-10 rounded-lg bg-slate-700 text-white text-lg font-medium hover:bg-slate-600 transition-colors"
+                    >−</button>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={24}
+                      value={parcelas}
+                      onChange={handleParcelasChange}
+                      className="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-2 text-white text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                      onClick={() => setParcelas(v => Math.min(24, v + 1))}
+                      className="w-10 h-10 rounded-lg bg-slate-700 text-white text-lg font-medium hover:bg-slate-600 transition-colors"
+                    >+</button>
+                    <span className="text-slate-300 text-sm">{previewParcelas}</span>
+                  </div>
+                </div>
+
+                {/* Divisão */}
+                <div>
+                  <p className="text-slate-400 text-xs font-medium mb-3">DIVISÃO</p>
+                  <div className="space-y-2">
+                    {([ ['50_50','50/50'], ['so_pagador','Só pagador'], ['customizada','Customizada'] ] as [Divisao, string][]).map(([val, label]) => (
+                      <label key={val} className="flex items-center gap-3 cursor-pointer">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${divisao === val ? 'border-emerald-500' : 'border-slate-600'}`}>
+                          {divisao === val && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
+                        </div>
+                        <input type="radio" name="divisao" value={val} checked={divisao === val} onChange={() => setDivisao(val)} className="sr-only" />
+                        <span className="text-slate-200 text-sm">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Slider customizada */}
+                  {divisao === 'customizada' && (
+                    <div className="mt-4 space-y-3">
+                      <input
+                        type="range"
+                        min={1}
+                        max={99}
+                        value={splitPct}
+                        onChange={e => setSplitPct(Number(e.target.value))}
+                        className="w-full accent-emerald-500"
+                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={99}
+                          value={splitPct}
+                          onChange={e => setSplitPct(Math.min(99, Math.max(1, Number(e.target.value))))}
+                          className="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <span className="text-slate-400 text-sm self-center">% para {pagador}</span>
+                      </div>
+                      <p className="text-slate-400 text-xs">
+                        {pagador} paga {pagadorPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * pagadorPct / 100))})` : ''}
+                        {' · '}
+                        {outraApelido} paga {outroPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * outroPct / 100))})` : ''}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Data */}
+                <div>
+                  <p className="text-slate-400 text-xs font-medium mb-3">DATA DA COMPRA</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[todayBRTStr(), dateMinus(1), dateMinus(2)].map((d, i) => (
+                      <button
+                        key={d}
+                        onClick={() => { setDataCompra(d); setShowDatePicker(false) }}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${dataCompra === d && !showDatePicker ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                      >
+                        {i === 0 ? 'Hoje' : i === 1 ? 'Ontem' : 'Anteontem'}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => { setShowDatePicker(true); setTimeout(() => dateRef.current?.showPicker?.(), 50) }}
+                      className={`px-4 py-2 rounded-lg text-sm transition-colors ${showDatePicker ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                    >
+                      {showDatePicker ? labelForDate(dataCompra) : 'Outro'}
+                    </button>
+                  </div>
+                  <input
+                    ref={dateRef}
+                    type="date"
+                    value={dataCompra}
+                    onChange={e => { setDataCompra(e.target.value); setShowDatePicker(true) }}
+                    className={`mt-2 w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${showDatePicker ? 'block' : 'hidden'}`}
+                  />
+                </div>
+
+                {/* Descrição */}
+                <div>
+                  <label htmlFor="descricao" className="block text-slate-400 text-xs font-medium mb-2">DESCRIÇÃO</label>
+                  <textarea
+                    id="descricao"
+                    value={descricao}
+                    onChange={e => setDescricao(e.target.value.slice(0, 200))}
+                    placeholder="Descrição (opcional)"
+                    rows={2}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white text-sm placeholder-slate-600 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  {descricao.length > 150 && (
+                    <p className="text-slate-500 text-xs mt-1 text-right">{descricao.length}/200</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
+          </div>
+
+          {/* ── Erros ─────────────────────────────────────────── */}
+          {error && <p className="text-red-400 text-sm" role="alert">{error}</p>}
+
+          {/* ── Confirmação valor alto ────────────────────────── */}
+          {confirmAlto && !confirmParcelas && (
+            <ConfirmBox
+              message={`Valor de ${displayValue} parece alto. Confirmar?`}
+              onCancel={() => setConfirmAlto(false)}
+              onConfirm={() => { setConfirmAlto(false); handleSalvar() }}
+            />
           )}
 
-          {/* Botão Salvar */}
-          {!confirmAlto && (
+          {/* ── Confirmação muitas parcelas ───────────────────── */}
+          {confirmParcelas && (
+            <ConfirmBox
+              message={`${parcelas} parcelas é bastante. Confirmar?`}
+              onCancel={() => setConfirmParcelas(false)}
+              onConfirm={() => { setConfirmParcelas(false); handleSalvar() }}
+            />
+          )}
+
+          {/* ── Botão Salvar ──────────────────────────────────── */}
+          {!confirmAlto && !confirmParcelas && (
             <button
               onClick={handleSalvar}
               disabled={!canSave}
-              className="
-                w-full py-4 rounded-xl font-semibold text-base
-                bg-emerald-600 hover:bg-emerald-500
-                disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed
-                text-white transition-colors
-                mb-2
-              "
+              className="w-full py-4 rounded-xl font-semibold text-base bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white transition-colors mb-2"
             >
               {loading ? 'Salvando…' : 'Salvar'}
             </button>
@@ -265,32 +412,32 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess }: Pro
   )
 }
 
+// ── Sub-componentes ────────────────────────────────────────────
+
 function CategoryChip({
-  cat,
-  selected,
-  onSelect,
-}: {
-  cat: { id: number; nome: string; emoji: string }
-  selected: boolean
-  onSelect: () => void
-}) {
+  cat, selected, onSelect,
+}: { cat: { id: number; nome: string; emoji: string }; selected: boolean; onSelect: () => void }) {
   return (
     <button
       onClick={onSelect}
       title={cat.nome}
       aria-label={cat.nome}
       aria-pressed={selected}
-      className={`
-        flex flex-col items-center justify-center gap-1
-        rounded-xl py-3 text-xl
-        transition-colors
-        ${selected
-          ? 'bg-emerald-600/30 border-2 border-emerald-500 text-white'
-          : 'bg-slate-700 border-2 border-transparent text-white hover:bg-slate-600'
-        }
-      `}
+      className={`flex flex-col items-center justify-center gap-1 rounded-xl py-3 text-xl transition-colors ${selected ? 'bg-emerald-600/30 border-2 border-emerald-500 text-white' : 'bg-slate-700 border-2 border-transparent text-white hover:bg-slate-600'}`}
     >
       <span>{cat.emoji}</span>
     </button>
+  )
+}
+
+function ConfirmBox({ message, onCancel, onConfirm }: { message: string; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div className="rounded-xl bg-amber-900/40 border border-amber-700 px-4 py-3">
+      <p className="text-amber-300 text-sm mb-3">{message}</p>
+      <div className="flex gap-2">
+        <button onClick={onCancel} className="flex-1 py-2 rounded-lg bg-slate-700 text-slate-300 text-sm">Corrigir</button>
+        <button onClick={onConfirm} className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium">Confirmar</button>
+      </div>
+    </div>
   )
 }
