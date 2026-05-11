@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Fab } from '@/components/fab'
 import { NovoGastoModal } from '@/components/novo-gasto-modal'
@@ -17,6 +17,19 @@ export function HomeClient({ currentApelido }: Props) {
   const router = useRouter()
   const [modalOpen, setModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+
+  // Abre o modal automaticamente quando a URL tem ?modal=novo-gasto
+  // (usado pela notificação push diária)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('modal') === 'novo-gasto') {
+      setModalOpen(true)
+      // Limpa o param da URL sem recarregar a página
+      const url = new URL(window.location.href)
+      url.searchParams.delete('modal')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
 
   const handleSuccess = useCallback((msg: string) => {
     setToast(msg)

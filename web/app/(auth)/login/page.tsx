@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 
 const ALLOWED_EMAILS = ['victoraragao67@gmail.com', 'leticiar.gaia@gmail.com']
 const emailSchema = z.string().email('E-mail inválido')
-const otpSchema  = z.string().regex(/^\d{6}$/, 'Código deve ter 6 dígitos')
+const otpSchema  = z.string().regex(/^\d{6,8}$/, 'Código deve ter 6 a 8 dígitos')
 
 type Step = 'email' | 'otp' | 'loading_send' | 'loading_verify' | 'error'
 
@@ -155,14 +155,14 @@ export default function LoginPage() {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 pattern="\d{6}"
-                maxLength={6}
+                maxLength={8}
                 value={otp}
                 onChange={(e) => {
                   setOtp(e.target.value.replace(/\D/g, ''))
                   if (step === 'error') { setStep('otp'); setErrorMsg('') }
                 }}
-                placeholder="000000"
-                className="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 text-2xl tracking-[0.5em] text-center font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="00000000"
+                className="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 text-2xl tracking-[0.4em] text-center font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 disabled={loading}
                 autoFocus
               />
@@ -174,7 +174,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || otp.length !== 6}
+              disabled={loading || otp.length < 6}
               className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold py-3 text-base transition-colors"
             >
               {step === 'loading_verify' ? 'Verificando…' : 'Entrar'}
