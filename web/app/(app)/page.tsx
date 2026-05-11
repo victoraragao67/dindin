@@ -30,7 +30,7 @@ export default async function HomePage() {
       </Suspense>
 
       <Suspense fallback={<ListaGastosSkeleton />}>
-        <ListaGastos />
+        <ListaGastos currentApelido={currentApelido} />
       </Suspense>
 
       <HomeClient currentApelido={currentApelido} />
