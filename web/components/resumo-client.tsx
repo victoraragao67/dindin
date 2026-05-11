@@ -83,6 +83,12 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                 const pct = data.totalMes > 0
                   ? Math.round((cat.total_centavos / data.totalMes) * 100)
                   : 0
+                const meta = data.metasPorCategoria?.[cat.categoria_id]
+                const metaPct = meta ? Math.round((cat.total_centavos / meta) * 100) : null
+                const barColor = metaPct === null
+                  ? 'bg-emerald-500'
+                  : metaPct > 90 ? 'bg-red-500' : metaPct > 70 ? 'bg-yellow-500' : 'bg-emerald-500'
+
                 return (
                   <div key={cat.categoria_id} className="rounded-xl bg-slate-800 px-4 py-3 space-y-1.5">
                     <div className="flex items-center justify-between">
@@ -91,14 +97,23 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                         <span className="text-white text-sm">{cat.categoria_nome}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-white text-sm font-medium">{formatCurrency(cat.total_centavos)}</span>
-                        <span className="text-slate-500 text-xs ml-2">{pct}%</span>
+                        {meta ? (
+                          <span className="text-white text-sm font-medium">
+                            {formatCurrency(cat.total_centavos)}
+                            <span className="text-slate-500 text-xs"> / {formatCurrency(meta)}</span>
+                          </span>
+                        ) : (
+                          <span className="text-white text-sm font-medium">{formatCurrency(cat.total_centavos)}</span>
+                        )}
+                        <span className={`text-xs ml-2 ${metaPct !== null && metaPct > 90 ? 'text-red-400 font-semibold' : 'text-slate-500'}`}>
+                          {metaPct !== null ? `${metaPct}%` : `${pct}%`}
+                        </span>
                       </div>
                     </div>
                     <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%` }}
+                        className={`h-full ${barColor} rounded-full transition-all duration-500`}
+                        style={{ width: `${Math.min(metaPct ?? pct, 100)}%` }}
                       />
                     </div>
                   </div>

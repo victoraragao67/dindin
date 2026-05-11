@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { SaldoHeader, SaldoHeaderSkeleton } from '@/components/saldo-header'
 import { ListaGastos, ListaGastosSkeleton } from '@/components/lista-gastos'
 import { HomeClient } from '@/components/home-client'
+import { MetaAlertBanner } from '@/components/meta-alert-banner'
 
 type Apelido = 'Vitim' | 'Gaia'
 
@@ -27,6 +28,10 @@ export default async function HomePage() {
     <>
       <Suspense fallback={<SaldoHeaderSkeleton />}>
         <SaldoHeader />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <MetaAlertBanner />
       </Suspense>
 
       <Suspense fallback={<ListaGastosSkeleton />}>
