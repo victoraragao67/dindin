@@ -34,11 +34,19 @@ type DivisaoItem = {
   pct:           number
 }
 
+type RecorrenteItem = {
+  apelido:          string
+  descricao:        string
+  valor_centavos:   number
+  categoria_emoji:  string
+}
+
 export type ResumoData = {
   mesLabel:       string
   totalMes:       number
   categorias:     CategoriaRow[]
   divisao:        DivisaoItem[]
+  recorrentes:    RecorrenteItem[]
   topGastos:      TopGasto[]
   gastosMensais:  GastoMensalRow[]
 }
@@ -81,6 +89,7 @@ export default async function ResumoPage({
     topGastosRes,
     mensaisRes,
     usersRes,
+    recorrentesRes,
   ] = await Promise.all([
     // Gastos por categoria no mês
     supabase
@@ -117,6 +126,13 @@ export default async function ResumoPage({
 
     // Usuários para resolver apelidos da divisão
     supabase.from('users').select('id, apelido'),
+
+    // Recorrentes ativos para exibir compromissos fixos por pessoa
+    supabase
+      .from('recurring_templates')
+      .select('pagador_id, descricao, valor_centavos, categoria:categories(emoji)')
+      .eq('ativo', true)
+      .order('valor_centavos', { ascending: false }),
   ])
 
   const categorias = (categoriasRes.data ?? []) as CategoriaRow[]
@@ -153,11 +169,23 @@ export default async function ResumoPage({
     total_centavos: r.total_centavos,
   }))
 
+  // Recorrentes — mapeia pagador_id → apelido e normaliza join de categoria
+  const recorrentes: RecorrenteItem[] = ((recorrentesRes.data ?? []) as any[]).map(r => {
+    const user = users.find(u => u.id === r.pagador_id)
+    return {
+      apelido:         user?.apelido ?? '?',
+      descricao:       r.descricao,
+      valor_centavos:  r.valor_centavos,
+      categoria_emoji: Array.isArray(r.categoria) ? r.categoria[0]?.emoji : r.categoria?.emoji ?? '📦',
+    }
+  })
+
   const resumoData: ResumoData = {
     mesLabel:      mesParaLabel(mesStr),
     totalMes,
     categorias,
     divisao,
+    recorrentes,
     topGastos,
     gastosMensais,
   }

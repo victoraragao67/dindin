@@ -132,6 +132,45 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
           </div>
         </section>
 
+        {/* ── Bloco: Recorrentes por pessoa ── */}
+        {data.recorrentes.length > 0 && (() => {
+          // Agrupa por apelido
+          const grupos = data.recorrentes.reduce<Record<string, typeof data.recorrentes>>((acc, r) => {
+            if (!acc[r.apelido]) acc[r.apelido] = []
+            acc[r.apelido].push(r)
+            return acc
+          }, {})
+          const apelidos = Object.keys(grupos).sort()
+          return (
+            <section className="space-y-3">
+              <h2 className="text-slate-400 text-xs font-semibold uppercase tracking-wide">Recorrentes</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {apelidos.map(apelido => {
+                  const items = grupos[apelido]
+                  const total = items.reduce((s, i) => s + i.valor_centavos, 0)
+                  return (
+                    <div key={apelido} className="rounded-xl bg-slate-800 px-3 py-3 space-y-2">
+                      <p className="text-slate-400 text-xs font-semibold uppercase tracking-wide">{apelido}</p>
+                      {items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between gap-1">
+                          <span className="text-sm truncate text-slate-300">
+                            {item.categoria_emoji} {item.descricao}
+                          </span>
+                          <span className="text-white text-xs font-medium shrink-0">{formatCurrency(item.valor_centavos)}</span>
+                        </div>
+                      ))}
+                      <div className="pt-1 border-t border-slate-700 flex justify-between">
+                        <span className="text-slate-500 text-xs">Total</span>
+                        <span className="text-emerald-400 text-xs font-semibold">{formatCurrency(total)}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })()}
+
         {/* ── Bloco: Top gastos ── */}
         {data.topGastos.length > 0 && (
           <section className="space-y-3">
