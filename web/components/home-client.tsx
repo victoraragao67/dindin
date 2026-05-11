@@ -7,6 +7,7 @@ import { NovoGastoModal } from '@/components/novo-gasto-modal'
 import { Toast } from '@/components/toast'
 import { PushBanner } from '@/components/push-banner'
 import { Onboarding } from '@/components/onboarding'
+import { BottomNav } from '@/components/bottom-nav'
 
 type Apelido = 'Vitim' | 'Gaia'
 
@@ -60,6 +61,8 @@ export function HomeClient({ currentApelido }: Props) {
       />
 
       {toast && <Toast message={toast} onDismiss={dismissToast} />}
+
+      <BottomNav />
     </>
   )
 }
