@@ -60,7 +60,7 @@ export default function LoginPage() {
 
     const parsed = otpSchema.safeParse(otp.trim())
     if (!parsed.success) {
-      setErrorMsg('Digite o código de 6 dígitos do e-mail.')
+      setErrorMsg('Digite o código de 8 dígitos do e-mail.')
       setStep('otp')
       return
     }
@@ -147,14 +147,14 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <label htmlFor="otp" className="block text-sm font-medium text-slate-300">
-                Digite o código de 6 dígitos
+                Digite o código de 8 dígitos
               </label>
               <input
                 id="otp"
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                pattern="\d{6}"
+                pattern="\d{8}"
                 maxLength={8}
                 value={otp}
                 onChange={(e) => {

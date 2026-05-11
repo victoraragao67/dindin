@@ -49,6 +49,7 @@ export async function ListaGastos({ currentApelido = 'Vitim' }: { currentApelido
     `)
     .gte('data_competencia', start)
     .lte('data_competencia', end)
+    .eq('expenses.cancelado', false)
     .order('data_competencia', { ascending: false })
 
   if (error) {

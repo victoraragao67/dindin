@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { PushToggle } from '@/components/push-toggle'
+import { LogoutButton } from '@/components/logout-button'
 
 export default async function ConfigPage() {
   const supabase = createClient()
@@ -76,6 +77,12 @@ export default async function ConfigPage() {
           </div>
           <span className="text-slate-500 text-sm">›</span>
         </Link>
+
+        {/* Conta */}
+        <div className="pt-2">
+          <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide px-1 mb-2">Conta</p>
+          <LogoutButton />
+        </div>
       </div>
     </div>
   )
