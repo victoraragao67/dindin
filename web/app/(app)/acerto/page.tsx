@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/supabase/get-user'
 import { AcertoClient } from '@/components/acerto-client'
 import Link from 'next/link'
 
@@ -8,11 +9,11 @@ export default async function AcertoPage() {
   const supabase = createClient()
 
   const [
-    { data: { user } },
+    user,
     { data: saldoRows },
     { data: usersData },
   ] = await Promise.all([
-    supabase.auth.getUser(),
+    getUser(),  // deduplica com layout (React cache)
     supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
     supabase.from('users').select('id, apelido, email'),
   ])

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/supabase/get-user'
 import { ListaRecorrentes } from '@/components/lista-recorrentes'
 
 type Apelido = 'Vitim' | 'Gaia'
@@ -8,10 +9,10 @@ export default async function RecorrentesPage() {
   const supabase = createClient()
 
   const [
-    { data: { user } },
+    user,
     { data: templates },
   ] = await Promise.all([
-    supabase.auth.getUser(),
+    getUser(),  // deduplica com layout (React cache)
     supabase
       .from('recurring_templates')
       .select(`
