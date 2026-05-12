@@ -94,7 +94,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-base">{cat.categoria_emoji}</span>
-                        <span className="text-white text-sm">{cat.categoria_nome}</span>
+                        <span className="text-white text-sm capitalize">{cat.categoria_nome}</span>
                       </div>
                       <div className="text-right">
                         {meta ? (

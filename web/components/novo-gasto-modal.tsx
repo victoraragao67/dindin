@@ -19,7 +19,7 @@ const CATEGORIES = [
 ] as const
 
 type Apelido = 'Vitim' | 'Gaia'
-type Divisao = '50_50' | 'so_pagador' | 'customizada'
+type Divisao = '50_50' | 'so_pagador' | 'so_outro' | 'customizada'
 
 export type RecorrenteInitial = RecorrenteInput & { id: string }
 export type GastoInitial = NovoGastoInput & { id: string }
@@ -106,7 +106,6 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
         setDivisao(editando.divisao)
         setSplitPct(editando.split_pagador_pct ?? 50)
         setDiaDoMes(editando.dia_do_mes)
-        if (editando.divisao !== '50_50') setAvancadoOpen(true)
       } else if (editandoGasto) {
         // Preencher com dados existentes (gasto)
         setRawDigits(String(editandoGasto.valor_total_centavos))
@@ -117,7 +116,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
         setSplitPct(editandoGasto.split_pagador_pct ?? 50)
         setDataCompra(editandoGasto.data_compra ?? todayBRTStr())
         setDescricao(editandoGasto.descricao ?? '')
-        if (editandoGasto.divisao !== '50_50' || editandoGasto.parcelas > 1 || editandoGasto.descricao) {
+        if (editandoGasto.parcelas > 1) {
           setAvancadoOpen(true)
         }
       }
@@ -196,7 +195,11 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
     if (isRecorrente) {
       onSuccess(`✅ ${descricaoMain} — ${cat?.emoji} ${cat?.nome} · dia ${diaDoMes}`)
     } else {
-      const divisaoLabel = divisao === '50_50' ? '50/50' : divisao === 'so_pagador' ? 'só pagador' : `${splitPct}/${100 - splitPct}`
+      const outroAp = pagador === 'Vitim' ? 'Gaia' : 'Vitim'
+      const divisaoLabel = divisao === '50_50' ? '50/50'
+        : divisao === 'so_pagador' ? `só ${pagador}`
+        : divisao === 'so_outro'   ? `só ${outroAp}`
+        : `${splitPct}/${100 - splitPct}`
       const parcelasLabel = parcelas > 1 ? ` · ${parcelas}x` : ''
       onSuccess(`✅ ${displayValue} — ${cat?.emoji} ${cat?.nome}${parcelasLabel} · ${divisaoLabel}`)
     }
@@ -307,26 +310,76 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
             </>
           )}
 
-          {/* ── Avançado ──────────────────────────────────────── */}
-          <div className="border border-slate-700 rounded-xl overflow-hidden">
-            <button
-              onClick={() => setAvancadoOpen(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 text-slate-400 hover:text-white transition-colors text-sm"
-            >
-              <span>{avancadoOpen ? '▾' : '▸'} Avançado</span>
-              {(!isRecorrente && (parcelas > 1 || divisao !== '50_50' || dataCompra !== todayBRTStr() || descricao)) && (
-                <span className="text-emerald-400 text-xs">editado</span>
-              )}
-              {(isRecorrente && divisao !== '50_50') && (
-                <span className="text-emerald-400 text-xs">editado</span>
-              )}
-            </button>
+          {/* Descrição — para gastos (fora do Avançado) */}
+          {!isRecorrente && (
+            <div>
+              <label htmlFor="descricao" className="block text-slate-400 text-xs font-medium mb-2">DESCRIÇÃO</label>
+              <input
+                id="descricao"
+                type="text"
+                value={descricao}
+                onChange={e => setDescricao(e.target.value.slice(0, 200))}
+                placeholder="Ex: Supermercado, Farmácia, Uber… (opcional)"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              {descricao.length > 150 && <p className="text-slate-500 text-xs mt-1 text-right">{descricao.length}/200</p>}
+            </div>
+          )}
 
-            {avancadoOpen && (
-              <div className="px-4 pb-5 space-y-5 border-t border-slate-700">
+          {/* Divisão — visível por padrão (fora do Avançado) */}
+          <div>
+            <p className="text-slate-400 text-xs font-medium mb-3">DIVISÃO</p>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                ['50_50',      '50/50'],
+                ['so_pagador', `Só ${pagador}`],
+                ['so_outro',   `Só ${outraApelido}`],
+                ['customizada','Customizada'],
+              ] as [Divisao, string][]).map(([val, label]) => (
+                <button
+                  key={val}
+                  onClick={() => setDivisao(val)}
+                  className={`py-2.5 rounded-xl text-sm font-medium transition-colors ${divisao === val ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {divisao === 'customizada' && (
+              <div className="mt-4 space-y-3">
+                <input type="range" min={1} max={99} value={splitPct} onChange={e => setSplitPct(Number(e.target.value))} className="w-full accent-emerald-500" />
+                <div className="flex gap-2">
+                  <input type="number" min={1} max={99} value={splitPct}
+                    onChange={e => setSplitPct(Math.min(99, Math.max(1, Number(e.target.value))))}
+                    className="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <span className="text-slate-400 text-sm self-center">% para {pagador}</span>
+                </div>
+                <p className="text-slate-400 text-xs">
+                  {pagador} paga {splitPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * splitPct / 100))})` : ''}
+                  {' · '}
+                  {outraApelido} paga {100 - splitPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * (100 - splitPct) / 100))})` : ''}
+                </p>
+              </div>
+            )}
+          </div>
 
-                {/* Parcelas — só para gastos */}
-                {!isRecorrente && (
+          {/* ── Avançado — só para gastos: parcelas + data ─────── */}
+          {!isRecorrente && (
+            <div className="border border-slate-700 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setAvancadoOpen(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 text-slate-400 hover:text-white transition-colors text-sm"
+              >
+                <span>{avancadoOpen ? '▾' : '▸'} Avançado</span>
+                {(parcelas > 1 || dataCompra !== todayBRTStr()) && (
+                  <span className="text-emerald-400 text-xs">editado</span>
+                )}
+              </button>
+
+              {avancadoOpen && (
+                <div className="px-4 pb-5 space-y-5 border-t border-slate-700">
+
+                  {/* Parcelas */}
                   <div className="pt-4">
                     <label className="block text-slate-400 text-xs font-medium mb-3">PARCELAS</label>
                     <div className="flex items-center gap-4">
@@ -338,42 +391,8 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
                       <span className="text-slate-300 text-sm">{previewParcelas}</span>
                     </div>
                   </div>
-                )}
 
-                {/* Divisão */}
-                <div className={!isRecorrente ? '' : 'pt-4'}>
-                  <p className="text-slate-400 text-xs font-medium mb-3">DIVISÃO</p>
-                  <div className="space-y-2">
-                    {([['50_50','50/50'], ['so_pagador','Só pagador'], ['customizada','Customizada']] as [Divisao, string][]).map(([val, label]) => (
-                      <label key={val} className="flex items-center gap-3 cursor-pointer">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${divisao === val ? 'border-emerald-500' : 'border-slate-600'}`}>
-                          {divisao === val && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
-                        </div>
-                        <input type="radio" name="divisao" value={val} checked={divisao === val} onChange={() => setDivisao(val)} className="sr-only" />
-                        <span className="text-slate-200 text-sm">{label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {divisao === 'customizada' && (
-                    <div className="mt-4 space-y-3">
-                      <input type="range" min={1} max={99} value={splitPct} onChange={e => setSplitPct(Number(e.target.value))} className="w-full accent-emerald-500" />
-                      <div className="flex gap-2">
-                        <input type="number" min={1} max={99} value={splitPct}
-                          onChange={e => setSplitPct(Math.min(99, Math.max(1, Number(e.target.value))))}
-                          className="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                        <span className="text-slate-400 text-sm self-center">% para {pagador}</span>
-                      </div>
-                      <p className="text-slate-400 text-xs">
-                        {pagador} paga {splitPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * splitPct / 100))})` : ''}
-                        {' · '}
-                        {outraApelido} paga {100 - splitPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * (100 - splitPct) / 100))})` : ''}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Data — só para gastos */}
-                {!isRecorrente && (
+                  {/* Data */}
                   <div>
                     <p className="text-slate-400 text-xs font-medium mb-3">DATA DA COMPRA</p>
                     <div className="flex flex-wrap gap-2">
@@ -391,21 +410,10 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
                     <input ref={dateRef} type="date" value={dataCompra} onChange={e => { setDataCompra(e.target.value); setShowDatePicker(true) }}
                       className={`mt-2 w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${showDatePicker ? 'block' : 'hidden'}`} />
                   </div>
-                )}
-
-                {/* Descrição — só para gastos */}
-                {!isRecorrente && (
-                  <div>
-                    <label htmlFor="descricao" className="block text-slate-400 text-xs font-medium mb-2">DESCRIÇÃO</label>
-                    <textarea id="descricao" value={descricao} onChange={e => setDescricao(e.target.value.slice(0, 200))}
-                      placeholder="Descrição (opcional)" rows={2}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white text-sm placeholder-slate-600 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                    {descricao.length > 150 && <p className="text-slate-500 text-xs mt-1 text-right">{descricao.length}/200</p>}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Erros */}
           {error && <p className="text-red-400 text-sm" role="alert">{error}</p>}

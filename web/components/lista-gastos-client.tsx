@@ -91,7 +91,7 @@ export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Pr
       divisao:              gasto.divisao,
       split_pagador_pct:    gasto.split_pagador_pct,
       data_compra:          gasto.data_compra,
-      descricao:            null,
+      descricao:            gasto.descricao,
     })
     setModalOpen(true)
   }

@@ -16,7 +16,7 @@ const NovoGastoSchema = z.object({
   categoria_id: z.number().int().min(1).max(9),
   pagador_apelido: z.enum(['Vitim', 'Gaia']),
   parcelas: z.number().int().min(1).max(24).default(1),
-  divisao: z.enum(['50_50', 'so_pagador', 'customizada']).default('50_50'),
+  divisao: z.enum(['50_50', 'so_pagador', 'so_outro', 'customizada']).default('50_50'),
   split_pagador_pct: z.number().min(0).max(100).nullable().default(null),
   data_compra: z.string().nullable().default(null),
   descricao: z.string().max(200).nullable().default(null),
@@ -27,7 +27,7 @@ const RecorrenteSchema = z.object({
   valor_centavos: z.number().int().positive().max(5_000_000),
   descricao: z.string().min(1, 'Descrição obrigatória para recorrentes').max(200),
   pagador_apelido: z.enum(['Vitim', 'Gaia']),
-  divisao: z.enum(['50_50', 'so_pagador', 'customizada']).default('50_50'),
+  divisao: z.enum(['50_50', 'so_pagador', 'so_outro', 'customizada']).default('50_50'),
   split_pagador_pct: z.number().min(0).max(100).nullable().default(null),
   dia_do_mes: z.number().int().min(1).max(28),
 })
