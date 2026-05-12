@@ -1,9 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/bottom-nav'
 import { formatCurrency } from '@/lib/money'
-import type { ResumoData } from '@/app/(app)/resumo/page'
+import type { ResumoData, CompraItem } from '@/app/(app)/resumo/page'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
@@ -39,9 +40,16 @@ function formatDataCompra(d: string): string {
 
 /* ── Componente principal ────────────────────────────────────── */
 
+type CategoriaRow = ResumoData['categorias'][number]
+type DivisaoItem  = ResumoData['divisao'][number]
+
 export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: string }) {
   const router = useRouter()
   const isMesAtual = mesAtual === currentMesStr()
+
+  // Drawers BUG-16 e BUG-17
+  const [catAberta, setCatAberta]       = useState<CategoriaRow | null>(null)
+  const [pessoaAberta, setPessoaAberta] = useState<DivisaoItem | null>(null)
 
   function navMes(mes: string) {
     router.push(`/resumo?mes=${mes}`)
@@ -90,7 +98,11 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                   : metaPct > 90 ? 'bg-red-500' : metaPct > 70 ? 'bg-yellow-500' : 'bg-emerald-500'
 
                 return (
-                  <div key={cat.categoria_id} className="rounded-xl bg-slate-800 px-4 py-3 space-y-1.5">
+                  <button
+                    key={cat.categoria_id}
+                    onClick={() => setCatAberta(cat)}
+                    className="w-full rounded-xl bg-slate-800 px-4 py-3 space-y-1.5 text-left active:bg-slate-700 transition-colors"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-base">{cat.categoria_emoji}</span>
@@ -116,7 +128,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                         style={{ width: `${Math.min(metaPct ?? pct, 100)}%` }}
                       />
                     </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>
@@ -128,12 +140,17 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
           <h2 className="text-slate-400 text-xs font-semibold uppercase tracking-wide">Divisão do mês</h2>
           <div className="rounded-xl bg-slate-800 px-4 py-4 space-y-3">
             {data.divisao.map(d => (
-              <div key={d.apelido} className="space-y-1">
+              <button
+                key={d.apelido}
+                onClick={() => setPessoaAberta(d)}
+                className="w-full text-left space-y-1 active:opacity-70 transition-opacity"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300 text-sm">{d.apelido} pagou</span>
                   <div className="text-right">
                     <span className="text-white text-sm font-medium">{formatCurrency(d.total)}</span>
                     <span className="text-slate-500 text-xs ml-2">{d.pct}%</span>
+                    <span className="text-slate-600 text-xs ml-1">›</span>
                   </div>
                 </div>
                 <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
@@ -142,7 +159,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                     style={{ width: `${d.pct}%` }}
                   />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -256,6 +273,117 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
       </div>
 
       <BottomNav />
+
+      {/* ── BUG-16: Drawer de detalhes da categoria ── */}
+      {catAberta && (() => {
+        const itens = data.compras.filter(c => c.categoria_id === catAberta.categoria_id)
+        const porPagador: Record<string, number> = {}
+        for (const c of itens) porPagador[c.pagador_apelido] = (porPagador[c.pagador_apelido] ?? 0) + c.installment_valor
+        const totalCat = itens.reduce((s, c) => s + c.installment_valor, 0)
+        return (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setCatAberta(null)} aria-hidden="true" />
+            <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-slate-800 max-h-[80dvh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-700 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{catAberta.categoria_emoji}</span>
+                  <h2 className="text-white font-semibold capitalize">{catAberta.categoria_nome}</h2>
+                  <span className="text-slate-400 text-sm">· {data.mesLabel}</span>
+                </div>
+                <button onClick={() => setCatAberta(null)} className="text-slate-400 hover:text-white p-1">✕</button>
+              </div>
+              {/* Resumo por pagador */}
+              {Object.keys(porPagador).length > 0 && (
+                <div className="px-5 py-3 border-b border-slate-700 flex gap-6 shrink-0">
+                  {Object.entries(porPagador).map(([apelido, total]) => (
+                    <div key={apelido}>
+                      <p className="text-slate-400 text-xs">{apelido} pagou</p>
+                      <p className="text-white text-sm font-semibold">{formatCurrency(total)}</p>
+                      <p className="text-slate-500 text-xs">{totalCat > 0 ? Math.round(total / totalCat * 100) : 0}%</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Lista de compras */}
+              <div className="overflow-y-auto flex-1 divide-y divide-slate-700/50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                {itens.length === 0 ? (
+                  <p className="text-slate-500 text-sm text-center py-8">Sem compras nesta categoria.</p>
+                ) : (
+                  itens.map((c, i) => (
+                    <div key={i} className="flex items-center justify-between px-5 py-3 gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm truncate">{c.descricao || catAberta.categoria_nome}</p>
+                        <p className="text-slate-500 text-xs">{c.pagador_apelido} · {formatDataCompra(c.data_competencia)}</p>
+                      </div>
+                      <span className="text-white text-sm font-medium shrink-0">{formatCurrency(c.installment_valor)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )
+      })()}
+
+      {/* ── BUG-17: Drawer de breakdown por categoria de uma pessoa ── */}
+      {pessoaAberta && (() => {
+        const itens = data.compras.filter(c => c.pagador_apelido === pessoaAberta.apelido)
+        const porCat: Record<number, { nome: string; emoji: string; total: number }> = {}
+        for (const c of itens) {
+          if (!porCat[c.categoria_id]) porCat[c.categoria_id] = { nome: c.categoria_nome, emoji: c.categoria_emoji, total: 0 }
+          porCat[c.categoria_id].total += c.installment_valor
+        }
+        const cats = Object.values(porCat).sort((a, b) => b.total - a.total)
+        const totalPessoa = itens.reduce((s, c) => s + c.installment_valor, 0)
+        return (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setPessoaAberta(null)} aria-hidden="true" />
+            <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-slate-800 max-h-[80dvh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-700 shrink-0">
+                <h2 className="text-white font-semibold">
+                  {pessoaAberta.apelido} · {formatCurrency(totalPessoa)}
+                  <span className="text-slate-400 text-sm font-normal ml-2">em {data.mesLabel}</span>
+                </h2>
+                <button onClick={() => setPessoaAberta(null)} className="text-slate-400 hover:text-white p-1">✕</button>
+              </div>
+              {/* Lista por categoria com barra */}
+              <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                {cats.length === 0 ? (
+                  <p className="text-slate-500 text-sm text-center py-8">Sem gastos registrados.</p>
+                ) : (
+                  cats.map(cat => {
+                    const pct = totalPessoa > 0 ? Math.round(cat.total / totalPessoa * 100) : 0
+                    return (
+                      <div key={cat.nome} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{cat.emoji}</span>
+                            <span className="text-slate-200 text-sm capitalize">{cat.nome}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-white text-sm font-medium">{formatCurrency(cat.total)}</span>
+                            <span className="text-slate-500 text-xs ml-2">{pct}%</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+                {/* Total */}
+                <div className="pt-2 border-t border-slate-700 flex justify-between">
+                  <span className="text-slate-400 text-sm">Total</span>
+                  <span className="text-white text-sm font-semibold">{formatCurrency(totalPessoa)}</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )
+      })()}
     </>
   )
 }

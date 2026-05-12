@@ -41,6 +41,17 @@ type RecorrenteItem = {
   categoria_emoji:  string
 }
 
+export type CompraItem = {
+  installment_valor: number
+  data_competencia:  string
+  expense_id:        string
+  descricao:         string | null
+  pagador_apelido:   string
+  categoria_id:      number
+  categoria_nome:    string
+  categoria_emoji:   string
+}
+
 export type ResumoData = {
   mesLabel:             string
   totalMes:             number
@@ -50,6 +61,7 @@ export type ResumoData = {
   metasPorCategoria:    Record<number, number>
   topGastos:            TopGasto[]
   gastosMensais:        GastoMensalRow[]
+  compras:              CompraItem[]
 }
 
 /* ── Helpers ────────────────────────────────────────────────── */
@@ -92,6 +104,7 @@ export default async function ResumoPage({
     usersRes,
     recorrentesRes,
     metasRes,
+    comprasRes,
   ] = await Promise.all([
     // Gastos por categoria no mês
     supabase
@@ -142,6 +155,15 @@ export default async function ResumoPage({
       .select('categoria_id, valor_centavos')
       .eq('mes', Number(mesStr.split('-')[1]))
       .eq('ano', Number(mesStr.split('-')[0])),
+
+    // Compras individuais do mês (para drawers de categoria e pessoa)
+    supabase
+      .from('expense_installments')
+      .select('valor_centavos, data_competencia, expenses!inner(id, descricao, cancelado, pagador:users!expenses_pagador_id_fkey(apelido), categoria:categories(id, nome, emoji))')
+      .gte('data_competencia', start)
+      .lte('data_competencia', end)
+      .eq('expenses.cancelado', false)
+      .order('data_competencia', { ascending: false }),
   ])
 
   const categorias = (categoriasRes.data ?? []) as CategoriaRow[]
@@ -195,6 +217,25 @@ export default async function ResumoPage({
     }
   })
 
+  // Compras individuais — normaliza join aninhado
+  const compras: CompraItem[] = ((comprasRes.data ?? []) as any[]).flatMap(row => {
+    const exp = row.expenses
+    if (!exp) return []
+    const pagadorApelido = Array.isArray(exp.pagador) ? exp.pagador[0]?.apelido : exp.pagador?.apelido
+    const cat = Array.isArray(exp.categoria) ? exp.categoria[0] : exp.categoria
+    if (!pagadorApelido || !cat) return []
+    return [{
+      installment_valor: row.valor_centavos,
+      data_competencia:  row.data_competencia,
+      expense_id:        exp.id,
+      descricao:         exp.descricao ?? null,
+      pagador_apelido:   pagadorApelido,
+      categoria_id:      cat.id,
+      categoria_nome:    cat.nome,
+      categoria_emoji:   cat.emoji,
+    }]
+  })
+
   const resumoData: ResumoData = {
     mesLabel:          mesParaLabel(mesStr),
     totalMes,
@@ -204,6 +245,7 @@ export default async function ResumoPage({
     metasPorCategoria,
     topGastos,
     gastosMensais,
+    compras,
   }
 
   return (
