@@ -15,6 +15,8 @@ body {
   @apply bg-slate-900 text-slate-100;
   /* Splash screen no iOS/Android fica com a cor certa */
   background-color: #0f172a;
+  /* Safe area iOS — empurra conteudo pra baixo da status bar */
+  padding-top: env(safe-area-inset-top);
 }
 
 /* Suporte a prefers-color-scheme: caso o OS esteja em light,  */
