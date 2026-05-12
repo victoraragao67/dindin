@@ -15,7 +15,7 @@ export type GastoSelecionado = {
   valor_total_centavos: number
   categoria_id: number
   parcelas: number
-  divisao: '50_50' | 'so_pagador' | 'customizada'
+  divisao: '50_50' | 'so_pagador' | 'so_outro' | 'customizada'
   split_pagador_pct: number | null
   data_compra: string
 }
@@ -56,6 +56,19 @@ export function GastoActionsSheet({ gasto, onClose, onEditar, onExcluido }: Prop
 
   const titulo = gasto.descricao || gasto.categoria_nome
 
+  function divisaoLabel(g: GastoSelecionado): string {
+    if (g.divisao === '50_50')      return '50/50'
+    if (g.divisao === 'so_pagador') return `só ${g.pagador_apelido}`
+    if (g.divisao === 'so_outro') {
+      const outro = g.pagador_apelido === 'Vitim' ? 'Gaia' : 'Vitim'
+      return `só ${outro}`
+    }
+    if (g.divisao === 'customizada' && g.split_pagador_pct !== null) {
+      return `${g.split_pagador_pct}/${100 - g.split_pagador_pct}`
+    }
+    return g.divisao
+  }
+
   return (
     <>
       {/* Backdrop */}
@@ -78,7 +91,7 @@ export function GastoActionsSheet({ gasto, onClose, onEditar, onExcluido }: Prop
             <div className="flex-1 min-w-0">
               <p className="text-white font-medium text-sm truncate">{titulo}</p>
               <p className="text-slate-400 text-xs">
-                {gasto.pagador_apelido} · {formatCurrency(gasto.valor_centavos)}
+                {gasto.pagador_apelido} · {formatCurrency(gasto.valor_centavos)} · {divisaoLabel(gasto)}
               </p>
             </div>
           </div>
