@@ -1,32 +1,24 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/supabase/get-user'
 import { PushToggle } from '@/components/push-toggle'
 import { LogoutButton } from '@/components/logout-button'
 
 export default async function ConfigPage() {
+  const user = await getUser()  // deduplica com layout (React cache)
   const supabase = createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Busca subscriptions ativas do usuário
+  // Uma única query com join: users + push_subscriptions em paralelo
   let pushAtivo = false
   if (user?.email) {
     const { data: userRow } = await supabase
       .from('users')
-      .select('id')
+      .select('id, push_subscriptions(ativo)')
       .eq('email', user.email)
       .maybeSingle()
 
-    if (userRow) {
-      const { data: subs } = await supabase
-        .from('push_subscriptions')
-        .select('ativo')
-        .eq('user_id', userRow.id)
-        .eq('ativo', true)
-        .limit(1)
-
-      pushAtivo = (subs?.length ?? 0) > 0
-    }
+    const subs = userRow?.push_subscriptions as { ativo: boolean }[] | undefined
+    pushAtivo = subs?.some(s => s.ativo) ?? false
   }
 
   return (

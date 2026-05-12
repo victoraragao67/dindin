@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/supabase/get-user'
 import { formatCurrency } from '@/lib/money'
 import { SaldoDetalheButton } from './saldo-detalhe-modal'
 import type { SaldoDetalhe } from './saldo-detalhe-modal'
@@ -40,13 +41,13 @@ export async function SaldoHeader() {
   const supabase = createClient()
 
   const [
-    { data: { user } },
+    user,
     { data: saldoRows },
     { data: users },
     { data: detalheRows },
     { data: recorrentesRows },
   ] = await Promise.all([
-    supabase.auth.getUser(),
+    getUser(),  // deduplica com layout + page (React cache)
     supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
     supabase.from('users').select('id, apelido'),
     supabase.from('v_saldo_detalhado').select('*'),
