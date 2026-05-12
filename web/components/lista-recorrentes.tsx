@@ -91,7 +91,7 @@ export function ListaRecorrentes({ templates, currentApelido }: Props) {
 
   return (
     <>
-      <div className="space-y-2 px-4 pb-24">
+      <div className="space-y-2 px-4" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         {templates.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <span className="text-5xl">🔁</span>

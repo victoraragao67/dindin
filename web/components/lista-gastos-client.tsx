@@ -107,7 +107,7 @@ export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Pr
 
   return (
     <>
-      <section className="flex-1 overflow-y-auto pb-24 px-4">
+      <section className="flex-1 overflow-y-auto px-4" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         {/* Resumo do mês */}
         <div className="py-4">
           <p className="text-slate-400 text-sm capitalize">

@@ -20,7 +20,10 @@ export function BottomNav({ onAddExpense }: Props) {
   const rightActive = pathname === '/resumo'
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="flex items-end h-16 relative">
 
         {/* Aba esquerda — Gastos */}
