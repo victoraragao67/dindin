@@ -25,7 +25,7 @@ type Template = {
   valor_centavos: number
   descricao: string
   pagador_apelido: 'Vitim' | 'Gaia'
-  divisao: '50_50' | 'so_pagador' | 'customizada'
+  divisao: '50_50' | 'so_pagador' | 'so_outro' | 'customizada'
   split_pagador_pct: number | null
   dia_do_mes: number
   ativo: boolean

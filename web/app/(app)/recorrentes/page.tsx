@@ -41,11 +41,11 @@ export default async function RecorrentesPage() {
     categoria_id: number
     valor_centavos: number
     descricao: string
-    divisao: '50_50' | 'so_pagador' | 'customizada'
+    divisao: '50_50' | 'so_pagador' | 'so_outro' | 'customizada'
     split_pagador_pct: number | null
     dia_do_mes: number
     ativo: boolean
-    pagador: { apelido: string }[] | null
+    pagador: { apelido: string } | { apelido: string }[] | null
   }
 
   const normalized = (templates as unknown as RawTemplate[] ?? []).map(t => ({
@@ -53,7 +53,9 @@ export default async function RecorrentesPage() {
     categoria_id: t.categoria_id,
     valor_centavos: t.valor_centavos,
     descricao: t.descricao,
-    pagador_apelido: (t.pagador?.[0]?.apelido ?? 'Vitim') as Apelido,
+    pagador_apelido: (
+      Array.isArray(t.pagador) ? t.pagador[0]?.apelido : t.pagador?.apelido
+    ?? 'Vitim') as Apelido,
     divisao: t.divisao,
     split_pagador_pct: t.split_pagador_pct,
     dia_do_mes: t.dia_do_mes,
