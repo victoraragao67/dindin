@@ -18,20 +18,20 @@ export function PushToggle({ pushAtivo: initialAtivo }: Props) {
 
     if (!ativo) {
       // Ativar: pedir permissão e salvar subscription
-      const subscription = await subscribeToPush()
-      if (!subscription) {
-        setMsg('Permissão negada ou browser não suporta push.')
+      const result = await subscribeToPush()
+      if (!result.ok) {
+        setMsg(result.message)
         setLoading(false)
         return
       }
 
       try {
-        const { p256dh, auth } = subscription.toJSON().keys as { p256dh: string; auth: string }
+        const { p256dh, auth } = result.subscription.toJSON().keys as { p256dh: string; auth: string }
         const res = await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            endpoint:  subscription.endpoint,
+            endpoint:  result.subscription.endpoint,
             p256dh,
             auth,
             userAgent: navigator.userAgent,

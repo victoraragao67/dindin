@@ -1,32 +1,59 @@
+export type SubscribeResult =
+  | { ok: true;  subscription: PushSubscription }
+  | { ok: false; reason: 'unsupported' | 'denied' | 'sw-timeout' | 'error'; message: string }
+
 /**
  * Client-side: registra o service worker e cria a PushSubscription.
- * Retorna null se o browser não suporta ou se a permissão foi negada.
+ * Retorna { ok: true, subscription } ou { ok: false, reason, message }.
  */
-export async function subscribeToPush(): Promise<PushSubscription | null> {
-  if (typeof window === 'undefined') return null
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null
+export async function subscribeToPush(): Promise<SubscribeResult> {
+  if (typeof window === 'undefined') {
+    return { ok: false, reason: 'unsupported', message: 'Fora do browser.' }
+  }
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return {
+      ok: false,
+      reason: 'unsupported',
+      message: 'Seu browser não suporta push. Use Safari (iOS 16.4+) ou Chrome (Android).',
+    }
+  }
+
+  // Permissão já foi negada anteriormente — não adianta pedir de novo
+  if (Notification.permission === 'denied') {
+    return {
+      ok: false,
+      reason: 'denied',
+      message: 'Notificações bloqueadas. Vá em Ajustes > DinDin > Notificações e ative.',
+    }
+  }
 
   const permission = await Notification.requestPermission()
-  if (permission !== 'granted') return null
+  if (permission !== 'granted') {
+    return {
+      ok: false,
+      reason: 'denied',
+      message: 'Permissão negada. Você pode ativar em Ajustes > DinDin > Notificações.',
+    }
+  }
 
   try {
     // navigator.serviceWorker.ready pode travar indefinidamente se o SW
-    // estiver em estado "waiting" ou "installing". Timeout de 10s evita
-    // que o botão fique carregando para sempre.
+    // estiver em estado "waiting"/"installing". Timeout de 10s evita loading infinito.
     const registration = await Promise.race([
       navigator.serviceWorker.ready,
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('SW ready timeout — tente fechar e reabrir o app')), 10_000)
+        setTimeout(() => reject(new Error('sw-timeout')), 10_000)
       ),
     ])
 
     const existing = await registration.pushManager.getSubscription()
-    if (existing) return existing
+    if (existing) return { ok: true, subscription: existing }
 
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     if (!publicKey) {
       console.error('[push] NEXT_PUBLIC_VAPID_PUBLIC_KEY não configurada')
-      return null
+      return { ok: false, reason: 'error', message: 'Configuração ausente no servidor.' }
     }
 
     const subscription = await registration.pushManager.subscribe({
@@ -34,10 +61,20 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
       applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
     })
 
-    return subscription
+    return { ok: true, subscription }
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
     console.error('[push] erro ao criar subscription:', err)
-    return null
+
+    if (msg === 'sw-timeout') {
+      return {
+        ok: false,
+        reason: 'sw-timeout',
+        message: 'App precisa reiniciar. Feche o PWA completamente e reabra.',
+      }
+    }
+
+    return { ok: false, reason: 'error', message: `Erro: ${msg}` }
   }
 }
 

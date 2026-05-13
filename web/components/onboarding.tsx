@@ -56,9 +56,9 @@ export function Onboarding({ apelido }: { apelido: Apelido }) {
   async function handleAllowNotifications() {
     setLoadingPush(true)
     try {
-      const sub = await subscribeToPush()
-      if (sub) {
-        const subJson = sub.toJSON()
+      const result = await subscribeToPush()
+      if (result.ok) {
+        const subJson = result.subscription.toJSON()
         const keys = subJson.keys as { p256dh?: string; auth?: string } | undefined
         await fetch('/api/push/subscribe', {
           method: 'POST',

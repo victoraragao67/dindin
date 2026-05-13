@@ -35,20 +35,20 @@ export function PushBanner({ onSubscribed }: Props) {
     setLoading(true)
     setErro(null)
 
-    const subscription = await subscribeToPush()
-    if (!subscription) {
-      setErro('Feche e reabra o app, depois tente novamente.')
+    const result = await subscribeToPush()
+    if (!result.ok) {
+      setErro(result.message)
       setLoading(false)
       return
     }
 
     try {
-      const { p256dh, auth } = subscription.toJSON().keys as { p256dh: string; auth: string }
+      const { p256dh, auth } = result.subscription.toJSON().keys as { p256dh: string; auth: string }
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          endpoint:  subscription.endpoint,
+          endpoint:  result.subscription.endpoint,
           p256dh,
           auth,
           userAgent: navigator.userAgent,
