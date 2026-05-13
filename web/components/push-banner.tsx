@@ -12,6 +12,8 @@ type Props = {
 
 export function PushBanner({ onSubscribed }: Props) {
   const [visible, setVisible] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
     // Só mostrar se:
@@ -30,13 +32,19 @@ export function PushBanner({ onSubscribed }: Props) {
   }, [])
 
   async function handleAceitar() {
-    setVisible(false)
+    setLoading(true)
+    setErro(null)
+
     const subscription = await subscribeToPush()
-    if (!subscription) return
+    if (!subscription) {
+      setErro('Feche e reabra o app, depois tente novamente.')
+      setLoading(false)
+      return
+    }
 
     try {
       const { p256dh, auth } = subscription.toJSON().keys as { p256dh: string; auth: string }
-      await fetch('/api/push/subscribe', {
+      const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -46,10 +54,18 @@ export function PushBanner({ onSubscribed }: Props) {
           userAgent: navigator.userAgent,
         }),
       })
-      onSubscribed()
+      if (res.ok) {
+        setVisible(false)
+        onSubscribed()
+      } else {
+        setErro('Erro ao salvar. Tente novamente.')
+      }
     } catch (err) {
       console.error('[push-banner] erro ao salvar subscription:', err)
+      setErro('Erro de conexão. Tente novamente.')
     }
+
+    setLoading(false)
   }
 
   function handleRecusar() {
@@ -66,18 +82,23 @@ export function PushBanner({ onSubscribed }: Props) {
       <p className="text-slate-400 text-xs mb-4 leading-relaxed">
         Avisamos 1x por dia, às 22h, para você registrar os gastos.
       </p>
+      {erro && (
+        <p className="text-amber-400 text-xs mb-3">{erro}</p>
+      )}
       <div className="flex gap-3">
         <button
           onClick={handleRecusar}
-          className="flex-1 py-2.5 rounded-lg bg-slate-700 text-slate-300 text-sm hover:bg-slate-600 transition-colors"
+          disabled={loading}
+          className="flex-1 py-2.5 rounded-lg bg-slate-700 text-slate-300 text-sm hover:bg-slate-600 transition-colors disabled:opacity-50"
         >
           Agora não
         </button>
         <button
           onClick={handleAceitar}
-          className="flex-1 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors"
+          disabled={loading}
+          className="flex-1 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors disabled:opacity-60"
         >
-          Sim, quero!
+          {loading ? '⏳ Ativando…' : 'Sim, quero!'}
         </button>
       </div>
     </div>
