@@ -38,14 +38,7 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
   }
 
   try {
-    // navigator.serviceWorker.ready pode travar indefinidamente se o SW
-    // estiver em estado "waiting"/"installing". Timeout de 10s evita loading infinito.
-    const registration = await Promise.race([
-      navigator.serviceWorker.ready,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('sw-timeout')), 10_000)
-      ),
-    ])
+    const registration = await getActiveRegistration()
 
     const existing = await registration.pushManager.getSubscription()
     if (existing) return { ok: true, subscription: existing }
@@ -70,12 +63,56 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
       return {
         ok: false,
         reason: 'sw-timeout',
-        message: 'App precisa reiniciar. Feche o PWA completamente e reabra.',
+        message: 'Service Worker demorou para ativar. Feche o PWA completamente, aguarde 10s e reabra.',
       }
     }
 
     return { ok: false, reason: 'error', message: `Erro: ${msg}` }
   }
+}
+
+/**
+ * Obtém um ServiceWorkerRegistration ativo, aguardando a ativação se necessário.
+ *
+ * Estratégia em 3 camadas (mais robusta que navigator.serviceWorker.ready puro):
+ * 1. Se já existe um SW ativo, usa direto — sem esperar.
+ * 2. Se tem SW em "waiting", manda skipWaiting e espera o controllerchange.
+ * 3. Fallback: navigator.serviceWorker.ready com timeout de 20s.
+ */
+async function getActiveRegistration(): Promise<ServiceWorkerRegistration> {
+  const reg = await navigator.serviceWorker.getRegistration()
+
+  // Caso ideal: SW já está ativo
+  if (reg?.active) {
+    console.log('[push] SW já ativo')
+    return reg
+  }
+
+  // SW em "waiting" — força skipWaiting e aguarda controllerchange
+  if (reg?.waiting) {
+    console.log('[push] SW em waiting — enviando skipWaiting')
+    reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('sw-timeout')), 10_000)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        clearTimeout(timeout)
+        resolve()
+      }, { once: true })
+    })
+
+    const updated = await navigator.serviceWorker.getRegistration()
+    if (updated?.active) return updated
+  }
+
+  // SW ainda instalando (ou nenhum registro) — espera com timeout de 20s
+  console.log('[push] SW instalando — aguardando ready (20s timeout)')
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('sw-timeout')), 20_000)
+    ),
+  ])
 }
 
 /** Converte a VAPID public key de base64url para Uint8Array */
