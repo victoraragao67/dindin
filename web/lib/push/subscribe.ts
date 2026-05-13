@@ -10,15 +10,7 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
   if (permission !== 'granted') return null
 
   try {
-    // navigator.serviceWorker.ready pode travar indefinidamente se o SW
-    // estiver em estado "waiting" ou "installing". Timeout de 10s evita
-    // que o botão fique carregando para sempre.
-    const registration = await Promise.race([
-      navigator.serviceWorker.ready,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('SW ready timeout — tente fechar e reabrir o app')), 10_000)
-      ),
-    ])
+    const registration = await navigator.serviceWorker.ready
 
     const existing = await registration.pushManager.getSubscription()
     if (existing) return existing
