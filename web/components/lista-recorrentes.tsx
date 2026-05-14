@@ -8,15 +8,16 @@ import { NovoGastoModal, type RecorrenteInitial } from '@/components/novo-gasto-
 import { Toast } from '@/components/toast'
 
 const CATEGORIES: Record<number, { nome: string; emoji: string }> = {
-  1: { nome: 'mercado',     emoji: '🛒' },
-  2: { nome: 'restaurante', emoji: '🍽️' },
-  3: { nome: 'fixo',        emoji: '🏠' },
-  4: { nome: 'lazer',       emoji: '🎉' },
-  5: { nome: 'saúde',       emoji: '⚕️' },
-  6: { nome: 'transporte',  emoji: '🚗' },
-  7: { nome: 'viagem',      emoji: '✈️' },
-  8: { nome: 'presente',    emoji: '🎁' },
-  9: { nome: 'outros',      emoji: '📦' },
+  1:  { nome: 'mercado',     emoji: '🛒' },
+  2:  { nome: 'restaurante', emoji: '🍽️' },
+  3:  { nome: 'fixo',        emoji: '🏠' },
+  4:  { nome: 'lazer',       emoji: '🎉' },
+  10: { nome: 'streaming',   emoji: '📺' },
+  5:  { nome: 'saúde',       emoji: '⚕️' },
+  6:  { nome: 'transporte',  emoji: '🚗' },
+  7:  { nome: 'viagem',      emoji: '✈️' },
+  8:  { nome: 'presente',    emoji: '🎁' },
+  9:  { nome: 'outros',      emoji: '📦' },
 }
 
 type Template = {

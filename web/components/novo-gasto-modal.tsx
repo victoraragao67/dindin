@@ -7,15 +7,16 @@ import { criarGasto, atualizarGasto, criarRecorrente, editarRecorrente } from '@
 import type { NovoGastoInput, RecorrenteInput } from '@/app/(app)/actions'
 
 const CATEGORIES = [
-  { id: 1, nome: 'mercado',     emoji: '🛒' },
-  { id: 2, nome: 'restaurante', emoji: '🍽️' },
-  { id: 3, nome: 'fixo',        emoji: '🏠' },
-  { id: 4, nome: 'lazer',       emoji: '🎉' },
-  { id: 5, nome: 'saúde',       emoji: '⚕️' },
-  { id: 6, nome: 'transporte',  emoji: '🚗' },
-  { id: 7, nome: 'viagem',      emoji: '✈️' },
-  { id: 8, nome: 'presente',    emoji: '🎁' },
-  { id: 9, nome: 'outros',      emoji: '📦' },
+  { id: 1,  nome: 'mercado',     emoji: '🛒' },
+  { id: 2,  nome: 'restaurante', emoji: '🍽️' },
+  { id: 3,  nome: 'fixo',        emoji: '🏠' },
+  { id: 4,  nome: 'lazer',       emoji: '🎉' },
+  { id: 10, nome: 'streaming',   emoji: '📺' },
+  { id: 5,  nome: 'saúde',       emoji: '⚕️' },
+  { id: 6,  nome: 'transporte',  emoji: '🚗' },
+  { id: 7,  nome: 'viagem',      emoji: '✈️' },
+  { id: 8,  nome: 'presente',    emoji: '🎁' },
+  { id: 9,  nome: 'outros',      emoji: '📦' },
 ] as const
 
 type Apelido = 'Vitim' | 'Gaia'
