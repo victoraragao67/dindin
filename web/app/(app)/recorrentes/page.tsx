@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/get-user'
 import { ListaRecorrentes } from '@/components/lista-recorrentes'
+import { PrevisibilidadeRecorrentes } from '@/components/previsibilidade-recorrentes'
 
 type Apelido = 'Vitim' | 'Gaia'
 
@@ -74,6 +76,13 @@ export default async function RecorrentesPage() {
       </header>
 
       <div className="pt-4">
+        {/* Bloco de previsibilidade — server component com suas próprias queries */}
+        <Suspense fallback={
+          <div className="mx-4 mb-4 h-40 rounded-xl bg-slate-800 animate-pulse" />
+        }>
+          <PrevisibilidadeRecorrentes />
+        </Suspense>
+
         <ListaRecorrentes templates={normalized} currentApelido={currentApelido} />
       </div>
     </div>
