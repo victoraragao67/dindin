@@ -1,8 +1,8 @@
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/get-user'
 import { formatCurrency } from '@/lib/money'
 import { SaldoDetalheButton } from './saldo-detalhe-modal'
+import { MenuSheet } from './menu-sheet'
 import type { SaldoDetalhe } from './saldo-detalhe-modal'
 
 type SaldoRow = {
@@ -114,7 +114,7 @@ export async function SaldoHeader() {
           credorApelido={credorApelido}
           saldoValor={saldoValor}
         />
-        <Link href="/config" className="text-slate-400 hover:text-white transition-colors text-lg shrink-0" aria-label="Configurações">⚙️</Link>
+        <MenuSheet />
       </div>
 
       {/* Card 2 — Recorrentes (só aparece se há recorrentes no mês) */}
