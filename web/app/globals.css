@@ -8,22 +8,35 @@ html {
   overscroll-behavior: none;
 }
 
-/* ── Tema escuro padrão (#0f172a = slate-900) ─────────────── */
-/* O DinDin é um app noturno — fundo escuro sempre,            */
-/* independente de prefers-color-scheme.                       */
-body {
-  @apply bg-slate-900 text-slate-100;
-  /* Splash screen no iOS/Android fica com a cor certa */
-  background-color: #0f172a;
-  /* Safe area iOS — empurra conteudo pra baixo da status bar */
-  padding-top: env(safe-area-inset-top);
+/* ── Tokens de tema — Light (padrão) ─────────────────────── */
+:root {
+  --bg:     #F5F0E8;
+  --bg-2:   #EDE7DA;
+  --card:   #FFFDF7;
+  --ink:    #1A1612;
+  --sage:   #7A9E7E;
+  --blush:  #E8C5A0;
+  --coral:  #D4735A;
+  --muted:  #8A8078;
+  --border: #E2DAD0;
 }
 
-/* Suporte a prefers-color-scheme: caso o OS esteja em light,  */
-/* mantemos o tema escuro (decisão de produto).                */
-@media (prefers-color-scheme: light) {
-  body {
-    background-color: #0f172a;
-    color: #f1f5f9;
-  }
+/* ── Tokens de tema — Dark ────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:     #0f172a;
+  --bg-2:   #1e293b;
+  --card:   #1e293b;
+  --ink:    #f1f5f9;
+  --sage:   #6ee7b7;
+  --blush:  #fbbf24;
+  --coral:  #f87171;
+  --muted:  #94a3b8;
+  --border: #334155;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  /* Safe area iOS — empurra conteudo pra baixo da status bar */
+  padding-top: env(safe-area-inset-top);
 }

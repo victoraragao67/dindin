@@ -299,6 +299,27 @@ export async function salvarMeta(
   return { data: { id: data?.[0]?.id ?? null } }
 }
 
+// ── Tema ─────────────────────────────────────────────────────
+
+export async function updateTema(tema: 'light' | 'dark'): Promise<ActionResult> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user?.email) return { error: 'Usuário não autenticado.' }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ tema })
+    .eq('email', user.email)
+
+  if (error) {
+    console.error('[updateTema]', error.message)
+    return { error: 'Erro ao salvar preferência de tema.' }
+  }
+
+  revalidatePath('/', 'layout')
+  return { data: { id: 'tema' } }
+}
+
 export async function removerMeta(categoriaId: number, mes: number, ano: number): Promise<ActionResult> {
   const supabase = createClient()
   const { error } = await supabase

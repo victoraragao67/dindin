@@ -7,6 +7,7 @@ import { Toast } from '@/components/toast'
 import { PushBanner } from '@/components/push-banner'
 import { Onboarding } from '@/components/onboarding'
 import { BottomNav } from '@/components/bottom-nav'
+import { Fab } from '@/components/fab'
 
 type Apelido = 'Vitim' | 'Gaia'
 
@@ -59,7 +60,10 @@ export function HomeClient({ currentApelido }: Props) {
 
       {toast && <Toast message={toast} onDismiss={dismissToast} />}
 
-      <BottomNav onAddExpense={() => setModalOpen(true)} />
+      <BottomNav />
+
+      {/* FAB flutuante para adicionar gasto */}
+      <Fab onClick={() => setModalOpen(true)} />
     </>
   )
 }
