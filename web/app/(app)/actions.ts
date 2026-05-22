@@ -278,6 +278,9 @@ export async function salvarMeta(
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Upsert sem .single() — com RLS + update-on-conflict, PostgREST pode
+  // não retornar a row, fazendo .single() lançar exceção. Usamos .select()
+  // normal e pegamos o primeiro elemento (ou null se vazio).
   const { data, error } = await supabase
     .from('spending_goals')
     .upsert(
@@ -285,7 +288,6 @@ export async function salvarMeta(
       { onConflict: 'categoria_id,mes,ano' },
     )
     .select('id')
-    .single()
 
   if (error) {
     console.error('[salvarMeta]', error.message)
@@ -294,7 +296,7 @@ export async function salvarMeta(
 
   revalidatePath('/metas')
   revalidatePath('/resumo')
-  return { data: { id: data.id } }
+  return { data: { id: data?.[0]?.id ?? null } }
 }
 
 export async function removerMeta(categoriaId: number, mes: number, ano: number): Promise<ActionResult> {
