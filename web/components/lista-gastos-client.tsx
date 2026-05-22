@@ -110,20 +110,20 @@ export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Pr
       <section className="flex-1 overflow-y-auto px-4" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         {/* Resumo do mês */}
         <div className="py-4">
-          <p className="text-slate-400 text-sm capitalize">
-            {mesLabel} · <span className="text-white font-medium">{formatCurrency(totalMes)} gasto</span>
+          <p className="text-sm capitalize" style={{ color: 'var(--muted)' }}>
+            {mesLabel} · <span className="font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(totalMes)} gasto</span>
           </p>
-          <div className="mt-2 h-px bg-slate-700" />
+          <div className="mt-2 h-px" style={{ background: 'var(--border)' }} />
         </div>
 
         {/* Lista vazia */}
         {sorted.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <span className="text-5xl">🪹</span>
-            <p className="text-slate-400 text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
               Nenhum gasto registrado este mês.
               <br />
-              Toque em <strong className="text-white">+</strong> para começar!
+              Toque em <strong style={{ color: 'var(--ink)' }}>+</strong> para começar!
             </p>
           </div>
         )}
@@ -133,10 +133,10 @@ export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Pr
           const label = formatDate(new Date(dateStr + 'T12:00:00'))
           return (
             <div key={dateStr} className="mb-5">
-              <p className="text-slate-500 text-xs font-medium uppercase tracking-wide mb-2">
+              <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>
                 {label}
               </p>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {items.map((item) => {
                   const { expenses: exp } = item
                   const emoji    = exp.categoria?.emoji ?? '📦'
@@ -148,16 +148,17 @@ export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Pr
                     <button
                       key={item.id}
                       onClick={() => handleToque(item)}
-                      className="w-full flex items-center justify-between gap-2 rounded-lg bg-slate-800 px-4 py-3 active:bg-slate-700 transition-colors text-left"
+                      className="w-full flex items-center justify-between gap-2 rounded-xl px-4 py-3 text-left border transition-opacity active:opacity-70"
+                      style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
                     >
                       {/* Esquerda: emoji + nome + parcela */}
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xl shrink-0">{emoji}</span>
                         <div className="min-w-0">
-                          <p className="text-white text-sm truncate">
+                          <p className="text-sm truncate" style={{ color: 'var(--ink)' }}>
                             {exp.descricao || nome}
                             {isParcelado && (
-                              <span className="text-slate-400 text-xs ml-1">
+                              <span className="text-xs ml-1" style={{ color: 'var(--muted)' }}>
                                 · {item.numero}/{exp.parcelas}
                               </span>
                             )}
@@ -166,10 +167,10 @@ export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Pr
                       </div>
                       {/* Direita: valor + apelido */}
                       <div className="flex flex-col items-end shrink-0">
-                        <span className="text-white text-sm font-medium">
+                        <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
                           {formatCurrency(item.valor_centavos)}
                         </span>
-                        <span className="text-slate-400 text-xs">{apelido}</span>
+                        <span className="text-xs" style={{ color: 'var(--muted)' }}>{apelido}</span>
                       </div>
                     </button>
                   )
