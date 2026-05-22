@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>DinDin — Gerar Ícones PWA</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #F5F0E8; color: #1A1612; padding: 32px; max-width: 600px; margin: 0 auto; }
+    h1 { font-size: 20px; margin-bottom: 8px; }
+    p { font-size: 13px; color: #8A8078; margin-bottom: 24px; }
+    .grid { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 32px; }
+    .icon-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .icon-wrap span { font-size: 11px; color: #8A8078; }
+    canvas { border-radius: 22.5%; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+    .btn { display: inline-block; background: #1A1612; color: #F5F0E8; border: none; border-radius: 100px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Gerar Ícones PWA — DinDin</h1>
+  <p>Clique em "Baixar" para cada tamanho. Salve os arquivos em <code>web/public/</code> com os nomes indicados.</p>
+
+  <div class="grid">
+    <div class="icon-wrap">
+      <canvas id="c512" width="512" height="512"></canvas>
+      <span>512×512</span>
+    </div>
+    <div class="icon-wrap">
+      <canvas id="c192" width="192" height="192" style="width:96px;height:96px"></canvas>
+      <span>192×192</span>
+    </div>
+    <div class="icon-wrap">
+      <canvas id="c180" width="180" height="180" style="width:90px;height:90px"></canvas>
+      <span>180×180 (Apple)</span>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <a id="dl512" class="btn">⬇ icon-512.png</a>
+    <a id="dl192" class="btn">⬇ icon-192.png</a>
+    <a id="dl180" class="btn">⬇ apple-touch-icon.png</a>
+  </div>
+
+  <script>
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d')
+      const r = size * 0.225
+
+      // Fundo arredondado
+      ctx.beginPath()
+      ctx.roundRect(0, 0, size, size, r)
+      ctx.fillStyle = '#1A1612'
+      ctx.fill()
+
+      // Círculo decorativo
+      ctx.beginPath()
+      ctx.arc(size * 0.78, size * 0.22, size * 0.27, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(122,158,126,0.10)'
+      ctx.fill()
+
+      // Clip to rounded rect (so text doesn't bleed outside)
+      ctx.beginPath()
+      ctx.roundRect(0, 0, size, size, r)
+      ctx.clip()
+
+      const fontSize = size * 0.47
+      ctx.font = `700 ${fontSize}px Georgia, serif`
+      ctx.textBaseline = 'middle'
+
+      // D cream (left)
+      ctx.fillStyle = '#F5F0E8'
+      ctx.textAlign = 'center'
+      ctx.fillText('D', size * 0.33, size * 0.535)
+
+      // D coral (right)
+      ctx.fillStyle = '#D4735A'
+      ctx.fillText('D', size * 0.67, size * 0.535)
+    }
+
+    function setupDownload(canvasId, dlId, filename) {
+      const canvas = document.getElementById(canvasId)
+      drawIcon(canvas, canvas.width)
+      const a = document.getElementById(dlId)
+      a.href = canvas.toDataURL('image/png')
+      a.download = filename
+    }
+
+    setupDownload('c512', 'dl512', 'icon-512.png')
+    setupDownload('c192', 'dl192', 'icon-192.png')
+    setupDownload('c180', 'dl180', 'apple-touch-icon.png')
+  </script>
+</body>
+</html>

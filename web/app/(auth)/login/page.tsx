@@ -39,7 +39,6 @@ export default function LoginPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email: parsed.data,
-      // Sem shouldCreateUser:false — a whitelist acima já é a guarda de acesso
     })
 
     if (error) {
@@ -78,7 +77,6 @@ export default function LoginPage() {
       return
     }
 
-    // Sessão gravada no storage do PWA — navega para home
     router.replace('/')
   }
 
@@ -86,110 +84,288 @@ export default function LoginPage() {
   const loading = step === 'loading_send' || step === 'loading_verify'
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-6 bg-slate-900">
-      <div className="w-full max-w-sm space-y-8">
+    <main style={{
+      display: 'flex',
+      minHeight: '100dvh',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px 24px 48px',
+      background: 'var(--bg)',
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: 360,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}>
 
-        {/* Logo */}
-        <div className="text-center space-y-2">
-          <span className="text-6xl" role="img" aria-label="dinheiro">💰</span>
-          <h1 className="text-3xl font-bold text-white tracking-tight">DinDin</h1>
-          <p className="text-slate-400 text-sm">Finanças do casal</p>
+        {/* ── Logomark ── */}
+        <div style={{
+          width: 72,
+          height: 72,
+          borderRadius: 22,
+          background: 'var(--ink)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 20,
+          flexShrink: 0,
+        }}>
+          <span style={{
+            fontFamily: 'var(--font-fraunces), Georgia, serif',
+            fontSize: 32,
+            fontWeight: 700,
+            letterSpacing: -2,
+            lineHeight: 1,
+            color: 'var(--bg)',
+          }}>D</span>
+          <span style={{
+            fontFamily: 'var(--font-fraunces), Georgia, serif',
+            fontSize: 32,
+            fontWeight: 700,
+            letterSpacing: -2,
+            lineHeight: 1,
+            color: 'var(--coral)',
+          }}>D</span>
         </div>
 
-        {/* ── Passo 1: e-mail ── */}
-        {(step === 'email' || step === 'loading_send' || (step === 'error' && !otp)) && (
-          <form onSubmit={handleSendOtp} className="space-y-4" noValidate>
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300">
-                Digite seu e-mail
-              </label>
-              <input
-                id="email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                autoCapitalize="none"
-                autoCorrect="off"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  if (step === 'error') { setStep('email'); setErrorMsg('') }
+        {/* ── Headline ── */}
+        <h1 style={{
+          fontFamily: 'var(--font-fraunces), Georgia, serif',
+          fontSize: 32,
+          fontWeight: 700,
+          letterSpacing: -1.5,
+          color: 'var(--ink)',
+          textAlign: 'center',
+          marginBottom: 6,
+          lineHeight: 1,
+        }}>
+          Din<em style={{ color: 'var(--coral)', fontStyle: 'italic', fontWeight: 300 }}>Din</em>
+        </h1>
+
+        {/* ── Sub ── */}
+        <p style={{
+          fontSize: 13,
+          color: 'var(--muted)',
+          textAlign: 'center',
+          marginBottom: 36,
+          lineHeight: 1.6,
+        }}>
+          Finanças a dois,<br />sem enrolação
+        </p>
+
+        {/* ── Form Card ── */}
+        <div style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          borderRadius: 24,
+          padding: '24px 20px',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+        }}>
+
+          {/* ── Passo 1: e-mail ── */}
+          {(step === 'email' || step === 'loading_send' || (step === 'error' && !otp)) && (
+            <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }} noValidate>
+              <div>
+                <label
+                  htmlFor="email"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: '0.8px',
+                    textTransform: 'uppercase',
+                    color: 'var(--muted)',
+                    display: 'block',
+                    marginBottom: 6,
+                  }}
+                >
+                  Seu e-mail
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (step === 'error') { setStep('email'); setErrorMsg('') }
+                  }}
+                  placeholder="seu@email.com"
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    fontSize: 14,
+                    color: 'var(--ink)',
+                    outline: 'none',
+                    transition: 'border-color 0.15s',
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--coral)')}
+                  onBlur={e  => (e.currentTarget.style.borderColor = 'var(--border)')}
+                />
+              </div>
+
+              {errorMsg && (
+                <p role="alert" style={{ fontSize: 12, color: 'var(--coral)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⚠ {errorMsg}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || !email.trim()}
+                style={{
+                  background: loading || !email.trim() ? 'var(--bg-2)' : 'var(--ink)',
+                  color: loading || !email.trim() ? 'var(--muted)' : 'var(--bg)',
+                  borderRadius: 100,
+                  padding: '13px',
+                  width: '100%',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: loading || !email.trim() ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.15s',
                 }}
-                placeholder="seu@email.com"
-                className="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                disabled={loading}
-              />
-            </div>
+              >
+                {step === 'loading_send' ? 'Enviando…' : 'Enviar código →'}
+              </button>
 
-            {errorMsg && (
-              <p className="text-sm text-red-400" role="alert">{errorMsg}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || !email.trim()}
-              className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold py-3 text-base transition-colors"
-            >
-              {step === 'loading_send' ? 'Enviando…' : 'Enviar código'}
-            </button>
-          </form>
-        )}
-
-        {/* ── Passo 2: código OTP ── */}
-        {(step === 'otp' || step === 'loading_verify' || (step === 'error' && !!otp)) && (
-          <form onSubmit={handleVerifyOtp} className="space-y-4" noValidate>
-            <div className="rounded-xl bg-slate-800 border border-slate-700 p-4 text-center space-y-1">
-              <p className="text-white font-medium text-sm">Código enviado! ✉️</p>
-              <p className="text-slate-400 text-xs">
-                Verifique <span className="text-emerald-400">{email}</span>
+              <p style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
+                Acesso por código de uso único.{' '}
+                <span style={{ color: 'var(--coral)', fontWeight: 500 }}>Sem senha pra lembrar.</span>
               </p>
-            </div>
+            </form>
+          )}
 
-            <div className="space-y-2">
-              <label htmlFor="otp" className="block text-sm font-medium text-slate-300">
-                Digite o código de 8 dígitos
-              </label>
-              <input
-                id="otp"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="\d{8}"
-                maxLength={8}
-                value={otp}
-                onChange={(e) => {
-                  setOtp(e.target.value.replace(/\D/g, ''))
-                  if (step === 'error') { setStep('otp'); setErrorMsg('') }
+          {/* ── Passo 2: código OTP ── */}
+          {(step === 'otp' || step === 'loading_verify' || (step === 'error' && !!otp)) && (
+            <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }} noValidate>
+
+              {/* Badge de confirmação */}
+              <div style={{
+                background: 'rgba(122,158,126,0.12)',
+                border: '1px solid rgba(122,158,126,0.3)',
+                borderRadius: 12,
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                <span style={{ fontSize: 18 }}>✉️</span>
+                <div>
+                  <p style={{ fontSize: 12, color: '#3d6440', fontWeight: 600, marginBottom: 2 }}>
+                    Código enviado!
+                  </p>
+                  <p style={{ fontSize: 11, color: '#5a7a5e' }}>{email}</p>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="otp"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: '0.8px',
+                    textTransform: 'uppercase',
+                    color: 'var(--muted)',
+                    display: 'block',
+                    marginBottom: 6,
+                  }}
+                >
+                  Código de 8 dígitos
+                </label>
+                <input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="\d{8}"
+                  maxLength={8}
+                  value={otp}
+                  onChange={(e) => {
+                    setOtp(e.target.value.replace(/\D/g, ''))
+                    if (step === 'error') { setStep('otp'); setErrorMsg('') }
+                  }}
+                  placeholder="00000000"
+                  disabled={loading}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg)',
+                    border: '1.5px solid var(--coral)',
+                    borderRadius: 12,
+                    padding: '14px',
+                    fontSize: 22,
+                    letterSpacing: '0.4em',
+                    textAlign: 'center',
+                    color: 'var(--ink)',
+                    fontWeight: 600,
+                    fontFamily: 'monospace',
+                    outline: 'none',
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                />
+              </div>
+
+              {errorMsg && (
+                <p role="alert" style={{ fontSize: 12, color: 'var(--coral)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⚠ {errorMsg}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || otp.length < 6}
+                style={{
+                  background: loading || otp.length < 6 ? 'var(--bg-2)' : 'var(--ink)',
+                  color: loading || otp.length < 6 ? 'var(--muted)' : 'var(--bg)',
+                  borderRadius: 100,
+                  padding: '13px',
+                  width: '100%',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: loading || otp.length < 6 ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.15s',
                 }}
-                placeholder="00000000"
-                className="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 text-2xl tracking-[0.4em] text-center font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                disabled={loading}
-                autoFocus
-              />
-            </div>
+              >
+                {step === 'loading_verify' ? 'Verificando…' : 'Entrar →'}
+              </button>
 
-            {errorMsg && (
-              <p className="text-sm text-red-400" role="alert">{errorMsg}</p>
-            )}
+              <button
+                type="button"
+                onClick={() => { setStep('email'); setOtp(''); setErrorMsg('') }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 12,
+                  color: 'var(--muted)',
+                  width: '100%',
+                  cursor: 'pointer',
+                  padding: '4px 0',
+                  textAlign: 'center',
+                }}
+              >
+                Outro e-mail?{' '}
+                <span style={{ color: 'var(--coral)', fontWeight: 500 }}>Voltar</span>
+              </button>
+            </form>
+          )}
 
-            <button
-              type="submit"
-              disabled={loading || otp.length < 6}
-              className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold py-3 text-base transition-colors"
-            >
-              {step === 'loading_verify' ? 'Verificando…' : 'Entrar'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setStep('email'); setOtp(''); setErrorMsg('') }}
-              className="w-full text-slate-500 text-sm hover:text-slate-300 transition-colors py-1"
-            >
-              Usar outro e-mail
-            </button>
-          </form>
-        )}
-
+        </div>
       </div>
     </main>
   )
