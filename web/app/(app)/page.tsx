@@ -256,7 +256,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-4 pb-24">
+      <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-4" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
         {/* Cabeçalho */}
         <div className="flex items-center justify-between">
           <h1 className="font-serif text-2xl font-semibold" style={{ color: 'var(--ink)' }}>

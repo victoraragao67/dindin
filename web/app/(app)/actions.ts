@@ -290,8 +290,8 @@ export async function salvarMeta(
     .select('id')
 
   if (error) {
-    console.error('[salvarMeta]', error.message, error.code, error.details)
-    return { error: `DB: ${error.message}` }
+    console.error('[salvarMeta]', error.message)
+    return { error: 'Erro ao salvar meta. Tente novamente.' }
   }
 
   revalidatePath('/metas')
