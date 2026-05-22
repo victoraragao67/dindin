@@ -28,7 +28,6 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
 
   const [de,        setDe]        = useState<Apelido>(defaultDe)
   const [para,      setPara]      = useState<Apelido>(defaultPara)
-  // rawDigits representa centavos como string de dígitos
   const [rawDigits, setRawDigits] = useState(
     defaultValorCentavos > 0 ? String(defaultValorCentavos) : ''
   )
@@ -41,22 +40,18 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
   const inputRef = useRef<HTMLInputElement>(null)
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  // Valor em centavos (int)
   const valorCentavos = rawDigits ? parseInt(rawDigits, 10) : 0
 
-  // Exibição formatada (R$ X,XX)
   function displayValor() {
     if (!rawDigits) return 'R$ 0,00'
     return formatCurrency(parseInt(rawDigits, 10))
   }
 
-  // Ao alterar "De", inverte "Para" automaticamente
   function handleDe(apelido: Apelido) {
     setDe(apelido)
     setPara(apelido === 'Vitim' ? 'Gaia' : 'Vitim')
   }
 
-  // Input numérico de valor (estilo calculadora)
   function handleValorInput(e: React.ChangeEvent<HTMLInputElement>) {
     const digits = e.target.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 7)
     setRawDigits(digits)
@@ -93,18 +88,19 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
       {/* De / Para */}
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide">De</label>
+          <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>De</label>
           <div className="flex gap-2">
             {(['Vitim', 'Gaia'] as Apelido[]).map(a => (
               <button
                 key={a}
                 type="button"
                 onClick={() => handleDe(a)}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                  de === a
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700'
-                }`}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-opacity active:opacity-70"
+                style={{
+                  background: de === a ? 'var(--sage)' : 'var(--bg-2)',
+                  color: de === a ? '#fff' : 'var(--ink)',
+                  border: '1px solid var(--border)',
+                }}
               >
                 {a}
               </button>
@@ -112,25 +108,26 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-slate-500 text-sm px-1">
-          <span className="flex-1 border-t border-slate-700" />
+        <div className="flex items-center gap-2 text-sm px-1" style={{ color: 'var(--muted)' }}>
+          <span className="flex-1 border-t" style={{ borderColor: 'var(--border)' }} />
           <span>paga para</span>
-          <span className="flex-1 border-t border-slate-700" />
+          <span className="flex-1 border-t" style={{ borderColor: 'var(--border)' }} />
         </div>
 
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide">Para</label>
+          <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Para</label>
           <div className="flex gap-2">
             {(['Vitim', 'Gaia'] as Apelido[]).map(a => (
               <button
                 key={a}
                 type="button"
                 onClick={() => { setPara(a); setDe(a === 'Vitim' ? 'Gaia' : 'Vitim') }}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                  para === a
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700'
-                }`}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-opacity active:opacity-70"
+                style={{
+                  background: para === a ? 'var(--coral)' : 'var(--bg-2)',
+                  color: para === a ? '#fff' : 'var(--ink)',
+                  border: '1px solid var(--border)',
+                }}
               >
                 {a}
               </button>
@@ -141,10 +138,10 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
 
       {/* Valor */}
       <div className="space-y-1">
-        <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide">Valor</label>
+        <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Valor</label>
         <div className="relative">
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-2xl font-bold text-white">{displayValor()}</span>
+            <span className="text-2xl font-bold" style={{ color: 'var(--ink)' }}>{displayValor()}</span>
           </div>
           <input
             ref={inputRef}
@@ -152,7 +149,12 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
             inputMode="numeric"
             value={rawDigits}
             onChange={handleValorInput}
-            className="w-full h-14 rounded-lg bg-slate-800 border border-slate-700 text-transparent caret-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center"
+            className="w-full h-14 rounded-lg text-transparent focus:outline-none text-center"
+            style={{
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border)',
+              caretColor: 'var(--sage)',
+            }}
             placeholder="0"
           />
         </div>
@@ -160,27 +162,29 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
 
       {/* Data */}
       <div className="space-y-1">
-        <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide">Data</label>
+        <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Data</label>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setData(todayStr())}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              data === todayStr()
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-800 text-slate-400 border border-slate-700'
-            }`}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity active:opacity-70"
+            style={{
+              background: data === todayStr() ? 'var(--sage)' : 'var(--bg-2)',
+              color: data === todayStr() ? '#fff' : 'var(--ink)',
+              border: '1px solid var(--border)',
+            }}
           >
             Hoje
           </button>
           <button
             type="button"
             onClick={() => setData(yesterdayStr())}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              data === yesterdayStr()
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-800 text-slate-400 border border-slate-700'
-            }`}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity active:opacity-70"
+            style={{
+              background: data === yesterdayStr() ? 'var(--sage)' : 'var(--bg-2)',
+              color: data === yesterdayStr() ? '#fff' : 'var(--ink)',
+              border: '1px solid var(--border)',
+            }}
           >
             Ontem
           </button>
@@ -188,15 +192,20 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
             type="date"
             value={data}
             onChange={e => setData(e.target.value)}
-            className="flex-1 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            className="flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none"
+            style={{
+              background: 'var(--bg-2)',
+              border: '1px solid var(--border)',
+              color: 'var(--ink)',
+            }}
           />
         </div>
       </div>
 
       {/* Nota */}
       <div className="space-y-1">
-        <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide">
-          Nota <span className="normal-case text-slate-600">(opcional)</span>
+        <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+          Nota <span className="normal-case" style={{ color: 'var(--muted)' }}>(opcional)</span>
         </label>
         <textarea
           value={nota}
@@ -204,18 +213,27 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
           maxLength={200}
           rows={2}
           placeholder="PIX do mês"
-          className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2.5 text-white placeholder-slate-500 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          className="w-full rounded-lg px-3 py-2.5 text-sm resize-none focus:outline-none"
+          style={{
+            background: 'var(--bg-2)',
+            border: '1px solid var(--border)',
+            color: 'var(--ink)',
+          }}
         />
       </div>
 
-      {erro && <p className="text-sm text-red-400">{erro}</p>}
+      {erro && <p className="text-sm" style={{ color: 'var(--coral)' }}>{erro}</p>}
 
       {/* Botão */}
       <div className="pt-2">
         <button
           type="submit"
           disabled={loading || valorCentavos <= 0}
-          className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold py-4 text-base transition-colors"
+          className="w-full rounded-xl font-semibold py-4 text-base transition-opacity active:opacity-70 disabled:cursor-not-allowed"
+          style={{
+            background: valorCentavos > 0 && !loading ? 'var(--sage)' : 'var(--bg-2)',
+            color: valorCentavos > 0 && !loading ? '#fff' : 'var(--muted)',
+          }}
         >
           {loading ? 'Registrando…' : 'Registrar acerto'}
         </button>

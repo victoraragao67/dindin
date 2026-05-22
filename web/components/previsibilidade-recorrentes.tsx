@@ -34,30 +34,36 @@ export async function PrevisibilidadeRecorrentes() {
   // Empty state
   if (total === 0) {
     return (
-      <div className="mx-4 mb-4 rounded-xl bg-slate-800 border border-slate-700 px-4 py-6 text-center">
-        <p className="text-slate-400 text-sm leading-relaxed">
+      <div
+        className="mx-4 mb-4 rounded-xl px-4 py-6 text-center border"
+        style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+      >
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
           Vocês ainda não têm recorrentes cadastrados.
           <br />
-          Toque em <strong className="text-white">+</strong> pra começar.
+          Toque em <strong style={{ color: 'var(--ink)' }}>+</strong> pra começar.
         </p>
       </div>
     )
   }
 
   return (
-    <div className="mx-4 mb-4 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden">
+    <div
+      className="mx-4 mb-4 rounded-xl overflow-hidden border"
+      style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+    >
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-slate-700/60">
+      <div className="px-4 pt-4 pb-3 border-b" style={{ borderColor: 'var(--border)' }}>
         <div className="flex items-center gap-1.5 mb-2">
           <span className="text-sm">📊</span>
-          <span className="text-slate-400 text-xs font-semibold uppercase tracking-wide">
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
             Previsibilidade mensal
           </span>
         </div>
-        <p className="text-white text-2xl font-bold tracking-tight">
+        <p className="text-2xl font-bold tracking-tight" style={{ color: 'var(--ink)' }}>
           {formatCurrency(total)}
         </p>
-        <p className="text-slate-500 text-xs mt-0.5">por mês em recorrentes</p>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>por mês em recorrentes</p>
       </div>
 
       {/* Breakdown por categoria */}
@@ -67,22 +73,22 @@ export async function PrevisibilidadeRecorrentes() {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-base shrink-0">{cat.categoria_emoji}</span>
-                <span className="text-slate-300 text-sm capitalize truncate">{cat.categoria_nome}</span>
+                <span className="text-sm capitalize truncate" style={{ color: 'var(--ink)' }}>{cat.categoria_nome}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-2">
-                <span className="text-white text-sm font-medium">
+                <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
                   {formatCurrency(cat.total_categoria_centavos)}
                 </span>
-                <span className="text-slate-500 text-xs w-9 text-right">
+                <span className="text-xs w-9 text-right" style={{ color: 'var(--muted)' }}>
                   {cat.percentual}%
                 </span>
               </div>
             </div>
             {/* Barra de progresso */}
-            <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
               <div
-                className="h-full rounded-full bg-emerald-500"
-                style={{ width: `${cat.percentual}%` }}
+                className="h-full rounded-full"
+                style={{ width: `${cat.percentual}%`, background: 'var(--sage)' }}
               />
             </div>
           </div>
@@ -91,15 +97,15 @@ export async function PrevisibilidadeRecorrentes() {
 
       {/* Split por pagador */}
       {pags.some(p => p.total_centavos > 0) && (
-        <div className="px-4 pb-4 pt-1 border-t border-slate-700/60">
-          <p className="text-slate-400 text-xs font-semibold uppercase tracking-wide mb-2 mt-2">
+        <div className="px-4 pb-4 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2 mt-2" style={{ color: 'var(--muted)' }}>
             Quem desembolsa
           </p>
           <div className="space-y-1">
             {pags.filter(p => p.total_centavos > 0).map(p => (
               <div key={p.pagador_id} className="flex items-center justify-between">
-                <span className="text-slate-300 text-sm">{p.pagador_apelido}</span>
-                <span className="text-white text-sm font-medium">
+                <span className="text-sm" style={{ color: 'var(--muted)' }}>{p.pagador_apelido}</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
                   {formatCurrency(p.total_centavos)}
                 </span>
               </div>

@@ -18,19 +18,27 @@ export function LogoutButton() {
 
   if (confirmando) {
     return (
-      <div className="rounded-xl bg-red-900/20 border border-red-800/40 px-4 py-4 space-y-3">
-        <p className="text-red-300 text-sm text-center">Tem certeza que quer sair?</p>
+      <div
+        className="rounded-xl px-4 py-4 space-y-3 border"
+        style={{
+          background: 'color-mix(in srgb, var(--coral) 8%, transparent)',
+          borderColor: 'var(--coral)',
+        }}
+      >
+        <p className="text-sm text-center" style={{ color: 'var(--ink)' }}>Tem certeza que quer sair?</p>
         <div className="flex gap-3">
           <button
             onClick={() => setConfirmando(false)}
-            className="flex-1 py-2.5 rounded-lg bg-slate-700 text-slate-300 text-sm font-medium"
+            className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-opacity active:opacity-70"
+            style={{ background: 'var(--bg-2)', color: 'var(--ink)', border: '1px solid var(--border)' }}
           >
             Cancelar
           </button>
           <button
             onClick={handleLogout}
             disabled={loading}
-            className="flex-1 py-2.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-medium transition-colors"
+            className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-opacity active:opacity-70 disabled:opacity-60"
+            style={{ background: 'var(--coral)' }}
           >
             {loading ? 'Saindo…' : 'Sair'}
           </button>
@@ -42,10 +50,11 @@ export function LogoutButton() {
   return (
     <button
       onClick={() => setConfirmando(true)}
-      className="w-full flex items-center gap-3 rounded-xl bg-slate-800 px-4 py-4 text-left hover:bg-slate-700 transition-colors"
+      className="w-full flex items-center gap-3 rounded-xl px-4 py-4 text-left border transition-opacity active:opacity-70"
+      style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
     >
       <span className="text-xl">🚪</span>
-      <span className="text-red-400 text-sm font-medium">Sair da conta</span>
+      <span className="text-sm font-medium" style={{ color: 'var(--coral)' }}>Sair da conta</span>
     </button>
   )
 }

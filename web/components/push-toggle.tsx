@@ -17,7 +17,6 @@ export function PushToggle({ pushAtivo: initialAtivo }: Props) {
     setMsg('')
 
     if (!ativo) {
-      // Ativar: pedir permissão e salvar subscription
       const result = await subscribeToPush()
       if (!result.ok) {
         setMsg(result.message)
@@ -47,7 +46,6 @@ export function PushToggle({ pushAtivo: initialAtivo }: Props) {
         setMsg('Erro de conexão. Tente novamente.')
       }
     } else {
-      // Desativar: marcar subscription como inativa via API
       try {
         const registration = await navigator.serviceWorker.ready
         const sub = await registration.pushManager.getSubscription()
@@ -78,9 +76,9 @@ export function PushToggle({ pushAtivo: initialAtivo }: Props) {
       <div className="flex items-center gap-3">
         <span className="text-xl">🔔</span>
         <div>
-          <p className="text-white text-sm font-medium">Notificações diárias</p>
-          <p className="text-slate-400 text-xs">Lembrete às 22h para registrar gastos</p>
-          {msg && <p className="text-emerald-400 text-xs mt-1">{msg}</p>}
+          <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>Notificações diárias</p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>Lembrete às 22h para registrar gastos</p>
+          {msg && <p className="text-xs mt-1" style={{ color: 'var(--sage)' }}>{msg}</p>}
         </div>
       </div>
       <button
@@ -88,18 +86,15 @@ export function PushToggle({ pushAtivo: initialAtivo }: Props) {
         disabled={loading}
         role="switch"
         aria-checked={ativo}
-        className={`
-          relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0
-          ${ativo ? 'bg-emerald-600' : 'bg-slate-600'}
-          ${loading ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
+        className={`relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        style={{ background: ativo ? 'var(--sage)' : 'var(--bg-2)', border: '1px solid var(--border)' }}
       >
         <span
-          className={`
-            absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow
-            transition-transform duration-200
-            ${ativo ? 'translate-x-6' : 'translate-x-0'}
-          `}
+          className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-transform duration-200"
+          style={{
+            background: 'var(--card)',
+            transform: ativo ? 'translateX(1.5rem)' : 'translateX(0)',
+          }}
         />
       </button>
     </div>

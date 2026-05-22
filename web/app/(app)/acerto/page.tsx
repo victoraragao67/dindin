@@ -43,12 +43,18 @@ export default async function AcertoPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-900">
-      <header className="flex items-center gap-3 px-4 py-4 bg-slate-800 border-b border-slate-700 shrink-0">
-        <Link href="/" className="text-slate-400 hover:text-white transition-colors p-1 -ml-1" aria-label="Voltar">
-          ←
-        </Link>
-        <h1 className="text-white font-semibold text-base">Acerto</h1>
+    <div className="flex flex-col min-h-[100dvh]" style={{ background: 'var(--bg)' }}>
+      <header
+        className="flex items-center gap-3 px-4 py-4 border-b shrink-0"
+        style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+      >
+        <Link
+          href="/"
+          className="p-1 -ml-1 transition-opacity active:opacity-70"
+          style={{ color: 'var(--muted)' }}
+          aria-label="Voltar"
+        >←</Link>
+        <h1 className="font-semibold text-base" style={{ color: 'var(--ink)' }}>Acerto</h1>
       </header>
 
       <AcertoClient

@@ -44,7 +44,7 @@ export function ListaRecorrentes({ templates, currentApelido }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editando, setEditando] = useState<RecorrenteInitial | undefined>()
   const [toast, setToast] = useState<string | null>(null)
-  const [loading, setLoading] = useState<string | null>(null)  // id em processamento
+  const [loading, setLoading] = useState<string | null>(null)
 
   const dismissToast = useCallback(() => setToast(null), [])
 
@@ -92,14 +92,14 @@ export function ListaRecorrentes({ templates, currentApelido }: Props) {
 
   return (
     <>
-      <div className="space-y-2 px-4" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
+      <div className="space-y-2 px-4" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
         {templates.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <span className="text-5xl">🔁</span>
-            <p className="text-slate-400 text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
               Nenhum recorrente cadastrado.
               <br />
-              Toque em <strong className="text-white">+</strong> para adicionar.
+              Toque em <strong style={{ color: 'var(--ink)' }}>+</strong> para adicionar.
             </p>
           </div>
         )}
@@ -110,52 +110,80 @@ export function ListaRecorrentes({ templates, currentApelido }: Props) {
           const isLoading  = loading === t.id
 
           return (
-            <div key={t.id} className={`rounded-xl overflow-hidden transition-opacity ${!t.ativo ? 'opacity-50' : ''}`}>
+            <div
+              key={t.id}
+              className={`rounded-xl overflow-hidden border transition-opacity ${!t.ativo ? 'opacity-50' : ''}`}
+              style={{ borderColor: 'var(--border)' }}
+            >
               {/* Item principal */}
               <button
                 onClick={() => handleItemTap(t.id)}
-                className="w-full flex items-center justify-between gap-3 bg-slate-800 px-4 py-3 text-left"
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-opacity active:opacity-70"
+                style={{ background: 'var(--card)' }}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-2xl shrink-0">{cat.emoji}</span>
                   <div className="min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{t.descricao}</p>
-                    <p className="text-slate-400 text-xs">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>{t.descricao}</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
                       dia {t.dia_do_mes} · {t.pagador_apelido}
-                      {!t.ativo && <span className="ml-2 text-amber-400">pausado</span>}
+                      {!t.ativo && <span className="ml-2" style={{ color: 'var(--coral)' }}>pausado</span>}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-white text-sm font-medium">{formatCurrency(t.valor_centavos)}</span>
-                  <span className={`text-slate-500 text-xs transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`}>▾</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(t.valor_centavos)}</span>
+                  <span className={`text-xs transition-transform duration-150 ${isExpanded ? 'rotate-180' : ''}`} style={{ color: 'var(--muted)' }}>▾</span>
                 </div>
               </button>
 
               {/* Ações expandidas */}
               {isExpanded && (
-                <div className="bg-slate-750 border-t border-slate-700 px-4 py-3 flex gap-2">
+                <div
+                  className="border-t px-4 py-3 flex gap-2"
+                  style={{ background: 'var(--bg-2)', borderColor: 'var(--border)' }}
+                >
                   {confirmRemoverId === t.id ? (
                     <>
-                      <p className="text-slate-300 text-sm self-center mr-auto">Remover este recorrente?</p>
-                      <button onClick={() => setConfirmRemoverId(null)} className="px-3 py-2 rounded-lg bg-slate-700 text-slate-300 text-xs">Não</button>
-                      <button onClick={() => handleRemover(t.id)} disabled={isLoading}
-                        className="px-3 py-2 rounded-lg bg-red-700 text-white text-xs font-medium disabled:opacity-50">
+                      <p className="text-sm self-center mr-auto" style={{ color: 'var(--ink)' }}>Remover este recorrente?</p>
+                      <button
+                        onClick={() => setConfirmRemoverId(null)}
+                        className="px-3 py-2 rounded-lg text-xs"
+                        style={{ background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--border)' }}
+                      >
+                        Não
+                      </button>
+                      <button
+                        onClick={() => handleRemover(t.id)}
+                        disabled={isLoading}
+                        className="px-3 py-2 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+                        style={{ background: 'var(--coral)' }}
+                      >
                         {isLoading ? '…' : 'Sim, remover'}
                       </button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => handleEditar(t)}
-                        className="flex-1 py-2 rounded-lg bg-slate-700 text-slate-200 text-sm hover:bg-slate-600 transition-colors">
+                      <button
+                        onClick={() => handleEditar(t)}
+                        className="flex-1 py-2 rounded-lg text-sm transition-opacity active:opacity-70"
+                        style={{ background: 'var(--card)', color: 'var(--ink)', border: '1px solid var(--border)' }}
+                      >
                         ✏️ Editar
                       </button>
-                      <button onClick={() => handleToggle(t)} disabled={isLoading}
-                        className="flex-1 py-2 rounded-lg bg-slate-700 text-slate-200 text-sm hover:bg-slate-600 transition-colors disabled:opacity-50">
+                      <button
+                        onClick={() => handleToggle(t)}
+                        disabled={isLoading}
+                        className="flex-1 py-2 rounded-lg text-sm transition-opacity active:opacity-70 disabled:opacity-50"
+                        style={{ background: 'var(--card)', color: 'var(--ink)', border: '1px solid var(--border)' }}
+                      >
                         {isLoading ? '…' : t.ativo ? '⏸ Pausar' : '▶️ Reativar'}
                       </button>
-                      <button onClick={() => setConfirmRemoverId(t.id)}
-                        className="flex-1 py-2 rounded-lg bg-slate-700 text-red-400 text-sm hover:bg-slate-600 transition-colors">
+                      <button
+                        onClick={() => setConfirmRemoverId(t.id)}
+                        className="flex-1 py-2 rounded-lg text-sm transition-opacity active:opacity-70"
+                        style={{ background: 'color-mix(in srgb, var(--coral) 10%, transparent)', color: 'var(--coral)', border: '1px solid var(--coral)' }}
+                      >
                         🗑 Remover
                       </button>
                     </>
@@ -171,7 +199,23 @@ export function ListaRecorrentes({ templates, currentApelido }: Props) {
       <button
         onClick={() => { setEditando(undefined); setModalOpen(true) }}
         aria-label="Novo recorrente"
-        className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 shadow-lg shadow-black/40 text-white text-3xl font-light transition-colors"
+        style={{
+          position: 'fixed',
+          bottom: 'calc(72px + env(safe-area-inset-bottom) + 16px)',
+          right: '1.5rem',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '3.5rem',
+          height: '3.5rem',
+          borderRadius: '9999px',
+          background: 'var(--coral)',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+          color: '#fff',
+          fontSize: '1.875rem',
+          fontWeight: 300,
+        }}
       >
         +
       </button>

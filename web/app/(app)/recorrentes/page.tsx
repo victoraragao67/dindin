@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/get-user'
 import { ListaRecorrentes } from '@/components/lista-recorrentes'
 import { PrevisibilidadeRecorrentes } from '@/components/previsibilidade-recorrentes'
+import { BottomNav } from '@/components/bottom-nav'
 
 type Apelido = 'Vitim' | 'Gaia'
 
@@ -14,7 +15,7 @@ export default async function RecorrentesPage() {
     user,
     { data: templates },
   ] = await Promise.all([
-    getUser(),  // deduplica com layout (React cache)
+    getUser(),
     supabase
       .from('recurring_templates')
       .select(`
@@ -31,14 +32,12 @@ export default async function RecorrentesPage() {
       .order('dia_do_mes', { ascending: true }),
   ])
 
-  // Resolve apelido atual
   let currentApelido: Apelido = 'Vitim'
   if (user?.email) {
     const { data } = await supabase.from('users').select('apelido').eq('email', user.email).maybeSingle()
     if (data?.apelido === 'Gaia') currentApelido = 'Gaia'
   }
 
-  // Normaliza os dados
   type RawTemplate = {
     id: string
     categoria_id: number
@@ -66,25 +65,36 @@ export default async function RecorrentesPage() {
   }))
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-900">
-      {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-4 bg-slate-800 border-b border-slate-700 shrink-0">
-        <Link href="/" className="text-slate-400 hover:text-white transition-colors p-1 -ml-1" aria-label="Voltar">
-          ←
-        </Link>
-        <h1 className="text-white font-semibold text-base">Recorrentes</h1>
-      </header>
+    <>
+      <div className="flex flex-col min-h-[100dvh]" style={{ background: 'var(--bg)' }}>
+        {/* Header */}
+        <header
+          className="flex items-center gap-3 px-4 py-4 border-b shrink-0"
+          style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+        >
+          <Link
+            href="/"
+            className="p-1 -ml-1 transition-colors"
+            style={{ color: 'var(--muted)' }}
+            aria-label="Voltar"
+          >
+            ←
+          </Link>
+          <h1 className="font-semibold text-base" style={{ color: 'var(--ink)' }}>Recorrentes</h1>
+        </header>
 
-      <div className="pt-4">
-        {/* Bloco de previsibilidade — server component com suas próprias queries */}
-        <Suspense fallback={
-          <div className="mx-4 mb-4 h-40 rounded-xl bg-slate-800 animate-pulse" />
-        }>
-          <PrevisibilidadeRecorrentes />
-        </Suspense>
+        <div className="pt-4">
+          <Suspense fallback={
+            <div className="mx-4 mb-4 h-40 rounded-xl animate-pulse border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} />
+          }>
+            <PrevisibilidadeRecorrentes />
+          </Suspense>
 
-        <ListaRecorrentes templates={normalized} currentApelido={currentApelido} />
+          <ListaRecorrentes templates={normalized} currentApelido={currentApelido} />
+        </div>
       </div>
-    </div>
+
+      <BottomNav />
+    </>
   )
 }
