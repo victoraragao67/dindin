@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fundo arredondado -->
+  <rect width="512" height="512" rx="115" fill="#1A1612"/>
+  <!-- Círculo decorativo sutil -->
+  <circle cx="400" cy="112" r="140" fill="#7A9E7E" opacity="0.10"/>
+  <!-- Monograma DD — D cream + D coral -->
+  <text
+    x="160" y="336"
+    text-anchor="middle"
+    font-family="Georgia, serif"
+    font-weight="700"
+    font-size="240"
+    fill="#F5F0E8"
+  >D</text>
+  <text
+    x="352" y="336"
+    text-anchor="middle"
+    font-family="Georgia, serif"
+    font-weight="700"
+    font-size="240"
+    fill="#D4735A"
+  >D</text>
+</svg>
