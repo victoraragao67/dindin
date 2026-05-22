@@ -7,6 +7,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        serif: ['var(--font-fraunces)', 'serif'],
+        sans:  ['var(--font-dm-sans)', 'sans-serif'],
+      },
       colors: {
         brand: {
           50: '#f0fdf4',
