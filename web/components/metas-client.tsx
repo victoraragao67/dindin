@@ -28,8 +28,8 @@ function mesPosterior(mes: number, ano: number) {
 export function MetasClient({ categorias, metasPorCategoria, mes, ano }: Props) {
   const router = useRouter()
   const [metas, setMetas] = useState<Record<number, number>>(metasPorCategoria)
-  const [editando, setEditando] = useState<number | null>(null)     // categoria_id
-  const [rawInput, setRawInput] = useState('')                       // dígitos em centavos
+  const [editando, setEditando] = useState<number | null>(null)
+  const [rawInput, setRawInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
 
@@ -90,15 +90,22 @@ export function MetasClient({ categorias, metasPorCategoria, mes, ano }: Props) 
 
         {/* Header */}
         <div className="flex items-center justify-between">
-          <button onClick={() => navMes(prev.mes, prev.ano)} className="p-2 text-slate-400 hover:text-white transition-colors">←</button>
+          <button
+            onClick={() => navMes(prev.mes, prev.ano)}
+            className="p-2 transition-opacity active:opacity-60"
+            style={{ color: 'var(--muted)' }}
+          >
+            ←
+          </button>
           <div className="text-center">
-            <p className="text-white font-semibold capitalize">{mesLabel}</p>
-            <p className="text-slate-400 text-xs">Metas de gasto</p>
+            <p className="font-semibold capitalize" style={{ color: 'var(--ink)' }}>{mesLabel}</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Metas de gasto</p>
           </div>
           <button
             onClick={() => navMes(next.mes, next.ano)}
             disabled={isFuturo}
-            className="p-2 text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+            className="p-2 transition-opacity active:opacity-60 disabled:opacity-30"
+            style={{ color: 'var(--muted)' }}
           >
             →
           </button>
@@ -111,37 +118,46 @@ export function MetasClient({ categorias, metasPorCategoria, mes, ano }: Props) 
             const isEdit = editando === cat.id
 
             return (
-              <div key={cat.id} className="rounded-xl bg-slate-800 overflow-hidden">
+              <div
+                key={cat.id}
+                className="rounded-xl overflow-hidden border"
+                style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+              >
                 {/* Linha principal */}
                 <button
                   onClick={() => isEdit ? fecharEdicao() : abrirEdicao(cat.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-700 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left transition-opacity active:opacity-70"
                 >
                   <span className="text-xl shrink-0">{cat.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm capitalize">{cat.nome}</p>
+                    <p className="text-sm capitalize" style={{ color: 'var(--ink)' }}>{cat.nome}</p>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 flex items-center gap-1">
                     {meta ? (
-                      <span className="text-emerald-400 text-sm font-medium">{formatCurrency(meta)}</span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--sage)' }}>{formatCurrency(meta)}</span>
                     ) : (
-                      <span className="text-slate-500 text-xs">sem meta</span>
+                      <span className="text-xs" style={{ color: 'var(--muted)' }}>sem meta</span>
                     )}
-                    <span className="text-slate-500 text-xs ml-2">{isEdit ? '▴' : '▾'}</span>
+                    <span className="text-xs" style={{ color: 'var(--muted)' }}>{isEdit ? '▴' : '▾'}</span>
                   </div>
                 </button>
 
                 {/* Painel de edição inline */}
                 {isEdit && (
-                  <div className="px-4 pb-4 pt-1 border-t border-slate-700 space-y-3">
+                  <div className="px-4 pb-4 pt-1 border-t space-y-3" style={{ borderColor: 'var(--border)' }}>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none">R$</span>
+                      <span
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none"
+                        style={{ color: 'var(--muted)' }}
+                      >
+                        R$
+                      </span>
                       <input
                         type="text"
                         inputMode="decimal"
                         autoFocus
                         value={rawInput
-                          ? formatCurrency(parseInt(rawInput, 10)).replace('R$ ', '').trim()
+                          ? formatCurrency(parseInt(rawInput, 10)).replace('R$ ', '').trim()
                           : ''}
                         onChange={e => {
                           const d = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
@@ -149,27 +165,38 @@ export function MetasClient({ categorias, metasPorCategoria, mes, ano }: Props) 
                           setErro('')
                         }}
                         placeholder="0,00"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 border"
+                        style={{
+                          background: 'var(--bg-2)',
+                          borderColor: 'var(--border)',
+                          color: 'var(--ink)',
+                        }}
                       />
                     </div>
-                    {erro && <p className="text-red-400 text-xs">{erro}</p>}
+                    {erro && <p className="text-xs" style={{ color: 'var(--coral)' }}>{erro}</p>}
                     <div className="flex gap-2">
                       {meta && (
                         <button
                           onClick={() => handleRemover(cat.id)}
                           disabled={loading}
-                          className="px-3 py-2 rounded-lg bg-red-900/40 text-red-400 text-xs hover:bg-red-900/60 transition-colors"
+                          className="px-3 py-2 rounded-lg text-xs transition-opacity disabled:opacity-50"
+                          style={{ background: 'color-mix(in srgb, var(--coral) 12%, transparent)', color: 'var(--coral)' }}
                         >
                           Remover
                         </button>
                       )}
-                      <button onClick={fecharEdicao} className="flex-1 py-2 rounded-lg bg-slate-700 text-slate-300 text-sm">
+                      <button
+                        onClick={fecharEdicao}
+                        className="flex-1 py-2 rounded-lg text-sm"
+                        style={{ background: 'var(--bg-2)', color: 'var(--muted)' }}
+                      >
                         Cancelar
                       </button>
                       <button
                         onClick={() => handleSalvar(cat.id)}
                         disabled={loading || !rawInput}
-                        className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                        className="flex-1 py-2 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-50"
+                        style={{ background: 'var(--sage)' }}
                       >
                         {loading ? 'Salvando…' : 'Salvar'}
                       </button>
@@ -181,7 +208,7 @@ export function MetasClient({ categorias, metasPorCategoria, mes, ano }: Props) 
           })}
         </section>
 
-        <p className="text-slate-600 text-xs text-center pb-2">
+        <p className="text-xs text-center pb-2" style={{ color: 'var(--muted)' }}>
           Toque em uma categoria para definir ou editar a meta do mês.
         </p>
       </div>
