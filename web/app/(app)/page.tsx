@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/get-user'
 import { HomeBalanceCard, HomeBalanceCardSkeleton } from '@/components/home-balance-card'
@@ -26,6 +27,9 @@ type DetalheRow = {
   apelido_b: string
   pagou_a: number
   pagou_b: number
+  credito_a: number
+  credito_b: number
+  acertos_net: number
 }
 
 type CategoriaRow = {
@@ -91,7 +95,7 @@ async function BalanceSection({ userId }: { userId: string | null }) {
   ] = await Promise.all([
     supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
     supabase.from('users').select('id, apelido'),
-    supabase.from('v_saldo_detalhado').select('apelido_a, apelido_b, pagou_a, pagou_b'),
+    supabase.from('v_saldo_detalhado').select('apelido_a, apelido_b, pagou_a, pagou_b, credito_a, credito_b, acertos_net'),
   ])
 
   const saldo = (saldoRows as SaldoRow[] | null)?.[0] ?? null
@@ -279,6 +283,32 @@ export default async function HomePage() {
         <Suspense fallback={<HomeRecentTxSkeleton />}>
           <RecentTxSection />
         </Suspense>
+
+        {/* Quick links */}
+        <div className="grid grid-cols-2 gap-3 pb-2">
+          <Link
+            href="/metas"
+            className="flex items-center gap-2 rounded-2xl px-4 py-3 border transition-opacity active:opacity-70"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+          >
+            <span className="text-xl">🎯</span>
+            <div>
+              <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>Metas</p>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>do mês</p>
+            </div>
+          </Link>
+          <Link
+            href="/recorrentes"
+            className="flex items-center gap-2 rounded-2xl px-4 py-3 border transition-opacity active:opacity-70"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+          >
+            <span className="text-xl">🔁</span>
+            <div>
+              <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>Recorrentes</p>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>fixos mensais</p>
+            </div>
+          </Link>
+        </div>
       </div>
 
       <BottomNav />
