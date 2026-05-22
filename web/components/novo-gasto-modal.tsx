@@ -99,7 +99,6 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
   useEffect(() => {
     if (open) {
       if (editando) {
-        // Preencher com dados existentes (recorrente)
         setRawDigits(String(editando.valor_centavos))
         setCategoriaId(editando.categoria_id)
         setPagador(editando.pagador_apelido)
@@ -108,7 +107,6 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
         setSplitPct(editando.split_pagador_pct ?? 50)
         setDiaDoMes(editando.dia_do_mes)
       } else if (editandoGasto) {
-        // Preencher com dados existentes (gasto)
         setRawDigits(String(editandoGasto.valor_total_centavos))
         setCategoriaId(editandoGasto.categoria_id)
         setPagador(editandoGasto.pagador_apelido)
@@ -215,12 +213,21 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        className={`fixed inset-x-0 bottom-0 z-50 flex flex-col bg-slate-800 rounded-t-2xl max-h-[92dvh] overflow-y-auto transition-transform duration-100 ease-out ${open ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl max-h-[92dvh] overflow-y-auto transition-transform duration-100 ease-out ${open ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ background: 'var(--card)' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-slate-700 shrink-0">
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1" aria-label="Fechar">✕</button>
-          <span className="text-white font-semibold text-base">{titulo}</span>
+        <div
+          className="flex items-center justify-between px-4 py-4 border-b shrink-0"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <button
+            onClick={onClose}
+            className="transition-opacity active:opacity-70 p-1"
+            style={{ color: 'var(--muted)' }}
+            aria-label="Fechar"
+          >✕</button>
+          <span className="font-semibold text-base" style={{ color: 'var(--ink)' }}>{titulo}</span>
           <div className="w-7" aria-hidden="true" />
         </div>
 
@@ -228,9 +235,12 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
 
           {/* Valor */}
           <div>
-            <label htmlFor="valor" className="block text-slate-400 text-xs font-medium mb-2">VALOR</label>
+            <label htmlFor="valor" className="block text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>VALOR</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg pointer-events-none">R$</span>
+              <span
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-lg pointer-events-none"
+                style={{ color: 'var(--muted)' }}
+              >R$</span>
               <input
                 ref={inputRef}
                 id="valor"
@@ -240,14 +250,19 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
                 onChange={handleValueChange}
                 placeholder="0,00"
                 autoComplete="off"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-12 pr-4 py-4 text-white text-2xl font-semibold placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full rounded-xl pl-12 pr-4 py-4 text-2xl font-semibold focus:outline-none"
+                style={{
+                  background: 'var(--bg-2)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
+                }}
               />
             </div>
           </div>
 
           {/* Categorias */}
           <div>
-            <p className="text-slate-400 text-xs font-medium mb-3">CATEGORIA</p>
+            <p className="text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>CATEGORIA</p>
             <div className="grid grid-cols-5 gap-2">
               {CATEGORIES.slice(0, 5).map(cat => (
                 <CategoryChip key={cat.id} cat={cat} selected={categoriaId === cat.id} onSelect={() => setCategoriaId(cat.id)} />
@@ -262,11 +277,19 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
 
           {/* Pago por */}
           <div>
-            <p className="text-slate-400 text-xs font-medium mb-3">PAGO POR</p>
+            <p className="text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>PAGO POR</p>
             <div className="flex gap-3">
               {(['Vitim', 'Gaia'] as const).map(ap => (
-                <button key={ap} onClick={() => setPagador(ap)}
-                  className={`flex-1 py-3 rounded-xl font-medium text-sm transition-colors ${pagador === ap ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                <button
+                  key={ap}
+                  onClick={() => setPagador(ap)}
+                  className="flex-1 py-3 rounded-xl font-medium text-sm transition-opacity active:opacity-70"
+                  style={{
+                    background: pagador === ap ? 'var(--sage)' : 'var(--bg-2)',
+                    color: pagador === ap ? '#fff' : 'var(--ink)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
                   {ap}
                 </button>
               ))}
@@ -278,9 +301,13 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
             <>
               {/* Dia do mês */}
               <div>
-                <label htmlFor="dia" className="block text-slate-400 text-xs font-medium mb-3">DIA DO MÊS</label>
+                <label htmlFor="dia" className="block text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>DIA DO MÊS</label>
                 <div className="flex items-center gap-4">
-                  <button onClick={() => setDiaDoMes(v => Math.max(1, v - 1))} className="w-10 h-10 rounded-lg bg-slate-700 text-white text-lg font-medium hover:bg-slate-600 transition-colors">−</button>
+                  <button
+                    onClick={() => setDiaDoMes(v => Math.max(1, v - 1))}
+                    className="w-10 h-10 rounded-lg text-lg font-medium transition-opacity active:opacity-70"
+                    style={{ background: 'var(--bg-2)', color: 'var(--ink)', border: '1px solid var(--border)' }}
+                  >−</button>
                   <input
                     id="dia"
                     type="number"
@@ -289,47 +316,66 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
                     max={28}
                     value={diaDoMes}
                     onChange={e => setDiaDoMes(Math.min(28, Math.max(1, parseInt(e.target.value) || 1)))}
-                    className="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-2 text-white text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-16 text-center rounded-lg py-2 text-lg font-semibold focus:outline-none"
+                    style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', color: 'var(--ink)' }}
                   />
-                  <button onClick={() => setDiaDoMes(v => Math.min(28, v + 1))} className="w-10 h-10 rounded-lg bg-slate-700 text-white text-lg font-medium hover:bg-slate-600 transition-colors">+</button>
-                  <span className="text-slate-400 text-sm">de cada mês</span>
+                  <button
+                    onClick={() => setDiaDoMes(v => Math.min(28, v + 1))}
+                    className="w-10 h-10 rounded-lg text-lg font-medium transition-opacity active:opacity-70"
+                    style={{ background: 'var(--bg-2)', color: 'var(--ink)', border: '1px solid var(--border)' }}
+                  >+</button>
+                  <span className="text-sm" style={{ color: 'var(--muted)' }}>de cada mês</span>
                 </div>
               </div>
 
               {/* Descrição (obrigatória) */}
               <div>
-                <label htmlFor="descricao-rec" className="block text-slate-400 text-xs font-medium mb-2">DESCRIÇÃO <span className="text-red-400">*</span></label>
+                <label htmlFor="descricao-rec" className="block text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>
+                  DESCRIÇÃO <span style={{ color: 'var(--coral)' }}>*</span>
+                </label>
                 <input
                   id="descricao-rec"
                   type="text"
                   value={descricaoMain}
                   onChange={e => setDescricaoMain(e.target.value.slice(0, 200))}
                   placeholder="Ex: Aluguel, Netflix, Plano saúde…"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full rounded-lg px-4 py-3 text-sm focus:outline-none"
+                  style={{
+                    background: 'var(--bg-2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--ink)',
+                  }}
                 />
               </div>
             </>
           )}
 
-          {/* Descrição — para gastos (fora do Avançado) */}
+          {/* Descrição — para gastos */}
           {!isRecorrente && (
             <div>
-              <label htmlFor="descricao" className="block text-slate-400 text-xs font-medium mb-2">DESCRIÇÃO</label>
+              <label htmlFor="descricao" className="block text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>DESCRIÇÃO</label>
               <input
                 id="descricao"
                 type="text"
                 value={descricao}
                 onChange={e => setDescricao(e.target.value.slice(0, 200))}
                 placeholder="Ex: Supermercado, Farmácia, Uber… (opcional)"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white text-sm placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-lg px-4 py-3 text-sm focus:outline-none"
+                style={{
+                  background: 'var(--bg-2)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
+                }}
               />
-              {descricao.length > 150 && <p className="text-slate-500 text-xs mt-1 text-right">{descricao.length}/200</p>}
+              {descricao.length > 150 && (
+                <p className="text-xs mt-1 text-right" style={{ color: 'var(--muted)' }}>{descricao.length}/200</p>
+              )}
             </div>
           )}
 
-          {/* Divisão — visível por padrão (fora do Avançado) */}
+          {/* Divisão */}
           <div>
-            <p className="text-slate-400 text-xs font-medium mb-3">DIVISÃO</p>
+            <p className="text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>DIVISÃO</p>
             <div className="grid grid-cols-2 gap-2">
               {([
                 ['50_50',      '50/50'],
@@ -340,7 +386,12 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
                 <button
                   key={val}
                   onClick={() => setDivisao(val)}
-                  className={`py-2.5 rounded-xl text-sm font-medium transition-colors ${divisao === val ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                  className="py-2.5 rounded-xl text-sm font-medium transition-opacity active:opacity-70"
+                  style={{
+                    background: divisao === val ? 'var(--sage)' : 'var(--bg-2)',
+                    color: divisao === val ? '#fff' : 'var(--ink)',
+                    border: '1px solid var(--border)',
+                  }}
                 >
                   {label}
                 </button>
@@ -348,14 +399,27 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
             </div>
             {divisao === 'customizada' && (
               <div className="mt-4 space-y-3">
-                <input type="range" min={1} max={99} value={splitPct} onChange={e => setSplitPct(Number(e.target.value))} className="w-full accent-emerald-500" />
+                <input
+                  type="range"
+                  min={1}
+                  max={99}
+                  value={splitPct}
+                  onChange={e => setSplitPct(Number(e.target.value))}
+                  className="w-full accent-[color:var(--sage)]"
+                />
                 <div className="flex gap-2">
-                  <input type="number" min={1} max={99} value={splitPct}
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={splitPct}
                     onChange={e => setSplitPct(Math.min(99, Math.max(1, Number(e.target.value))))}
-                    className="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                  <span className="text-slate-400 text-sm self-center">% para {pagador}</span>
+                    className="w-16 text-center rounded-lg py-1.5 text-sm focus:outline-none"
+                    style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', color: 'var(--ink)' }}
+                  />
+                  <span className="text-sm self-center" style={{ color: 'var(--muted)' }}>% para {pagador}</span>
                 </div>
-                <p className="text-slate-400 text-xs">
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>
                   {pagador} paga {splitPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * splitPct / 100))})` : ''}
                   {' · '}
                   {outraApelido} paga {100 - splitPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * (100 - splitPct) / 100))})` : ''}
@@ -366,50 +430,87 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
 
           {/* ── Avançado — só para gastos: parcelas + data ─────── */}
           {!isRecorrente && (
-            <div className="border border-slate-700 rounded-xl overflow-hidden">
+            <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
               <button
                 onClick={() => setAvancadoOpen(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 text-slate-400 hover:text-white transition-colors text-sm"
+                className="w-full flex items-center justify-between px-4 py-3 text-sm transition-opacity active:opacity-70"
+                style={{ color: 'var(--muted)' }}
               >
                 <span>{avancadoOpen ? '▾' : '▸'} Avançado</span>
                 {(parcelas > 1 || dataCompra !== todayBRTStr()) && (
-                  <span className="text-emerald-400 text-xs">editado</span>
+                  <span className="text-xs" style={{ color: 'var(--sage)' }}>editado</span>
                 )}
               </button>
 
               {avancadoOpen && (
-                <div className="px-4 pb-5 space-y-5 border-t border-slate-700">
+                <div className="px-4 pb-5 space-y-5 border-t" style={{ borderColor: 'var(--border)' }}>
 
                   {/* Parcelas */}
                   <div className="pt-4">
-                    <label className="block text-slate-400 text-xs font-medium mb-3">PARCELAS</label>
+                    <label className="block text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>PARCELAS</label>
                     <div className="flex items-center gap-4">
-                      <button onClick={() => setParcelas(v => Math.max(1, v - 1))} className="w-10 h-10 rounded-lg bg-slate-700 text-white text-lg font-medium hover:bg-slate-600 transition-colors">−</button>
-                      <input type="number" inputMode="numeric" min={1} max={24} value={parcelas}
+                      <button
+                        onClick={() => setParcelas(v => Math.max(1, v - 1))}
+                        className="w-10 h-10 rounded-lg text-lg font-medium transition-opacity active:opacity-70"
+                        style={{ background: 'var(--bg-2)', color: 'var(--ink)', border: '1px solid var(--border)' }}
+                      >−</button>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={24}
+                        value={parcelas}
                         onChange={e => setParcelas(Math.min(24, Math.max(1, parseInt(e.target.value) || 1)))}
-                        className="w-16 text-center bg-slate-900 border border-slate-700 rounded-lg py-2 text-white text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                      <button onClick={() => setParcelas(v => Math.min(24, v + 1))} className="w-10 h-10 rounded-lg bg-slate-700 text-white text-lg font-medium hover:bg-slate-600 transition-colors">+</button>
-                      <span className="text-slate-300 text-sm">{previewParcelas}</span>
+                        className="w-16 text-center rounded-lg py-2 text-lg font-semibold focus:outline-none"
+                        style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', color: 'var(--ink)' }}
+                      />
+                      <button
+                        onClick={() => setParcelas(v => Math.min(24, v + 1))}
+                        className="w-10 h-10 rounded-lg text-lg font-medium transition-opacity active:opacity-70"
+                        style={{ background: 'var(--bg-2)', color: 'var(--ink)', border: '1px solid var(--border)' }}
+                      >+</button>
+                      <span className="text-sm" style={{ color: 'var(--ink)' }}>{previewParcelas}</span>
                     </div>
                   </div>
 
                   {/* Data */}
                   <div>
-                    <p className="text-slate-400 text-xs font-medium mb-3">DATA DA COMPRA</p>
+                    <p className="text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>DATA DA COMPRA</p>
                     <div className="flex flex-wrap gap-2">
                       {[todayBRTStr(), dateMinus(1), dateMinus(2)].map((d, i) => (
-                        <button key={d} onClick={() => { setDataCompra(d); setShowDatePicker(false) }}
-                          className={`px-4 py-2 rounded-lg text-sm transition-colors ${dataCompra === d && !showDatePicker ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                        <button
+                          key={d}
+                          onClick={() => { setDataCompra(d); setShowDatePicker(false) }}
+                          className="px-4 py-2 rounded-lg text-sm transition-opacity active:opacity-70"
+                          style={{
+                            background: dataCompra === d && !showDatePicker ? 'var(--sage)' : 'var(--bg-2)',
+                            color: dataCompra === d && !showDatePicker ? '#fff' : 'var(--ink)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
                           {i === 0 ? 'Hoje' : i === 1 ? 'Ontem' : 'Anteontem'}
                         </button>
                       ))}
-                      <button onClick={() => { setShowDatePicker(true); setTimeout(() => dateRef.current?.showPicker?.(), 50) }}
-                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${showDatePicker ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
+                      <button
+                        onClick={() => { setShowDatePicker(true); setTimeout(() => dateRef.current?.showPicker?.(), 50) }}
+                        className="px-4 py-2 rounded-lg text-sm transition-opacity active:opacity-70"
+                        style={{
+                          background: showDatePicker ? 'var(--sage)' : 'var(--bg-2)',
+                          color: showDatePicker ? '#fff' : 'var(--ink)',
+                          border: '1px solid var(--border)',
+                        }}
+                      >
                         {showDatePicker ? labelForDate(dataCompra) : 'Outro'}
                       </button>
                     </div>
-                    <input ref={dateRef} type="date" value={dataCompra} onChange={e => { setDataCompra(e.target.value); setShowDatePicker(true) }}
-                      className={`mt-2 w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${showDatePicker ? 'block' : 'hidden'}`} />
+                    <input
+                      ref={dateRef}
+                      type="date"
+                      value={dataCompra}
+                      onChange={e => { setDataCompra(e.target.value); setShowDatePicker(true) }}
+                      className={`mt-2 w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none ${showDatePicker ? 'block' : 'hidden'}`}
+                      style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', color: 'var(--ink)' }}
+                    />
                   </div>
                 </div>
               )}
@@ -417,22 +518,37 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
           )}
 
           {/* Erros */}
-          {error && <p className="text-red-400 text-sm" role="alert">{error}</p>}
+          {error && (
+            <p className="text-sm" role="alert" style={{ color: 'var(--coral)' }}>{error}</p>
+          )}
 
           {/* Confirmações */}
           {confirmAlto && !confirmParcelas && (
-            <ConfirmBox message={`Valor de ${displayValue} parece alto. Confirmar?`}
-              onCancel={() => setConfirmAlto(false)} onConfirm={() => { setConfirmAlto(false); handleSalvar() }} />
+            <ConfirmBox
+              message={`Valor de ${displayValue} parece alto. Confirmar?`}
+              onCancel={() => setConfirmAlto(false)}
+              onConfirm={() => { setConfirmAlto(false); handleSalvar() }}
+            />
           )}
           {confirmParcelas && (
-            <ConfirmBox message={`${parcelas} parcelas é bastante. Confirmar?`}
-              onCancel={() => setConfirmParcelas(false)} onConfirm={() => { setConfirmParcelas(false); handleSalvar() }} />
+            <ConfirmBox
+              message={`${parcelas} parcelas é bastante. Confirmar?`}
+              onCancel={() => setConfirmParcelas(false)}
+              onConfirm={() => { setConfirmParcelas(false); handleSalvar() }}
+            />
           )}
 
           {/* Salvar */}
           {!confirmAlto && !confirmParcelas && (
-            <button onClick={handleSalvar} disabled={!canSave}
-              className="w-full py-4 rounded-xl font-semibold text-base bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white transition-colors mb-2">
+            <button
+              onClick={handleSalvar}
+              disabled={!canSave}
+              className="w-full py-4 rounded-xl font-semibold text-base transition-opacity active:opacity-70 disabled:cursor-not-allowed mb-2"
+              style={{
+                background: canSave ? 'var(--sage)' : 'var(--bg-2)',
+                color: canSave ? '#fff' : 'var(--muted)',
+              }}
+            >
               {loading ? 'Salvando…' : 'Salvar'}
             </button>
           )}
@@ -444,8 +560,17 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
 
 function CategoryChip({ cat, selected, onSelect }: { cat: { id: number; nome: string; emoji: string }; selected: boolean; onSelect: () => void }) {
   return (
-    <button onClick={onSelect} title={cat.nome} aria-label={cat.nome} aria-pressed={selected}
-      className={`flex flex-col items-center justify-center gap-1 rounded-xl py-3 text-xl transition-colors ${selected ? 'bg-emerald-600/30 border-2 border-emerald-500 text-white' : 'bg-slate-700 border-2 border-transparent text-white hover:bg-slate-600'}`}>
+    <button
+      onClick={onSelect}
+      title={cat.nome}
+      aria-label={cat.nome}
+      aria-pressed={selected}
+      className="flex flex-col items-center justify-center gap-1 rounded-xl py-3 text-xl transition-opacity active:opacity-70"
+      style={{
+        background: selected ? 'color-mix(in srgb, var(--sage) 20%, transparent)' : 'var(--bg-2)',
+        border: selected ? '2px solid var(--sage)' : '2px solid var(--border)',
+      }}
+    >
       <span>{cat.emoji}</span>
     </button>
   )
@@ -453,11 +578,25 @@ function CategoryChip({ cat, selected, onSelect }: { cat: { id: number; nome: st
 
 function ConfirmBox({ message, onCancel, onConfirm }: { message: string; onCancel: () => void; onConfirm: () => void }) {
   return (
-    <div className="rounded-xl bg-amber-900/40 border border-amber-700 px-4 py-3">
-      <p className="text-amber-300 text-sm mb-3">{message}</p>
+    <div
+      className="rounded-xl px-4 py-3 border"
+      style={{
+        background: 'color-mix(in srgb, var(--blush) 20%, transparent)',
+        borderColor: 'var(--blush)',
+      }}
+    >
+      <p className="text-sm mb-3" style={{ color: 'var(--ink)' }}>{message}</p>
       <div className="flex gap-2">
-        <button onClick={onCancel} className="flex-1 py-2 rounded-lg bg-slate-700 text-slate-300 text-sm">Corrigir</button>
-        <button onClick={onConfirm} className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium">Confirmar</button>
+        <button
+          onClick={onCancel}
+          className="flex-1 py-2 rounded-lg text-sm transition-opacity active:opacity-70"
+          style={{ background: 'var(--bg-2)', color: 'var(--ink)', border: '1px solid var(--border)' }}
+        >Corrigir</button>
+        <button
+          onClick={onConfirm}
+          className="flex-1 py-2 rounded-lg text-sm font-medium text-white transition-opacity active:opacity-70"
+          style={{ background: 'var(--sage)' }}
+        >Confirmar</button>
       </div>
     </div>
   )

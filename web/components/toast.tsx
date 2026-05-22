@@ -17,13 +17,12 @@ export function Toast({ message, onDismiss }: ToastProps) {
     <div
       role="status"
       aria-live="polite"
-      className="
-        fixed top-4 left-4 right-4 z-[60]
-        rounded-xl bg-slate-700 border border-slate-600
-        px-4 py-3 shadow-xl
-        text-white text-sm
-        animate-[fadeSlideDown_0.2s_ease-out]
-      "
+      className="fixed top-4 left-4 right-4 z-[60] rounded-xl px-4 py-3 shadow-xl text-sm animate-[fadeSlideDown_0.2s_ease-out] border"
+      style={{
+        background: 'var(--card)',
+        borderColor: 'var(--border)',
+        color: 'var(--ink)',
+      }}
     >
       {message}
     </div>
