@@ -14,13 +14,13 @@ import {
 
 function mesAnterior(mesStr: string): string {
   const [y, m] = mesStr.split('-').map(Number)
-  const d = new Date(y, m - 2, 1) // m-1 = índice 0, então m-2 = mês anterior
+  const d = new Date(y, m - 2, 1)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 
 function mesPosterior(mesStr: string): string {
   const [y, m] = mesStr.split('-').map(Number)
-  const d = new Date(y, m, 1) // m = índice 0 do próximo mês
+  const d = new Date(y, m, 1)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 
@@ -47,7 +47,6 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
   const router = useRouter()
   const isMesAtual = mesAtual === currentMesStr()
 
-  // Drawers BUG-16 e BUG-17
   const [catAberta, setCatAberta]       = useState<CategoriaRow | null>(null)
   const [pessoaAberta, setPessoaAberta] = useState<DivisaoItem | null>(null)
 
@@ -63,18 +62,20 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
         <div className="flex items-center justify-between">
           <button
             onClick={() => navMes(mesAnterior(mesAtual))}
-            className="p-2 text-slate-400 hover:text-white transition-colors"
+            className="p-2 transition-opacity active:opacity-60"
+            style={{ color: 'var(--muted)' }}
           >
             ←
           </button>
           <div className="text-center">
-            <p className="text-white font-semibold capitalize">{data.mesLabel}</p>
-            <p className="text-emerald-400 font-bold text-lg">{formatCurrency(data.totalMes)}</p>
+            <p className="font-semibold capitalize" style={{ color: 'var(--ink)' }}>{data.mesLabel}</p>
+            <p className="font-bold text-lg" style={{ color: 'var(--sage)' }}>{formatCurrency(data.totalMes)}</p>
           </div>
           <button
             onClick={() => navMes(mesPosterior(mesAtual))}
             disabled={isMesAtual}
-            className="p-2 text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+            className="p-2 transition-opacity active:opacity-60 disabled:opacity-30"
+            style={{ color: 'var(--muted)' }}
           >
             →
           </button>
@@ -82,9 +83,9 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
         {/* ── Bloco: Por categoria ── */}
         <section className="space-y-3">
-          <h2 className="text-slate-400 text-xs font-semibold uppercase tracking-wide">Por categoria</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Por categoria</h2>
           {data.categorias.length === 0 ? (
-            <p className="text-slate-600 text-sm">Nenhum gasto neste mês.</p>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>Nenhum gasto neste mês.</p>
           ) : (
             <div className="space-y-2">
               {data.categorias.map(cat => {
@@ -94,38 +95,39 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                 const meta = data.metasPorCategoria?.[cat.categoria_id]
                 const metaPct = meta ? Math.round((cat.total_centavos / meta) * 100) : null
                 const barColor = metaPct === null
-                  ? 'bg-emerald-500'
-                  : metaPct > 90 ? 'bg-red-500' : metaPct > 70 ? 'bg-yellow-500' : 'bg-emerald-500'
+                  ? 'var(--sage)'
+                  : metaPct > 90 ? 'var(--coral)' : metaPct > 70 ? '#f59e0b' : 'var(--sage)'
 
                 return (
                   <button
                     key={cat.categoria_id}
                     onClick={() => setCatAberta(cat)}
-                    className="w-full rounded-xl bg-slate-800 px-4 py-3 space-y-1.5 text-left active:bg-slate-700 transition-colors"
+                    className="w-full rounded-xl px-4 py-3 space-y-1.5 text-left border transition-opacity active:opacity-70"
+                    style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-base">{cat.categoria_emoji}</span>
-                        <span className="text-white text-sm capitalize">{cat.categoria_nome}</span>
+                        <span className="text-sm capitalize" style={{ color: 'var(--ink)' }}>{cat.categoria_nome}</span>
                       </div>
                       <div className="text-right">
                         {meta ? (
-                          <span className="text-white text-sm font-medium">
+                          <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
                             {formatCurrency(cat.total_centavos)}
-                            <span className="text-slate-500 text-xs"> / {formatCurrency(meta)}</span>
+                            <span className="text-xs ml-1" style={{ color: 'var(--muted)' }}>/ {formatCurrency(meta)}</span>
                           </span>
                         ) : (
-                          <span className="text-white text-sm font-medium">{formatCurrency(cat.total_centavos)}</span>
+                          <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(cat.total_centavos)}</span>
                         )}
-                        <span className={`text-xs ml-2 ${metaPct !== null && metaPct > 90 ? 'text-red-400 font-semibold' : 'text-slate-500'}`}>
+                        <span className={`text-xs ml-2`} style={{ color: metaPct !== null && metaPct > 90 ? 'var(--coral)' : 'var(--muted)' }}>
                           {metaPct !== null ? `${metaPct}%` : `${pct}%`}
                         </span>
                       </div>
                     </div>
-                    <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
                       <div
-                        className={`h-full ${barColor} rounded-full transition-all duration-500`}
-                        style={{ width: `${Math.min(metaPct ?? pct, 100)}%` }}
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(metaPct ?? pct, 100)}%`, background: barColor }}
                       />
                     </div>
                   </button>
@@ -137,26 +139,26 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
         {/* ── Bloco: Divisão ── */}
         <section className="space-y-3">
-          <h2 className="text-slate-400 text-xs font-semibold uppercase tracking-wide">Divisão do mês</h2>
-          <div className="rounded-xl bg-slate-800 px-4 py-4 space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Divisão do mês</h2>
+          <div className="rounded-xl px-4 py-4 space-y-3 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
             {data.divisao.map(d => (
               <button
                 key={d.apelido}
                 onClick={() => setPessoaAberta(d)}
-                className="w-full text-left space-y-1 active:opacity-70 transition-opacity"
+                className="w-full text-left space-y-1 transition-opacity active:opacity-70"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-300 text-sm">{d.apelido} pagou</span>
+                  <span className="text-sm" style={{ color: 'var(--muted)' }}>{d.apelido} pagou</span>
                   <div className="text-right">
-                    <span className="text-white text-sm font-medium">{formatCurrency(d.total)}</span>
-                    <span className="text-slate-500 text-xs ml-2">{d.pct}%</span>
-                    <span className="text-slate-600 text-xs ml-1">›</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(d.total)}</span>
+                    <span className="text-xs ml-2" style={{ color: 'var(--muted)' }}>{d.pct}%</span>
+                    <span className="text-xs ml-1" style={{ color: 'var(--muted)' }}>›</span>
                   </div>
                 </div>
-                <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
                   <div
-                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                    style={{ width: `${d.pct}%` }}
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${d.pct}%`, background: 'var(--coral)' }}
                   />
                 </div>
               </button>
@@ -166,7 +168,6 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
         {/* ── Bloco: Recorrentes por pessoa ── */}
         {data.recorrentes.length > 0 && (() => {
-          // Agrupa por apelido
           const grupos = data.recorrentes.reduce<Record<string, typeof data.recorrentes>>((acc, r) => {
             if (!acc[r.apelido]) acc[r.apelido] = []
             acc[r.apelido].push(r)
@@ -175,25 +176,25 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
           const apelidos = Object.keys(grupos).sort()
           return (
             <section className="space-y-3">
-              <h2 className="text-slate-400 text-xs font-semibold uppercase tracking-wide">Recorrentes</h2>
+              <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Recorrentes</h2>
               <div className="grid grid-cols-2 gap-3">
                 {apelidos.map(apelido => {
                   const items = grupos[apelido]
                   const total = items.reduce((s, i) => s + i.valor_centavos, 0)
                   return (
-                    <div key={apelido} className="rounded-xl bg-slate-800 px-3 py-3 space-y-2">
-                      <p className="text-slate-400 text-xs font-semibold uppercase tracking-wide">{apelido}</p>
+                    <div key={apelido} className="rounded-xl px-3 py-3 space-y-2 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+                      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>{apelido}</p>
                       {items.map((item, i) => (
                         <div key={i} className="flex items-center justify-between gap-1">
-                          <span className="text-sm truncate text-slate-300">
+                          <span className="text-sm truncate" style={{ color: 'var(--muted)' }}>
                             {item.categoria_emoji} {item.descricao}
                           </span>
-                          <span className="text-white text-xs font-medium shrink-0">{formatCurrency(item.valor_centavos)}</span>
+                          <span className="text-xs font-medium shrink-0" style={{ color: 'var(--ink)' }}>{formatCurrency(item.valor_centavos)}</span>
                         </div>
                       ))}
-                      <div className="pt-1 border-t border-slate-700 flex justify-between">
-                        <span className="text-slate-500 text-xs">Total</span>
-                        <span className="text-emerald-400 text-xs font-semibold">{formatCurrency(total)}</span>
+                      <div className="pt-1 border-t flex justify-between" style={{ borderColor: 'var(--border)' }}>
+                        <span className="text-xs" style={{ color: 'var(--muted)' }}>Total</span>
+                        <span className="text-xs font-semibold" style={{ color: 'var(--sage)' }}>{formatCurrency(total)}</span>
                       </div>
                     </div>
                   )
@@ -206,20 +207,24 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
         {/* ── Bloco: Top gastos ── */}
         {data.topGastos.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-slate-400 text-xs font-semibold uppercase tracking-wide">Top gastos</h2>
-            <div className="rounded-xl bg-slate-800 overflow-hidden divide-y divide-slate-700">
-              {data.topGastos.map(g => (
-                <div key={g.id} className="flex items-center gap-3 px-4 py-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Top gastos</h2>
+            <div className="rounded-xl overflow-hidden border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+              {data.topGastos.map((g, i) => (
+                <div
+                  key={g.id}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={{ borderTop: i > 0 ? `1px solid var(--border)` : undefined }}
+                >
                   <span className="text-xl shrink-0">{g.categoria_emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm truncate">
+                    <p className="text-sm truncate" style={{ color: 'var(--ink)' }}>
                       {g.descricao || g.categoria_nome}
                     </p>
-                    <p className="text-slate-500 text-xs">
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
                       {g.pagador_apelido} · {formatDataCompra(g.data_compra)}
                     </p>
                   </div>
-                  <span className="text-white text-sm font-medium shrink-0">
+                  <span className="text-sm font-medium shrink-0" style={{ color: 'var(--ink)' }}>
                     {formatCurrency(g.valor_total_centavos)}
                   </span>
                 </div>
@@ -231,8 +236,8 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
         {/* ── Bloco: Últimos 6 meses ── */}
         {data.gastosMensais.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-slate-400 text-xs font-semibold uppercase tracking-wide">Últimos 6 meses</h2>
-            <div className="rounded-xl bg-slate-800 px-2 py-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Últimos 6 meses</h2>
+            <div className="rounded-xl px-2 py-4 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart
                   data={data.gastosMensais.map(r => ({
@@ -243,7 +248,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                 >
                   <XAxis
                     dataKey="mes"
-                    tick={{ fill: '#64748b', fontSize: 11 }}
+                    tick={{ fill: '#8A8078', fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -253,14 +258,14 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                       const n = Number(v)
                       return [`R$ ${n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`, 'Total']
                     }}
-                    contentStyle={{ background: '#1e293b', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12 }}
-                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    contentStyle={{ background: '#FFFDF7', border: '1px solid #E2DAD0', borderRadius: 8, color: '#1A1612', fontSize: 12 }}
+                    cursor={{ fill: 'rgba(0,0,0,0.04)' }}
                   />
                   <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={40}>
                     {data.gastosMensais.map((_, i) => (
                       <Cell
                         key={i}
-                        fill={i === data.gastosMensais.length - 1 ? '#10b981' : '#334155'}
+                        fill={i === data.gastosMensais.length - 1 ? '#7A9E7E' : '#E2DAD0'}
                       />
                     ))}
                   </Bar>
@@ -274,7 +279,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
       <BottomNav />
 
-      {/* ── BUG-16: Drawer de detalhes da categoria ── */}
+      {/* ── Drawer de detalhes da categoria ── */}
       {catAberta && (() => {
         const itens = data.compras.filter(c => c.categoria_id === catAberta.categoria_id)
         const porPagador: Record<string, number> = {}
@@ -282,41 +287,49 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
         const totalCat = itens.reduce((s, c) => s + c.installment_valor, 0)
         return (
           <>
-            <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setCatAberta(null)} aria-hidden="true" />
-            <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-slate-800 max-h-[80dvh] flex flex-col">
+            <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setCatAberta(null)} aria-hidden="true" />
+            <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl max-h-[80dvh] flex flex-col" style={{ background: 'var(--card)' }}>
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
+              </div>
               {/* Header */}
-              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-700 shrink-0">
+              <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{catAberta.categoria_emoji}</span>
-                  <h2 className="text-white font-semibold capitalize">{catAberta.categoria_nome}</h2>
-                  <span className="text-slate-400 text-sm">· {data.mesLabel}</span>
+                  <h2 className="font-semibold capitalize" style={{ color: 'var(--ink)' }}>{catAberta.categoria_nome}</h2>
+                  <span className="text-sm" style={{ color: 'var(--muted)' }}>· {data.mesLabel}</span>
                 </div>
-                <button onClick={() => setCatAberta(null)} className="text-slate-400 hover:text-white p-1">✕</button>
+                <button onClick={() => setCatAberta(null)} className="p-1" style={{ color: 'var(--muted)' }}>✕</button>
               </div>
               {/* Resumo por pagador */}
               {Object.keys(porPagador).length > 0 && (
-                <div className="px-5 py-3 border-b border-slate-700 flex gap-6 shrink-0">
+                <div className="px-5 py-3 border-b flex gap-6 shrink-0" style={{ borderColor: 'var(--border)' }}>
                   {Object.entries(porPagador).map(([apelido, total]) => (
                     <div key={apelido}>
-                      <p className="text-slate-400 text-xs">{apelido} pagou</p>
-                      <p className="text-white text-sm font-semibold">{formatCurrency(total)}</p>
-                      <p className="text-slate-500 text-xs">{totalCat > 0 ? Math.round(total / totalCat * 100) : 0}%</p>
+                      <p className="text-xs" style={{ color: 'var(--muted)' }}>{apelido} pagou</p>
+                      <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{formatCurrency(total)}</p>
+                      <p className="text-xs" style={{ color: 'var(--muted)' }}>{totalCat > 0 ? Math.round(total / totalCat * 100) : 0}%</p>
                     </div>
                   ))}
                 </div>
               )}
               {/* Lista de compras */}
-              <div className="overflow-y-auto flex-1 divide-y divide-slate-700/50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+              <div className="overflow-y-auto flex-1" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                 {itens.length === 0 ? (
-                  <p className="text-slate-500 text-sm text-center py-8">Sem compras nesta categoria.</p>
+                  <p className="text-sm text-center py-8" style={{ color: 'var(--muted)' }}>Sem compras nesta categoria.</p>
                 ) : (
                   itens.map((c, i) => (
-                    <div key={i} className="flex items-center justify-between px-5 py-3 gap-3">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between px-5 py-3 gap-3"
+                      style={{ borderTop: i > 0 ? `1px solid var(--border)` : undefined }}
+                    >
                       <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm truncate">{c.descricao || catAberta.categoria_nome}</p>
-                        <p className="text-slate-500 text-xs">{c.pagador_apelido} · {formatDataCompra(c.data_competencia)}</p>
+                        <p className="text-sm truncate" style={{ color: 'var(--ink)' }}>{c.descricao || catAberta.categoria_nome}</p>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>{c.pagador_apelido} · {formatDataCompra(c.data_competencia)}</p>
                       </div>
-                      <span className="text-white text-sm font-medium shrink-0">{formatCurrency(c.installment_valor)}</span>
+                      <span className="text-sm font-medium shrink-0" style={{ color: 'var(--ink)' }}>{formatCurrency(c.installment_valor)}</span>
                     </div>
                   ))
                 )}
@@ -326,7 +339,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
         )
       })()}
 
-      {/* ── BUG-17: Drawer de breakdown por categoria de uma pessoa ── */}
+      {/* ── Drawer de breakdown por categoria de uma pessoa ── */}
       {pessoaAberta && (() => {
         const itens = data.compras.filter(c => c.pagador_apelido === pessoaAberta.apelido)
         const porCat: Record<number, { nome: string; emoji: string; total: number }> = {}
@@ -338,20 +351,24 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
         const totalPessoa = itens.reduce((s, c) => s + c.installment_valor, 0)
         return (
           <>
-            <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setPessoaAberta(null)} aria-hidden="true" />
-            <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-slate-800 max-h-[80dvh] flex flex-col">
+            <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setPessoaAberta(null)} aria-hidden="true" />
+            <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl max-h-[80dvh] flex flex-col" style={{ background: 'var(--card)' }}>
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
+              </div>
               {/* Header */}
-              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-700 shrink-0">
-                <h2 className="text-white font-semibold">
+              <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
+                <h2 className="font-semibold" style={{ color: 'var(--ink)' }}>
                   {pessoaAberta.apelido} · {formatCurrency(totalPessoa)}
-                  <span className="text-slate-400 text-sm font-normal ml-2">em {data.mesLabel}</span>
+                  <span className="text-sm font-normal ml-2" style={{ color: 'var(--muted)' }}>em {data.mesLabel}</span>
                 </h2>
-                <button onClick={() => setPessoaAberta(null)} className="text-slate-400 hover:text-white p-1">✕</button>
+                <button onClick={() => setPessoaAberta(null)} className="p-1" style={{ color: 'var(--muted)' }}>✕</button>
               </div>
               {/* Lista por categoria com barra */}
               <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                 {cats.length === 0 ? (
-                  <p className="text-slate-500 text-sm text-center py-8">Sem gastos registrados.</p>
+                  <p className="text-sm text-center py-8" style={{ color: 'var(--muted)' }}>Sem gastos registrados.</p>
                 ) : (
                   cats.map(cat => {
                     const pct = totalPessoa > 0 ? Math.round(cat.total / totalPessoa * 100) : 0
@@ -360,24 +377,24 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-base">{cat.emoji}</span>
-                            <span className="text-slate-200 text-sm capitalize">{cat.nome}</span>
+                            <span className="text-sm capitalize" style={{ color: 'var(--ink)' }}>{cat.nome}</span>
                           </div>
                           <div className="text-right">
-                            <span className="text-white text-sm font-medium">{formatCurrency(cat.total)}</span>
-                            <span className="text-slate-500 text-xs ml-2">{pct}%</span>
+                            <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(cat.total)}</span>
+                            <span className="text-xs ml-2" style={{ color: 'var(--muted)' }}>{pct}%</span>
                           </div>
                         </div>
-                        <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--sage)' }} />
                         </div>
                       </div>
                     )
                   })
                 )}
                 {/* Total */}
-                <div className="pt-2 border-t border-slate-700 flex justify-between">
-                  <span className="text-slate-400 text-sm">Total</span>
-                  <span className="text-white text-sm font-semibold">{formatCurrency(totalPessoa)}</span>
+                <div className="pt-2 border-t flex justify-between" style={{ borderColor: 'var(--border)' }}>
+                  <span className="text-sm" style={{ color: 'var(--muted)' }}>Total</span>
+                  <span className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{formatCurrency(totalPessoa)}</span>
                 </div>
               </div>
             </div>

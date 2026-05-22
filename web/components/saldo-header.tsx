@@ -104,7 +104,7 @@ export async function SaldoHeader() {
   })
 
   return (
-    <div className="bg-slate-800 border-b border-slate-700">
+    <div className="border-b" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
       {/* Card 1 — Gastos variáveis */}
       <div className="flex items-center justify-between gap-3 px-4 py-4">
         <SaldoDetalheButton
@@ -119,35 +119,35 @@ export async function SaldoHeader() {
 
       {/* Card 2 — Recorrentes (só aparece se há recorrentes no mês) */}
       {totalMesRec > 0 && (
-        <div className="px-4 pb-4 pt-0 border-t border-slate-700/50">
-          <div className="rounded-xl bg-slate-900/60 px-4 py-3 space-y-2">
+        <div className="px-4 pb-4 pt-0 border-t" style={{ borderColor: 'var(--border)' }}>
+          <div className="rounded-xl px-4 py-3 space-y-2" style={{ background: 'var(--bg-2)' }}>
             {/* Título */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm">🏠</span>
-                <span className="text-slate-400 text-xs font-semibold uppercase tracking-wide">
+                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
                   Recorrentes · {mesLabelRec}
                 </span>
               </div>
-              <span className="text-slate-500 text-xs">{formatCurrency(totalMesRec)}</span>
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>{formatCurrency(totalMesRec)}</span>
             </div>
 
             {/* Quem pagou quanto */}
             <div className="space-y-1">
               {recorrentes.map(r => (
                 <div key={r.apelido} className="flex items-center justify-between">
-                  <span className="text-slate-300 text-sm">{r.apelido} pagou</span>
-                  <span className="text-white text-sm font-medium">{formatCurrency(r.pago_centavos)}</span>
+                  <span className="text-sm" style={{ color: 'var(--muted)' }}>{r.apelido} pagou</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(r.pago_centavos)}</span>
                 </div>
               ))}
             </div>
 
             {/* Status */}
-            <div className="pt-1 border-t border-slate-700/50">
+            <div className="pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
               {equilibrado ? (
-                <p className="text-emerald-400 text-sm">✅ Fixos equilibrados este mês</p>
+                <p className="text-sm" style={{ color: 'var(--sage)' }}>✅ Fixos equilibrados este mês</p>
               ) : quemCobre ? (
-                <p className="text-amber-400 text-sm">
+                <p className="text-sm" style={{ color: 'var(--coral)' }}>
                   → {quemCobre.apelido} precisa cobrir {formatCurrency(Math.abs(quemCobre.saldo_centavos))}
                 </p>
               ) : null}
@@ -161,10 +161,10 @@ export async function SaldoHeader() {
 
 export function SaldoHeaderSkeleton() {
   return (
-    <div className="bg-slate-800 border-b border-slate-700">
+    <div className="border-b" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
       <div className="flex items-center justify-between gap-3 px-4 py-4">
-        <div className="h-5 w-56 rounded bg-slate-700 animate-pulse" />
-        <div className="h-4 w-8 rounded bg-slate-700 animate-pulse" />
+        <div className="h-5 w-56 rounded animate-pulse" style={{ background: 'var(--bg-2)' }} />
+        <div className="h-4 w-8 rounded animate-pulse" style={{ background: 'var(--bg-2)' }} />
       </div>
     </div>
   )

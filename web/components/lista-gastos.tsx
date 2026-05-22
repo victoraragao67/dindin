@@ -64,15 +64,15 @@ export async function ListaGastos({ currentApelido = 'Vitim' }: { currentApelido
 export function ListaGastosSkeleton() {
   return (
     <section className="flex-1 px-4 pt-4 space-y-3">
-      <div className="h-4 w-40 rounded bg-slate-700 animate-pulse" />
-      <div className="h-px bg-slate-700" />
+      <div className="h-4 w-40 rounded animate-pulse" style={{ background: 'var(--bg-2)' }} />
+      <div className="h-px" style={{ background: 'var(--border)' }} />
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex justify-between items-center bg-slate-800 rounded-lg px-4 py-3">
+        <div key={i} className="flex justify-between items-center rounded-xl px-4 py-3 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
           <div className="flex gap-2 items-center">
-            <div className="w-6 h-6 rounded bg-slate-700 animate-pulse" />
-            <div className="h-4 w-28 rounded bg-slate-700 animate-pulse" />
+            <div className="w-6 h-6 rounded animate-pulse" style={{ background: 'var(--bg-2)' }} />
+            <div className="h-4 w-28 rounded animate-pulse" style={{ background: 'var(--bg-2)' }} />
           </div>
-          <div className="h-4 w-16 rounded bg-slate-700 animate-pulse" />
+          <div className="h-4 w-16 rounded animate-pulse" style={{ background: 'var(--bg-2)' }} />
         </div>
       ))}
     </section>
