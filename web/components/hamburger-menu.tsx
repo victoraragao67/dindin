@@ -36,24 +36,24 @@ export function HamburgerMenu() {
         onClick={() => setOpen(true)}
         aria-label="Menu"
         style={{
-          width: 36,
-          height: 36,
+          width: 34,
+          height: 34,
           borderRadius: '50%',
           background: 'var(--bg-2)',
           border: '1px solid var(--border)',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          gap: 4,
+          padding: '9px 8px',
           cursor: 'pointer',
           flexShrink: 0,
         }}
       >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
-          stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
+        <span style={{ width: 14, height: 1.5, background: 'var(--muted)', borderRadius: 2, display: 'block' }} />
+        <span style={{ width: 14, height: 1.5, background: 'var(--muted)', borderRadius: 2, display: 'block' }} />
+        <span style={{ width: 14, height: 1.5, background: 'var(--muted)', borderRadius: 2, display: 'block' }} />
       </button>
 
       {/* Overlay */}
@@ -77,7 +77,7 @@ export function HamburgerMenu() {
         style={{
           position: 'fixed',
           top: 0, right: 0, bottom: 0,
-          width: 260,
+          width: 220,
           background: 'var(--card)',
           borderLeft: '1px solid var(--border)',
           zIndex: 50,
@@ -90,7 +90,7 @@ export function HamburgerMenu() {
       >
         {/* Header do drawer */}
         <div style={{
-          padding: '20px 20px 16px',
+          padding: '16px 16px 14px',
           borderBottom: '1px solid var(--border)',
           display: 'flex',
           justifyContent: 'space-between',
@@ -98,16 +98,16 @@ export function HamburgerMenu() {
         }}>
           <span style={{
             fontFamily: 'var(--font-fraunces), Georgia, serif',
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: 700,
             color: 'var(--ink)',
-            letterSpacing: -1,
+            letterSpacing: -0.8,
           }}>
             Din<span style={{ color: 'var(--coral)' }}>Din</span>
           </span>
           <button
             onClick={close}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20, lineHeight: 1 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16, lineHeight: 1 }}
             aria-label="Fechar menu"
           >✕</button>
         </div>
@@ -122,16 +122,16 @@ export function HamburgerMenu() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
-                padding: '16px 20px',
+                gap: 10,
+                padding: '13px 16px',
                 color: 'var(--ink)',
                 textDecoration: 'none',
-                fontSize: 15,
-                fontWeight: 500,
-                borderBottom: i < navItems.length - 1 ? '1px solid var(--border)' : 'none',
+                fontSize: 13,
+                fontWeight: 400,
+                borderBottom: '1px solid var(--border)',
               }}
             >
-              <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
+              <span style={{ fontSize: 15 }}>{item.icon}</span>
               {item.label}
             </Link>
           ))}

@@ -96,32 +96,32 @@ export function MetasV2Client({
     <div>
       {/* ── Card de resumo ─────────────────────────────────── */}
       <div style={{
-        margin: '12px 16px 16px',
+        margin: '0 14px 12px',
         background: 'var(--card)',
         border: '1px solid var(--border)',
         borderRadius: 20,
-        padding: '16px 18px',
+        padding: '14px 16px',
       }}>
         <p style={{
-          fontSize: 10, fontWeight: 600, letterSpacing: 1,
-          textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12,
+          fontSize: 9, fontWeight: 700, letterSpacing: 1,
+          textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10,
         }}>
-          Metas · {MESES[mes - 1]}/{ano}
+          Metas · {MESES[mes - 1]} {ano}
         </p>
 
         {/* Pills */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
           <div style={{
             flex: 1,
             background: 'var(--bg)',
             border: '1px solid var(--border)',
             borderRadius: 12,
-            padding: '10px 12px',
+            padding: '9px 10px',
           }}>
-            <p style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Total das metas</p>
+            <p style={{ fontSize: 9, color: 'var(--muted)', marginBottom: 3 }}>Total das metas</p>
             <p style={{
               fontFamily: 'var(--font-fraunces), Georgia, serif',
-              fontSize: 17, fontWeight: 700, color: 'var(--ink)', letterSpacing: -0.5,
+              fontSize: 15, fontWeight: 700, color: 'var(--ink)', letterSpacing: -0.4,
             }}>
               {formatCurrency(totalMetas)}
             </p>
@@ -131,12 +131,12 @@ export function MetasV2Client({
             background: 'var(--bg)',
             border: '1px solid var(--border)',
             borderRadius: 12,
-            padding: '10px 12px',
+            padding: '9px 10px',
           }}>
-            <p style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Total comprometido</p>
+            <p style={{ fontSize: 9, color: 'var(--muted)', marginBottom: 3 }}>Total comprometido</p>
             <p style={{
               fontFamily: 'var(--font-fraunces), Georgia, serif',
-              fontSize: 17, fontWeight: 700, color: 'var(--ink)', letterSpacing: -0.5,
+              fontSize: 15, fontWeight: 700, color: 'var(--ink)', letterSpacing: -0.4,
             }}>
               {formatCurrency(totalComprometido)}
             </p>
@@ -146,14 +146,14 @@ export function MetasV2Client({
         {/* Sobra/Estouro geral */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          borderTop: '1px solid var(--border)', paddingTop: 12,
+          borderTop: '1px solid var(--border)', paddingTop: 10,
         }}>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+          <span style={{ fontSize: 11, color: 'var(--muted)' }}>
             {sobraGeral >= 0 ? 'Sobra geral das metas' : 'Estouro geral das metas'}
           </span>
           <span style={{
             fontFamily: 'var(--font-fraunces), Georgia, serif',
-            fontSize: 14, fontWeight: 700,
+            fontSize: 13, fontWeight: 700,
             color: sobraGeral >= 0 ? 'var(--sage)' : 'var(--coral)',
           }}>
             {sobraGeral >= 0 ? '+ ' : '− '}{formatCurrency(Math.abs(sobraGeral))}
@@ -174,35 +174,35 @@ export function MetasV2Client({
           ? `✓ ${formatCurrency(delta)} dentro da meta`
           : `⚠ ${formatCurrency(Math.abs(delta))} acima da meta`
         const deltaColor = delta >= 0
-          ? (status === 'atencao' ? 'var(--blush)' : 'var(--sage)')
-          : 'var(--coral)'
+          ? (status === 'atencao' ? '#8B5A1F' : '#3d6b40')
+          : '#a8432a'
         const isEdit = editando === categoria.id
 
         return (
-          <div key={categoria.id} style={{ margin: '0 16px 8px' }}>
+          <div key={categoria.id} style={{ margin: '0 14px 8px' }}>
             <div style={{
               background: 'var(--card)',
               border: '1px solid var(--border)',
               borderRadius: 16,
-              padding: 14,
+              padding: 13,
               overflow: 'hidden',
             }}>
               {/* Cabeçalho: nome + meta + botão editar */}
               <div style={{
                 display: 'flex', justifyContent: 'space-between',
-                alignItems: 'center', marginBottom: 10,
+                alignItems: 'center', marginBottom: 8,
               }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>
                   {categoria.emoji} {categoria.nome}
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 10, color: 'var(--muted)' }}>
                     meta: {formatCurrency(meta)}
                   </span>
                   <button
                     onClick={() => isEdit ? fechar() : abrirEdicao(categoria.id, meta)}
                     style={{
-                      fontSize: 11, color: 'var(--coral)',
+                      fontSize: 10, color: 'var(--coral)',
                       background: 'none', border: 'none',
                       cursor: 'pointer', fontWeight: 600,
                     }}
@@ -215,23 +215,23 @@ export function MetasV2Client({
               {/* Total + percentual */}
               <div style={{
                 display: 'flex', justifyContent: 'space-between',
-                alignItems: 'baseline', marginBottom: 6,
+                alignItems: 'baseline', marginBottom: 5,
               }}>
                 <span style={{
                   fontFamily: 'var(--font-fraunces), Georgia, serif',
-                  fontSize: 20, fontWeight: 700, color: 'var(--ink)', letterSpacing: -0.5,
+                  fontSize: 19, fontWeight: 700, color: 'var(--ink)', letterSpacing: -0.5,
                 }}>
                   {formatCurrency(total)}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: barColor }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: barColor }}>
                   {Math.round(realPct)}% · {status === 'estourou' ? 'Estourou' : status === 'atencao' ? 'Atenção' : 'ok'}
                 </span>
               </div>
 
               {/* Barra de progresso */}
               <div style={{
-                height: 7, background: 'var(--bg-2)',
-                borderRadius: 100, overflow: 'hidden', marginBottom: 10,
+                height: 6, background: 'var(--bg-2)',
+                borderRadius: 100, overflow: 'hidden', marginBottom: 8,
               }}>
                 <div style={{
                   height: '100%', width: `${pct}%`,
@@ -244,22 +244,22 @@ export function MetasV2Client({
               <div style={{
                 background: 'var(--bg)',
                 borderRadius: 10,
-                padding: '10px 12px',
-                display: 'flex', flexDirection: 'column', gap: 5,
-                marginBottom: 10,
+                padding: '9px 11px',
+                display: 'flex', flexDirection: 'column', gap: 4,
+                marginBottom: 8,
               }}>
                 {/* Linha variável */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 10, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span style={{
-                      width: 7, height: 7, borderRadius: '50%',
+                      width: 6, height: 6, borderRadius: '50%',
                       background: barColor,
                       display: 'inline-block', flexShrink: 0,
                     }} />
                     Variável (gastos do mês)
                   </span>
                   <span style={{
-                    fontSize: 11, fontWeight: 600, color: 'var(--ink)',
+                    fontSize: 10, fontWeight: 600, color: 'var(--ink)',
                     fontFamily: 'var(--font-fraunces), Georgia, serif',
                   }}>
                     {formatCurrency(gasto)}
@@ -268,16 +268,16 @@ export function MetasV2Client({
 
                 {/* Linha recorrente */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 10, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span style={{
-                      width: 7, height: 7, borderRadius: '50%',
+                      width: 6, height: 6, borderRadius: '50%',
                       background: recorrente > 0 ? 'var(--muted)' : 'var(--border)',
                       display: 'inline-block', flexShrink: 0,
                     }} />
                     Recorrente previsto
                   </span>
                   <span style={{
-                    fontSize: 11, fontWeight: 600,
+                    fontSize: 10, fontWeight: 600,
                     color: recorrente > 0 ? 'var(--ink)' : 'var(--muted)',
                     fontFamily: 'var(--font-fraunces), Georgia, serif',
                   }}>
@@ -288,9 +288,9 @@ export function MetasV2Client({
                 {/* Divisor + total */}
                 <div style={{ height: 1, background: 'var(--border)', margin: '2px 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>Total</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)' }}>Total</span>
                   <span style={{
-                    fontSize: 12, fontWeight: 700, color: 'var(--ink)',
+                    fontSize: 11, fontWeight: 700, color: 'var(--ink)',
                     fontFamily: 'var(--font-fraunces), Georgia, serif',
                   }}>
                     {formatCurrency(total)}
@@ -301,11 +301,11 @@ export function MetasV2Client({
               {/* Tag de status em reais */}
               <div>
                 <span style={{
-                  fontSize: 11, fontWeight: 600,
-                  padding: '4px 10px', borderRadius: 100, display: 'inline-block',
+                  fontSize: 10, fontWeight: 600,
+                  padding: '3px 9px', borderRadius: 100, display: 'inline-block',
                   background: delta >= 0
                     ? status === 'atencao'
-                      ? 'rgba(232,197,160,.2)'
+                      ? 'rgba(232,197,160,.25)'
                       : 'rgba(122,158,126,.12)'
                     : 'rgba(212,115,90,.12)',
                   color: deltaColor,
@@ -394,22 +394,22 @@ export function MetasV2Client({
       {/* ── Categorias com gasto/recorrente mas sem meta ────── */}
       {semMetaFinal.length > 0 && (
         <div style={{
-          margin: '4px 16px 0',
-          padding: '12px 16px',
+          margin: '4px 14px 8px',
+          padding: '11px 13px',
           background: 'var(--bg-2)',
           borderRadius: 12,
           border: '1px solid var(--border)',
         }}>
-          <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>
+          <p style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 8 }}>
             Com gasto, sem meta definida:
           </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {semMetaFinal.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => abrirEdicao(cat.id, 0)}
                 style={{
-                  fontSize: 12, padding: '5px 14px',
+                  fontSize: 11, padding: '4px 12px',
                   background: 'var(--card)',
                   border: editando === cat.id
                     ? '1.5px solid var(--coral)'

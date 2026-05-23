@@ -123,44 +123,37 @@ export default async function MetasPage({
         {/* ── Navegação de mês ──────────────────────────────── */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 20px 4px',
+          padding: '12px 20px 8px',
         }}>
           <Link
             href={`/metas?mes=${prev.mes}&ano=${prev.ano}`}
             style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'var(--bg-2)', border: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--muted)', textDecoration: 'none', fontSize: 16,
+              background: 'none', border: 'none',
+              color: 'var(--muted)', textDecoration: 'none',
+              fontSize: 16, padding: '4px 8px', cursor: 'pointer',
             }}
-          >‹</Link>
+          >←</Link>
 
-          <span style={{
-            fontSize: 14, fontWeight: 600, color: 'var(--ink)',
-            textTransform: 'capitalize',
-          }}>
-            {mesLabel(mes, ano)}
-            {isCurrentMonth && (
-              <span style={{
-                marginLeft: 6, fontSize: 10, fontWeight: 600,
-                background: 'color-mix(in srgb, var(--sage) 15%, transparent)',
-                color: 'var(--sage)', borderRadius: 100, padding: '2px 7px',
-                verticalAlign: 'middle',
-              }}>
-                atual
-              </span>
-            )}
-          </span>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{
+              fontSize: 14, fontWeight: 600, color: 'var(--ink)',
+              textTransform: 'capitalize',
+            }}>
+              {mesLabel(mes, ano)}
+            </p>
+            <p style={{ fontSize: 11, color: 'var(--muted)' }}>
+              {isCurrentMonth ? 'Mês atual' : 'Metas de gasto'}
+            </p>
+          </div>
 
           <Link
             href={`/metas?mes=${next.mes}&ano=${next.ano}`}
             style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'var(--bg-2)', border: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--muted)', textDecoration: 'none', fontSize: 16,
+              background: 'none', border: 'none',
+              color: 'var(--muted)', textDecoration: 'none',
+              fontSize: 16, padding: '4px 8px', cursor: 'pointer',
             }}
-          >›</Link>
+          >→</Link>
         </div>
 
         {/* ── Estado vazio ──────────────────────────────────── */}
