@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/get-user'
 import { formatCurrency } from '@/lib/money'
 import { SaldoDetalheButton } from './saldo-detalhe-modal'
-import { MenuSheet } from './menu-sheet'
 import type { SaldoDetalhe } from './saldo-detalhe-modal'
 
 type SaldoRow = {
@@ -106,7 +105,7 @@ export async function SaldoHeader() {
   return (
     <div className="border-b" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
       {/* Card 1 — Gastos variáveis */}
-      <div className="flex items-center justify-between gap-3 px-4 py-4">
+      <div className="flex items-center px-4 py-4">
         <SaldoDetalheButton
           mensagem={mensagem}
           detalhe={detalheProps}
@@ -114,7 +113,6 @@ export async function SaldoHeader() {
           credorApelido={credorApelido}
           saldoValor={saldoValor}
         />
-        <MenuSheet />
       </div>
 
       {/* Card 2 — Recorrentes (só aparece se há recorrentes no mês) */}
