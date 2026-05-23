@@ -3,6 +3,7 @@ import { getUser } from '@/lib/supabase/get-user'
 import { createClient } from '@/lib/supabase/server'
 import { ThemeProvider } from '@/components/theme-provider'
 import { HamburgerMenu } from '@/components/hamburger-menu'
+import { PullToRefresh } from '@/components/pull-to-refresh'
 
 type Tema = 'light' | 'dark'
 
@@ -41,8 +42,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '14px 16px 10px',
-            paddingTop: 'calc(14px + env(safe-area-inset-top))',
+            padding: '10px 16px',
+            paddingTop: 'calc(6px + env(safe-area-inset-top))',
             background: 'var(--bg)',
             borderBottom: '1px solid var(--border)',
           }}
@@ -59,6 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <HamburgerMenu />
         </div>
 
+        <PullToRefresh />
         {children}
       </div>
     </ThemeProvider>

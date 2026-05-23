@@ -118,6 +118,7 @@ export default async function MetasPage({
     <>
       <div
         className="flex-1 overflow-y-auto"
+        data-scroll-root
         style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom) + 16px)' }}
       >
         {/* ── Navegação de mês ──────────────────────────────── */}
