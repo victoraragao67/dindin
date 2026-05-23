@@ -10,7 +10,7 @@ export function BottomNav() {
     { href: '/',       label: 'Home',   icon: '🏠' },
     { href: '/gastos', label: 'Gastos', icon: '📋' },
     { href: '/resumo', label: 'Resumo', icon: '📊' },
-    { href: '/config', label: 'Config', icon: '⚙️' },
+    { href: '/metas',  label: 'Metas',  icon: '🎯' },
   ]
 
   return (
