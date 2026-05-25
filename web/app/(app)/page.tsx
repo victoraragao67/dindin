@@ -256,7 +256,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-4" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
+      <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-4" data-scroll-root style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
 
         {/* Balance + Acerto Banner */}
         <Suspense fallback={<HomeBalanceCardSkeleton />}>

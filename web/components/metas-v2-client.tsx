@@ -168,7 +168,7 @@ export function MetasV2Client({
         const pct      = meta > 0 ? Math.min((total / meta) * 100, 100) : 0
         const realPct  = meta > 0 ? (total / meta) * 100 : 0
         const status   = realPct > 100 ? 'estourou' : realPct > 80 ? 'atencao' : 'ok'
-        const barColor = status === 'estourou' ? 'var(--coral)' : status === 'atencao' ? 'var(--blush)' : 'var(--sage)'
+        const barColor = status === 'estourou' ? 'var(--coral)' : status === 'atencao' ? '#C4803A' : 'var(--sage)'
         const delta    = meta - total
         const deltaLabel = delta >= 0
           ? `✓ ${formatCurrency(delta)} dentro da meta`
@@ -305,7 +305,7 @@ export function MetasV2Client({
                   padding: '3px 9px', borderRadius: 100, display: 'inline-block',
                   background: delta >= 0
                     ? status === 'atencao'
-                      ? 'rgba(232,197,160,.25)'
+                      ? 'rgba(196,128,58,.12)'
                       : 'rgba(122,158,126,.12)'
                     : 'rgba(212,115,90,.12)',
                   color: deltaColor,
