@@ -51,19 +51,24 @@ export async function MetaAlertBanner() {
   const primeiro = alertas[0]
 
   return (
-    <Link href="/resumo" className="block mx-4 mt-3">
-      <div className="flex items-center gap-3 rounded-xl bg-amber-900/30 border border-amber-700/50 px-4 py-3">
-        <span className="text-xl shrink-0">⚠️</span>
-        <p className="text-amber-300 text-sm flex-1">
-          <span className="font-medium">{primeiro.emoji} {primeiro.nome}</span>
+    <Link href="/metas" style={{ display: 'block', margin: '0 16px', textDecoration: 'none' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        borderRadius: 14,
+        background: 'color-mix(in srgb, var(--coral) 10%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--coral) 25%, transparent)',
+        padding: '10px 14px',
+      }}>
+        <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+        <p style={{ fontSize: 13, color: 'var(--ink)', flex: 1, lineHeight: 1.4 }}>
+          <span style={{ fontWeight: 600 }}>{primeiro.emoji} {primeiro.nome}</span>
           {' '}está em{' '}
-          <span className="font-semibold">{primeiro.pct}%</span>
-          {' '}da meta do mês
+          <span style={{ fontWeight: 700, color: 'var(--coral)' }}>{primeiro.pct}% da meta do mês</span>
           {alertas.length > 1 && (
-            <span className="text-amber-400/70 text-xs"> (+{alertas.length - 1} categoria{alertas.length > 2 ? 's' : ''})</span>
+            <span style={{ color: 'var(--muted)', fontSize: 11 }}> (+{alertas.length - 1} categoria{alertas.length > 2 ? 's' : ''})</span>
           )}
         </p>
-        <span className="text-amber-500 text-xs shrink-0">Ver →</span>
+        <span style={{ color: 'var(--coral)', fontSize: 12, flexShrink: 0, fontWeight: 600 }}>Ver →</span>
       </div>
     </Link>
   )

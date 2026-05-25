@@ -42,8 +42,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 16px',
-            paddingTop: 'calc(6px + env(safe-area-inset-top))',
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 0,
+            paddingLeft: 16,
+            paddingRight: 16,
+            height: 'calc(44px + env(safe-area-inset-top))',
             background: 'var(--bg)',
             borderBottom: '1px solid var(--border)',
           }}
