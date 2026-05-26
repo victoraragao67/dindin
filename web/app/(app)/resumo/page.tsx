@@ -183,7 +183,7 @@ export default async function ResumoPage({
     // Parcelas em aberto — installments após o mês selecionado
     supabase
       .from('expense_installments')
-      .select('expense_id, valor_centavos, data_competencia, expenses!inner(id, descricao, num_parcelas, cancelado, pagador:users!expenses_pagador_id_fkey(apelido), categoria:categories(nome, emoji))')
+      .select('expense_id, valor_centavos, data_competencia, expenses!inner(id, descricao, parcelas, cancelado, pagador:users!expenses_pagador_id_fkey(apelido), categoria:categories(nome, emoji))')
       .gt('data_competencia', end)
       .eq('expenses.cancelado', false)
       .order('data_competencia', { ascending: true }),
@@ -267,7 +267,7 @@ export default async function ResumoPage({
     if (!parcelasMap[row.expense_id]) {
       const pagador = Array.isArray(exp.pagador) ? exp.pagador[0] : exp.pagador
       const cat     = Array.isArray(exp.categoria) ? exp.categoria[0] : exp.categoria
-      const numTotal = exp.num_parcelas ?? 0
+      const numTotal = exp.parcelas ?? 0
       parcelasMap[row.expense_id] = {
         expense_id:         row.expense_id,
         descricao:          exp.descricao ?? null,
