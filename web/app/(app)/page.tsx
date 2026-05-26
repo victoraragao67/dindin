@@ -277,7 +277,7 @@ async function RecorrentesSection() {
           🔁
         </div>
         <div>
-          <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Recorrentes fixos</p>
+          <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Recorrentes</p>
           <p className="text-xs" style={{ color: 'var(--muted)' }}>
             {count} item{count !== 1 ? 's' : ''} · {formatCurrency(total)}<span>/mês</span>
           </p>
