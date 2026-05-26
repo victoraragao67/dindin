@@ -52,6 +52,19 @@ export type CompraItem = {
   categoria_emoji:   string
 }
 
+export type ParcelaEmAberto = {
+  expense_id:          string
+  descricao:           string | null
+  categoria_emoji:     string
+  categoria_nome:      string
+  pagador_apelido:     string
+  valor_parcela:       number
+  num_parcelas:        number
+  parcelas_restantes:  number
+  parcela_atual:       number  // 1-based: qual parcela está no mês atual
+  proxima_data:        string  // primeiro mês futuro em aberto
+}
+
 export type ResumoData = {
   mesLabel:             string
   totalMes:             number
@@ -62,6 +75,7 @@ export type ResumoData = {
   topGastos:            TopGasto[]
   gastosMensais:        GastoMensalRow[]
   compras:              CompraItem[]
+  parcelasEmAberto:     ParcelaEmAberto[]
 }
 
 /* ── Helpers ────────────────────────────────────────────────── */
@@ -105,6 +119,7 @@ export default async function ResumoPage({
     recorrentesRes,
     metasRes,
     comprasRes,
+    parcelasAbertoRes,
   ] = await Promise.all([
     // Gastos por categoria no mês
     supabase
@@ -164,6 +179,14 @@ export default async function ResumoPage({
       .lte('data_competencia', end)
       .eq('expenses.cancelado', false)
       .order('data_competencia', { ascending: false }),
+
+    // Parcelas em aberto — installments após o mês selecionado
+    supabase
+      .from('expense_installments')
+      .select('expense_id, valor_centavos, data_competencia, expenses!inner(id, descricao, num_parcelas, cancelado, pagador:users!expenses_pagador_id_fkey(apelido), categoria:categories(nome, emoji))')
+      .gt('data_competencia', end)
+      .eq('expenses.cancelado', false)
+      .order('data_competencia', { ascending: true }),
   ])
 
   const categorias = (categoriasRes.data ?? []) as CategoriaRow[]
@@ -236,6 +259,35 @@ export default async function ResumoPage({
     }]
   })
 
+  // Parcelas em aberto — agrupa por expense_id
+  const parcelasMap: Record<string, ParcelaEmAberto> = {}
+  for (const row of (parcelasAbertoRes.data ?? []) as any[]) {
+    const exp = row.expenses
+    if (!row.expense_id || !exp) continue
+    if (!parcelasMap[row.expense_id]) {
+      const pagador = Array.isArray(exp.pagador) ? exp.pagador[0] : exp.pagador
+      const cat     = Array.isArray(exp.categoria) ? exp.categoria[0] : exp.categoria
+      const numTotal = exp.num_parcelas ?? 0
+      parcelasMap[row.expense_id] = {
+        expense_id:         row.expense_id,
+        descricao:          exp.descricao ?? null,
+        categoria_emoji:    cat?.emoji  ?? '📦',
+        categoria_nome:     cat?.nome   ?? '',
+        pagador_apelido:    pagador?.apelido ?? '?',
+        valor_parcela:      row.valor_centavos,
+        num_parcelas:       numTotal,
+        parcelas_restantes: 0,
+        parcela_atual:      0,
+        proxima_data:       row.data_competencia,
+      }
+    }
+    parcelasMap[row.expense_id].parcelas_restantes++
+  }
+  // Calcula parcela_atual = num_parcelas - parcelas_restantes
+  const parcelasEmAberto: ParcelaEmAberto[] = Object.values(parcelasMap)
+    .map(p => ({ ...p, parcela_atual: p.num_parcelas - p.parcelas_restantes }))
+    .sort((a, b) => a.proxima_data.localeCompare(b.proxima_data))
+
   const resumoData: ResumoData = {
     mesLabel:          mesParaLabel(mesStr),
     totalMes,
@@ -246,6 +298,7 @@ export default async function ResumoPage({
     topGastos,
     gastosMensais,
     compras,
+    parcelasEmAberto,
   }
 
   return (

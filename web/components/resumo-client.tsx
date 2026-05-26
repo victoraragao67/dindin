@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/bottom-nav'
 import { formatCurrency } from '@/lib/money'
-import type { ResumoData, CompraItem } from '@/app/(app)/resumo/page'
+import type { ResumoData, CompraItem, ParcelaEmAberto } from '@/app/(app)/resumo/page'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
@@ -229,6 +229,64 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                   </span>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Bloco: Parcelas em aberto ── */}
+        {data.parcelasEmAberto.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+              Parcelas em aberto
+            </h2>
+            <div className="rounded-xl overflow-hidden border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+              {data.parcelasEmAberto.map((p, i) => {
+                const totalRestante = p.parcelas_restantes * p.valor_parcela
+                const progressPct   = p.num_parcelas > 0
+                  ? Math.round((p.parcela_atual / p.num_parcelas) * 100)
+                  : 0
+                const labelParcela  = p.num_parcelas > 0
+                  ? `${p.parcela_atual}/${p.num_parcelas}`
+                  : `${p.parcelas_restantes} restante${p.parcelas_restantes !== 1 ? 's' : ''}`
+
+                return (
+                  <div
+                    key={p.expense_id}
+                    className="px-4 py-3 space-y-2"
+                    style={{ borderTop: i > 0 ? `1px solid var(--border)` : undefined }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl shrink-0 mt-0.5">{p.categoria_emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>
+                          {p.descricao || p.categoria_nome}
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                          {p.pagador_apelido} · {p.parcelas_restantes} parcela{p.parcelas_restantes !== 1 ? 's' : ''} restante{p.parcelas_restantes !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
+                          {formatCurrency(p.valor_parcela)}
+                          <span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>/mês</span>
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                          {labelParcela} · {formatCurrency(totalRestante)} total
+                        </p>
+                      </div>
+                    </div>
+                    {/* barra de progresso das parcelas */}
+                    {p.num_parcelas > 0 && (
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${progressPct}%`, background: 'var(--sage)' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </section>
         )}
