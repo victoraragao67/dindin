@@ -10,7 +10,7 @@ import { Toast } from '@/components/toast'
 const CATEGORIES: Record<number, { nome: string; emoji: string }> = {
   1:  { nome: 'mercado',     emoji: '🛒' },
   2:  { nome: 'restaurante', emoji: '🍽️' },
-  3:  { nome: 'fixo',        emoji: '🏠' },
+  3:  { nome: 'casa',        emoji: '🏠' },
   4:  { nome: 'lazer',       emoji: '🎉' },
   10: { nome: 'streaming',   emoji: '📺' },
   5:  { nome: 'saúde',       emoji: '⚕️' },

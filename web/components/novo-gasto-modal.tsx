@@ -9,7 +9,7 @@ import type { NovoGastoInput, RecorrenteInput } from '@/app/(app)/actions'
 const CATEGORIES = [
   { id: 1,  nome: 'mercado',     emoji: '🛒' },
   { id: 2,  nome: 'restaurante', emoji: '🍽️' },
-  { id: 3,  nome: 'fixo',        emoji: '🏠' },
+  { id: 3,  nome: 'casa',        emoji: '🏠' },
   { id: 4,  nome: 'lazer',       emoji: '🎉' },
   { id: 10, nome: 'streaming',   emoji: '📺' },
   { id: 5,  nome: 'saúde',       emoji: '⚕️' },
