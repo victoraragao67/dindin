@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/get-user'
+import { formatCurrency } from '@/lib/money'
 import { HomeBalanceCard, HomeBalanceCardSkeleton } from '@/components/home-balance-card'
 import { HomeAcertoBanner } from '@/components/home-acerto-banner'
 import { HomeInsightCard, HomeInsightCardSkeleton } from '@/components/home-insight-card'
@@ -249,6 +250,58 @@ async function RecentTxSection() {
   return <HomeRecentTx transacoes={transacoes} />
 }
 
+async function RecorrentesSection() {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('recurring_templates')
+    .select('valor_centavos')
+    .eq('ativo', true)
+
+  const items = (data ?? []) as { valor_centavos: number }[]
+  const total = items.reduce((s, r) => s + r.valor_centavos, 0)
+  const count = items.length
+
+  if (count === 0) return null
+
+  return (
+    <Link
+      href="/recorrentes"
+      className="flex items-center justify-between rounded-2xl px-4 py-4 border transition-opacity active:opacity-70"
+      style={{ background: 'var(--card)', borderColor: 'var(--border)', textDecoration: 'none' }}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+          style={{ background: 'var(--bg-2)' }}
+        >
+          🔁
+        </div>
+        <div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Recorrentes fixos</p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            {count} item{count !== 1 ? 's' : ''} · {formatCurrency(total)}<span>/mês</span>
+          </p>
+        </div>
+      </div>
+      <span className="text-sm" style={{ color: 'var(--muted)' }}>›</span>
+    </Link>
+  )
+}
+
+function RecorrentesSectionSkeleton() {
+  return (
+    <div className="rounded-2xl px-4 py-4 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl" style={{ background: 'var(--bg-2)' }} />
+        <div className="space-y-1.5">
+          <div className="h-3.5 w-28 rounded" style={{ background: 'var(--bg-2)' }} />
+          <div className="h-3 w-20 rounded" style={{ background: 'var(--bg-2)' }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── Page ───────────────────────────────────────────────────── */
 
 export default async function HomePage() {
@@ -278,30 +331,11 @@ export default async function HomePage() {
           <RecentTxSection />
         </Suspense>
 
-        {/* Quick links */}
-        <div className="grid grid-cols-2 gap-3 pb-2">
-          <Link
-            href="/metas"
-            className="flex items-center gap-2 rounded-2xl px-4 py-3 border transition-opacity active:opacity-70"
-            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-          >
-            <span className="text-xl">🎯</span>
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>Metas</p>
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>do mês</p>
-            </div>
-          </Link>
-          <Link
-            href="/recorrentes"
-            className="flex items-center gap-2 rounded-2xl px-4 py-3 border transition-opacity active:opacity-70"
-            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-          >
-            <span className="text-xl">🔁</span>
-            <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>Recorrentes</p>
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>fixos mensais</p>
-            </div>
-          </Link>
+        {/* Recorrentes — card com total mensal */}
+        <div className="pb-2">
+          <Suspense fallback={<RecorrentesSectionSkeleton />}>
+            <RecorrentesSection />
+          </Suspense>
         </div>
       </div>
 
