@@ -131,6 +131,27 @@ export default async function ConfigPage() {
             </div>
           </div>
 
+          {/* Casal */}
+          <div>
+            <p
+              className="text-xs font-semibold uppercase tracking-wide px-1 mb-2"
+              style={{ color: 'var(--muted)' }}
+            >
+              Casal
+            </p>
+            <Link
+              href="/config/casal"
+              className="flex items-center justify-between rounded-xl px-4 py-4 border"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">💑</span>
+                <span className="text-sm" style={{ color: 'var(--ink)' }}>Meu casal</span>
+              </div>
+              <span style={{ color: 'var(--muted)' }}>›</span>
+            </Link>
+          </div>
+
           {/* Conta */}
           <div>
             <p

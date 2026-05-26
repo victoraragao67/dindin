@@ -15,9 +15,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { subscribeToPush } from '@/lib/push/subscribe'
 
-type Apelido = 'Vitim' | 'Gaia'
-
-export function Onboarding({ apelido }: { apelido: Apelido }) {
+export function Onboarding({ apelido }: { apelido: string }) {
   const router = useRouter()
 
   const [visible,      setVisible]      = useState(false)
@@ -117,7 +115,7 @@ export function Onboarding({ apelido }: { apelido: Apelido }) {
 
 // ── Tela 0: Bem-vindo ─────────────────────────────────────────────
 
-function StepWelcome({ apelido, onNext }: { apelido: Apelido; onNext: () => void }) {
+function StepWelcome({ apelido, onNext }: { apelido: string; onNext: () => void }) {
   return (
     <div className="space-y-8 w-full max-w-xs">
       <div className="space-y-4">

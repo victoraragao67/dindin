@@ -25,9 +25,10 @@ type Props = {
   onClose: () => void
   onEditar: (gasto: GastoSelecionado) => void
   onExcluido: () => void
+  apelidos?: [string, string]
 }
 
-export function GastoActionsSheet({ gasto, onClose, onEditar, onExcluido }: Props) {
+export function GastoActionsSheet({ gasto, onClose, onEditar, onExcluido, apelidos }: Props) {
   const [confirmando, setConfirmando] = useState(false)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
@@ -60,7 +61,7 @@ export function GastoActionsSheet({ gasto, onClose, onEditar, onExcluido }: Prop
     if (g.divisao === '50_50')      return '50/50'
     if (g.divisao === 'so_pagador') return `só ${g.pagador_apelido}`
     if (g.divisao === 'so_outro') {
-      const outro = g.pagador_apelido === 'Vitim' ? 'Gaia' : 'Vitim'
+      const outro = apelidos?.find(a => a !== g.pagador_apelido) ?? '?'
       return `só ${outro}`
     }
     if (g.divisao === 'customizada' && g.split_pagador_pct !== null) {

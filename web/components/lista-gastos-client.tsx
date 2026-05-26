@@ -28,14 +28,13 @@ type Installment = {
   }
 }
 
-type Apelido = 'Vitim' | 'Gaia'
-
 type Props = {
   installments: Installment[]
-  currentApelido?: Apelido
+  currentApelido?: string
+  apelidos?: [string, string]
 }
 
-export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Props) {
+export function ListaGastosClient({ installments, currentApelido = '', apelidos }: Props) {
   const router = useRouter()
   const [gastoSelecionado, setGastoSelecionado] = useState<GastoSelecionado | null>(null)
   const [editandoGasto, setEditandoGasto] = useState<GastoInitial | null>(null)
@@ -79,9 +78,7 @@ export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Pr
   }
 
   function handleEditar(gasto: GastoSelecionado) {
-    const pagadorApelido = (gasto.pagador_apelido === 'Vitim' || gasto.pagador_apelido === 'Gaia')
-      ? gasto.pagador_apelido
-      : currentApelido
+    const pagadorApelido = gasto.pagador_apelido || currentApelido
     setEditandoGasto({
       id:                   gasto.id,
       valor_total_centavos: gasto.valor_total_centavos,
@@ -187,6 +184,7 @@ export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Pr
         onClose={() => setGastoSelecionado(null)}
         onEditar={handleEditar}
         onExcluido={() => router.refresh()}
+        apelidos={apelidos}
       />
 
       {/* Modal de edição */}
@@ -194,6 +192,7 @@ export function ListaGastosClient({ installments, currentApelido = 'Vitim' }: Pr
         open={modalOpen}
         onClose={handleModalClose}
         currentApelido={currentApelido}
+        apelidos={apelidos ?? [currentApelido, currentApelido]}
         onSuccess={handleSucesso}
         editandoGasto={editandoGasto ?? undefined}
       />

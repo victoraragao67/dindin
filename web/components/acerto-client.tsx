@@ -6,12 +6,11 @@ import { registrarAcerto } from '@/app/(app)/actions'
 import { formatCurrency } from '@/lib/money'
 import { Toast } from '@/components/toast'
 
-type Apelido = 'Vitim' | 'Gaia'
-
 type Props = {
-  defaultDe:            Apelido
-  defaultPara:          Apelido
+  defaultDe:            string
+  defaultPara:          string
   defaultValorCentavos: number
+  apelidos:             [string, string]
 }
 
 function todayStr() {
@@ -23,11 +22,11 @@ function yesterdayStr() {
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
 
-export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: Props) {
+export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos, apelidos }: Props) {
   const router = useRouter()
 
-  const [de,        setDe]        = useState<Apelido>(defaultDe)
-  const [para,      setPara]      = useState<Apelido>(defaultPara)
+  const [de,        setDe]        = useState(defaultDe)
+  const [para,      setPara]      = useState(defaultPara)
   const [rawDigits, setRawDigits] = useState(
     defaultValorCentavos > 0 ? String(defaultValorCentavos) : ''
   )
@@ -47,9 +46,11 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
     return formatCurrency(parseInt(rawDigits, 10))
   }
 
-  function handleDe(apelido: Apelido) {
+  function handleDe(apelido: string) {
     setDe(apelido)
-    setPara(apelido === 'Vitim' ? 'Gaia' : 'Vitim')
+    // Auto-seleciona o outro apelido para "Para"
+    const outro = apelidos.find(a => a !== apelido) ?? apelidos[0]
+    setPara(outro)
   }
 
   function handleValorInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -90,7 +91,7 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
         <div className="space-y-1">
           <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>De</label>
           <div className="flex gap-2">
-            {(['Vitim', 'Gaia'] as Apelido[]).map(a => (
+            {apelidos.map(a => (
               <button
                 key={a}
                 type="button"
@@ -117,11 +118,14 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos }: P
         <div className="space-y-1">
           <label className="block text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Para</label>
           <div className="flex gap-2">
-            {(['Vitim', 'Gaia'] as Apelido[]).map(a => (
+            {apelidos.map(a => (
               <button
                 key={a}
                 type="button"
-                onClick={() => { setPara(a); setDe(a === 'Vitim' ? 'Gaia' : 'Vitim') }}
+                onClick={() => {
+                  setPara(a)
+                  setDe(apelidos.find(x => x !== a) ?? apelidos[0])
+                }}
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-opacity active:opacity-70"
                 style={{
                   background: para === a ? 'var(--coral)' : 'var(--bg-2)',

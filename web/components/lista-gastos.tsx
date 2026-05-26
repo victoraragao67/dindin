@@ -21,9 +21,7 @@ type Installment = {
   }
 }
 
-type Apelido = 'Vitim' | 'Gaia'
-
-export async function ListaGastos({ currentApelido = 'Vitim' }: { currentApelido?: Apelido } = {}) {
+export async function ListaGastos({ currentApelido = '', apelidos }: { currentApelido?: string; apelidos?: [string, string] } = {}) {
   const supabase = createClient()
   const { start, end } = currentMonthRange()
 
@@ -58,7 +56,7 @@ export async function ListaGastos({ currentApelido = 'Vitim' }: { currentApelido
 
   const installments = (data as unknown as Installment[]) ?? []
 
-  return <ListaGastosClient installments={installments} currentApelido={currentApelido} />
+  return <ListaGastosClient installments={installments} currentApelido={currentApelido} apelidos={apelidos} />
 }
 
 export function ListaGastosSkeleton() {
