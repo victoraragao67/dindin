@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/get-user'
+import { getCasal } from '@/lib/supabase/get-casal'
 import { createClient } from '@/lib/supabase/server'
 import { ThemeProvider } from '@/components/theme-provider'
 import { HamburgerMenu } from '@/components/hamburger-menu'
@@ -12,6 +13,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) {
     redirect('/login')
+  }
+
+  // Verifica casal — usuário sem casal vai para onboarding
+  const casal = await getCasal()
+  if (!casal.casalId) {
+    redirect('/onboarding')
+  }
+  if (casal.status === 'pending') {
+    redirect('/onboarding/aguardando')
   }
 
   // Busca preferência de tema do usuário

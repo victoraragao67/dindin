@@ -38,10 +38,12 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Rotas públicas: /login e /auth/* (callback do magic link)
-  const isPublicRoute = pathname === '/login' || pathname.startsWith('/auth/')
+  // Rotas públicas: /login e /auth/*
+  const isPublicRoute     = pathname === '/login' || pathname.startsWith('/auth/')
+  // Onboarding: autenticado mas sem exigência de casal (check feito no AppLayout)
+  const isOnboardingRoute = pathname.startsWith('/onboarding') || pathname.startsWith('/convite/')
 
-  // Não autenticado tentando acessar rota protegida → /login
+  // Não autenticado → /login
   if (!user && !isPublicRoute) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
