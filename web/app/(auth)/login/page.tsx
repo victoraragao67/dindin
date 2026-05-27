@@ -29,10 +29,9 @@ export default function LoginPage() {
       setStep('error')
       return
     }
+
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email: parsed.data,
-    })
+    const { error } = await supabase.auth.signInWithOtp({ email: parsed.data })
 
     if (error) {
       console.error('[login] signInWithOtp error:', error.message, error)
@@ -74,60 +73,40 @@ export default function LoginPage() {
   }
 
   /* ── UI ──────────────────────────────────────────────────────── */
-  const loading = step === 'loading_send' || step === 'loading_verify'
+  const loading   = step === 'loading_send' || step === 'loading_verify'
+  const showEmail = step === 'email' || step === 'loading_send' || (step === 'error' && !otp)
+  const showOtp   = step === 'otp'   || step === 'loading_verify' || (step === 'error' && !!otp)
 
   return (
     <main style={{
-      display: 'flex',
       minHeight: '100dvh',
+      display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '24px 24px 48px',
+      padding: '40px 24px 56px',
       background: 'var(--bg)',
     }}>
-      <div style={{
-        width: '100%',
-        maxWidth: 360,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}>
+      <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-        {/* ── Logomark ── */}
+        {/* ── Cabeçalho ── */}
         <div style={{
-          width: 72,
-          height: 72,
-          borderRadius: 22,
+          width: 64,
+          height: 64,
+          borderRadius: 20,
           background: 'var(--ink)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: 20,
-          flexShrink: 0,
+          marginBottom: 16,
         }}>
-          <span style={{
-            fontFamily: 'var(--font-fraunces), Georgia, serif',
-            fontSize: 32,
-            fontWeight: 700,
-            letterSpacing: -2,
-            lineHeight: 1,
-            color: 'var(--bg)',
-          }}>D</span>
-          <span style={{
-            fontFamily: 'var(--font-fraunces), Georgia, serif',
-            fontSize: 32,
-            fontWeight: 700,
-            letterSpacing: -2,
-            lineHeight: 1,
-            color: 'var(--coral)',
-          }}>D</span>
+          <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 28, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: 'var(--bg)' }}>D</span>
+          <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 28, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: 'var(--coral)' }}>D</span>
         </div>
 
-        {/* ── Headline ── */}
         <h1 style={{
           fontFamily: 'var(--font-fraunces), Georgia, serif',
-          fontSize: 32,
+          fontSize: 30,
           fontWeight: 700,
           letterSpacing: -1.5,
           color: 'var(--ink)',
@@ -138,16 +117,36 @@ export default function LoginPage() {
           Din<em style={{ color: 'var(--coral)', fontStyle: 'italic', fontWeight: 300 }}>Din</em>
         </h1>
 
-        {/* ── Sub ── */}
-        <p style={{
-          fontSize: 13,
-          color: 'var(--muted)',
-          textAlign: 'center',
-          marginBottom: 36,
-          lineHeight: 1.6,
-        }}>
-          Finanças a dois,<br />sem enrolação
+        <p style={{ fontSize: 14, color: 'var(--muted)', textAlign: 'center', marginBottom: 28, lineHeight: 1.5 }}>
+          Finanças a dois, sem enrolação.
         </p>
+
+        {/* ── Features (só no step email) ── */}
+        {showEmail && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+            {[
+              { emoji: '⚡', title: 'Rápido de verdade',  desc: 'Registre um gasto em 3 toques.' },
+              { emoji: '⚖️', title: 'Divida como quiser', desc: '50/50, % custom ou só um paga.' },
+              { emoji: '🧾', title: 'Saldo sempre claro', desc: 'Quem deve para quem, na hora.' },
+            ].map(f => (
+              <div key={f.title} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 14px',
+                borderRadius: 12,
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+              }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>{f.emoji}</span>
+                <div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{f.title}</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 6 }}>{f.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Form Card ── */}
         <div style={{
@@ -161,8 +160,8 @@ export default function LoginPage() {
           gap: 14,
         }}>
 
-          {/* ── Passo 1: e-mail ── */}
-          {(step === 'email' || step === 'loading_send' || (step === 'error' && !otp)) && (
+          {/* Passo 1: e-mail */}
+          {showEmail && (
             <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }} noValidate>
               <div>
                 <label
@@ -193,6 +192,7 @@ export default function LoginPage() {
                   }}
                   placeholder="seu@email.com"
                   disabled={loading}
+                  autoFocus
                   style={{
                     width: '100%',
                     background: 'var(--bg)',
@@ -242,11 +242,10 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* ── Passo 2: código OTP ── */}
-          {(step === 'otp' || step === 'loading_verify' || (step === 'error' && !!otp)) && (
+          {/* Passo 2: código OTP */}
+          {showOtp && (
             <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }} noValidate>
 
-              {/* Badge de confirmação */}
               <div style={{
                 background: 'rgba(122,158,126,0.12)',
                 border: '1px solid rgba(122,158,126,0.3)',
@@ -258,9 +257,7 @@ export default function LoginPage() {
               }}>
                 <span style={{ fontSize: 18 }}>✉️</span>
                 <div>
-                  <p style={{ fontSize: 12, color: '#3d6440', fontWeight: 600, marginBottom: 2 }}>
-                    Código enviado!
-                  </p>
+                  <p style={{ fontSize: 12, color: '#3d6440', fontWeight: 600, marginBottom: 2 }}>Código enviado!</p>
                   <p style={{ fontSize: 11, color: '#5a7a5e' }}>{email}</p>
                 </div>
               </div>
@@ -357,7 +354,6 @@ export default function LoginPage() {
               </button>
             </form>
           )}
-
         </div>
       </div>
     </main>
