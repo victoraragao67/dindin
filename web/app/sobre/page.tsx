@@ -43,7 +43,7 @@ export default function SobrePage() {
         <section style={{ marginBottom: 36 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>O que é o DinDin?</h2>
           <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7 }}>
-            DinDin é um app de finanças compartilhadas para casais. Chega de planilha, de "quem pagou o quê" e de conversas chatas sobre dinheiro. Tudo num lugar só, em tempo real, para os dois.
+            DinDin é um app de finanças compartilhadas para casais. Chega de planilha, de &ldquo;quem pagou o quê&rdquo; e de conversas chatas sobre dinheiro. Tudo num lugar só, em tempo real, para os dois.
           </p>
         </section>
 
