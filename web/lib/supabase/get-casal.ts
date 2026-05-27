@@ -2,7 +2,7 @@ import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getUser } from './get-user'
 
-export type CasalStatus = 'pending' | 'active' | 'inactive' | null
+export type CasalStatus = 'pending' | 'active' | 'inactive' | 'blocked' | null
 
 export type CasalContext = {
   casalId:    string | null
