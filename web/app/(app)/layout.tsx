@@ -23,6 +23,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (casal.status === 'pending') {
     redirect('/onboarding/aguardando')
   }
+  if (casal.status === 'blocked') {
+    redirect('/bloqueado')
+  }
 
   // Busca preferência de tema do usuário
   let tema: Tema = 'light'

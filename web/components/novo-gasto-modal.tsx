@@ -5,19 +5,8 @@ import { formatCurrency } from '@/lib/money'
 import { todayBRTStr } from '@/lib/date'
 import { criarGasto, atualizarGasto, criarRecorrente, editarRecorrente } from '@/app/(app)/actions'
 import type { NovoGastoInput, RecorrenteInput } from '@/app/(app)/actions'
-
-const CATEGORIES = [
-  { id: 1,  nome: 'Mercado',     emoji: '🛒' },
-  { id: 2,  nome: 'Restaurante', emoji: '🍽️' },
-  { id: 3,  nome: 'Casa',        emoji: '🏠' },
-  { id: 4,  nome: 'Lazer',       emoji: '🎉' },
-  { id: 10, nome: 'Streaming',   emoji: '📺' },
-  { id: 5,  nome: 'Saúde',       emoji: '⚕️' },
-  { id: 6,  nome: 'Transporte',  emoji: '🚗' },
-  { id: 7,  nome: 'Viagem',      emoji: '✈️' },
-  { id: 8,  nome: 'Presente',    emoji: '🎁' },
-  { id: 9,  nome: 'Outros',      emoji: '📦' },
-] as const
+import { useCategorias } from '@/lib/hooks/use-categorias'
+import type { Categoria } from '@/lib/hooks/use-categorias'
 
 type Divisao = '50_50' | 'so_pagador' | 'so_outro' | 'customizada'
 
@@ -60,6 +49,9 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
   const titulo = isRecorrente
     ? (editando ? 'Editar recorrente' : 'Novo recorrente')
     : editandoGasto ? 'Editar gasto' : 'Novo gasto'
+
+  // ── Categorias dinâmicas ────────────────────────────────────
+  const { categorias, loading: loadingCats } = useCategorias()
 
   // ── Campos básicos ──────────────────────────────────────────
   const [rawDigits, setRawDigits]     = useState('')
@@ -141,6 +133,13 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
     }
   }, [open, currentApelido, editando])
 
+  // Seleciona a primeira categoria assim que a lista carrega (apenas se nenhuma já selecionada)
+  useEffect(() => {
+    if (categorias.length > 0 && categoriaId === null) {
+      setCategoriaId(categorias[0].id)
+    }
+  }, [categorias, categoriaId])
+
   function handleValueChange(e: React.ChangeEvent<HTMLInputElement>) {
     const digits = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
     setRawDigits(digits)
@@ -191,7 +190,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
 
     if (result.error) { setError(result.error); return }
 
-    const cat = CATEGORIES.find(c => c.id === categoriaId)
+    const cat = categorias.find(c => c.id === categoriaId)
     if (isRecorrente) {
       onSuccess(`✅ ${descricaoMain} — ${cat?.emoji} ${cat?.nome} · dia ${diaDoMes}`)
     } else {
@@ -264,16 +263,24 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
           {/* Categorias */}
           <div>
             <p className="text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>CATEGORIA</p>
-            <div className="grid grid-cols-5 gap-2">
-              {CATEGORIES.slice(0, 5).map(cat => (
-                <CategoryChip key={cat.id} cat={cat} selected={categoriaId === cat.id} onSelect={() => setCategoriaId(cat.id)} />
-              ))}
-            </div>
-            <div className="grid grid-cols-4 gap-2 mt-2">
-              {CATEGORIES.slice(5).map(cat => (
-                <CategoryChip key={cat.id} cat={cat} selected={categoriaId === cat.id} onSelect={() => setCategoriaId(cat.id)} />
-              ))}
-            </div>
+            {loadingCats ? (
+              <div className="text-xs py-2" style={{ color: 'var(--muted)' }}>Carregando...</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-5 gap-2">
+                  {categorias.slice(0, 5).map(cat => (
+                    <CategoryChip key={cat.id} cat={cat} selected={categoriaId === cat.id} onSelect={() => setCategoriaId(cat.id)} />
+                  ))}
+                </div>
+                {categorias.length > 5 && (
+                  <div className="grid grid-cols-5 gap-2 mt-2">
+                    {categorias.slice(5).map(cat => (
+                      <CategoryChip key={cat.id} cat={cat} selected={categoriaId === cat.id} onSelect={() => setCategoriaId(cat.id)} />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Pago por */}
@@ -559,7 +566,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
   )
 }
 
-function CategoryChip({ cat, selected, onSelect }: { cat: { id: number; nome: string; emoji: string }; selected: boolean; onSelect: () => void }) {
+function CategoryChip({ cat, selected, onSelect }: { cat: Categoria; selected: boolean; onSelect: () => void }) {
   return (
     <button
       onClick={onSelect}

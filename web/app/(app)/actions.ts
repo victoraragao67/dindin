@@ -14,7 +14,7 @@ const NovoGastoSchema = z.object({
     .int('Valor deve ser inteiro (centavos)')
     .positive('Valor deve ser maior que zero')
     .max(5_000_000, 'Valor muito alto (máximo R$ 50.000)'),
-  categoria_id: z.number().int().min(1).max(20),
+  categoria_id: z.number().int().positive('Categoria inválida'),
   pagador_apelido: z.string().min(1, 'Pagador obrigatório'),
   parcelas: z.number().int().min(1).max(24).default(1),
   divisao: z.enum(['50_50', 'so_pagador', 'so_outro', 'customizada']).default('50_50'),
@@ -24,7 +24,7 @@ const NovoGastoSchema = z.object({
 })
 
 const RecorrenteSchema = z.object({
-  categoria_id: z.number().int().min(1).max(20),
+  categoria_id: z.number().int().positive('Categoria inválida'),
   valor_centavos: z.number().int().positive().max(5_000_000),
   descricao: z.string().min(1, 'Descrição obrigatória para recorrentes').max(200),
   pagador_apelido: z.string().min(1, 'Pagador obrigatório'),

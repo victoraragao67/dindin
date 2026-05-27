@@ -42,6 +42,10 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute     = pathname === '/login' || pathname.startsWith('/auth/')
   // Onboarding: autenticado mas sem exigência de casal (check feito no AppLayout)
   const isOnboardingRoute = pathname.startsWith('/onboarding') || pathname.startsWith('/convite/')
+  // Admin: autenticado, sem exigência de casal ativo (check feito pelo requireAdmin())
+  const isAdminRoute      = pathname.startsWith('/admin')
+  // Bloqueado: página de casal suspenso
+  const isBloqueadoRoute  = pathname.startsWith('/bloqueado')
 
   // Não autenticado → /login
   if (!user && !isPublicRoute) {
