@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [step,     setStep]     = useState<Step>('email')
   const [errorMsg, setErrorMsg] = useState('')
 
-  /* ── Passo 1: enviar OTP ─────────────────────────────────────── */
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault()
     setErrorMsg('')
@@ -43,7 +42,6 @@ export default function LoginPage() {
     setStep('otp')
   }
 
-  /* ── Passo 2: verificar código ───────────────────────────────── */
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault()
     setErrorMsg('')
@@ -72,7 +70,6 @@ export default function LoginPage() {
     router.replace('/')
   }
 
-  /* ── UI ──────────────────────────────────────────────────────── */
   const loading   = step === 'loading_send' || step === 'loading_verify'
   const showEmail = step === 'email' || step === 'loading_send' || (step === 'error' && !otp)
   const showOtp   = step === 'otp'   || step === 'loading_verify' || (step === 'error' && !!otp)
@@ -87,18 +84,14 @@ export default function LoginPage() {
       padding: '40px 24px 56px',
       background: 'var(--bg)',
     }}>
-      <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-        {/* ── Cabeçalho ── */}
+        {/* ── Logo ── */}
         <div style={{
-          width: 64,
-          height: 64,
-          borderRadius: 20,
+          width: 64, height: 64, borderRadius: 20,
           background: 'var(--ink)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 14,
         }}>
           <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 28, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: 'var(--bg)' }}>D</span>
           <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 28, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: 'var(--coral)' }}>D</span>
@@ -106,78 +99,58 @@ export default function LoginPage() {
 
         <h1 style={{
           fontFamily: 'var(--font-fraunces), Georgia, serif',
-          fontSize: 30,
-          fontWeight: 700,
-          letterSpacing: -1.5,
-          color: 'var(--ink)',
-          textAlign: 'center',
-          marginBottom: 6,
-          lineHeight: 1,
+          fontSize: 30, fontWeight: 700, letterSpacing: -1.5,
+          color: 'var(--ink)', textAlign: 'center',
+          marginBottom: 6, lineHeight: 1,
         }}>
           Din<em style={{ color: 'var(--coral)', fontStyle: 'italic', fontWeight: 300 }}>Din</em>
         </h1>
 
-        <p style={{ fontSize: 14, color: 'var(--muted)', textAlign: 'center', marginBottom: 28, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 14, color: 'var(--muted)', textAlign: 'center', marginBottom: 24, lineHeight: 1.5 }}>
           Finanças a dois, sem enrolação.
         </p>
 
-        {/* ── Features (só no step email) ── */}
+        {/* ── Pills de valor (só no step email) ── */}
         {showEmail && (
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
             {[
-              { emoji: '⚡', title: 'Rápido de verdade',  desc: 'Registre um gasto em 3 toques.' },
-              { emoji: '⚖️', title: 'Divida como quiser', desc: '50/50, % custom ou só um paga.' },
-              { emoji: '🧾', title: 'Saldo sempre claro', desc: 'Quem deve para quem, na hora.' },
-            ].map(f => (
-              <div key={f.title} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '10px 14px',
-                borderRadius: 12,
-                background: 'var(--card)',
-                border: '1px solid var(--border)',
+              { emoji: '⚡', label: '3 toques por gasto' },
+              { emoji: '⚖️', label: 'Divide do seu jeito' },
+              { emoji: '🧾', label: 'Saldo em tempo real' },
+            ].map(p => (
+              <span key={p.label} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 100,
+                background: 'var(--card)', border: '1px solid var(--border)',
+                fontSize: 12, color: 'var(--ink)', fontWeight: 500,
+                whiteSpace: 'nowrap',
               }}>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{f.emoji}</span>
-                <div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{f.title}</span>
-                  <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 6 }}>{f.desc}</span>
-                </div>
-              </div>
+                <span style={{ fontSize: 13 }}>{p.emoji}</span>
+                {p.label}
+              </span>
             ))}
           </div>
         )}
 
         {/* ── Form Card ── */}
         <div style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          borderRadius: 24,
-          padding: '24px 20px',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: 24, padding: '24px 20px',
+          width: '100%', display: 'flex', flexDirection: 'column', gap: 14,
         }}>
 
           {/* Passo 1: e-mail */}
           {showEmail && (
             <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }} noValidate>
+
               <div>
-                <label
-                  htmlFor="email"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.8px',
-                    textTransform: 'uppercase',
-                    color: 'var(--muted)',
-                    display: 'block',
-                    marginBottom: 6,
-                  }}
-                >
-                  Seu e-mail
-                </label>
+                <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>
+                  Criar conta ou entrar
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+                  Basta seu e-mail — a gente cuida do resto.
+                </p>
+
                 <input
                   id="email"
                   type="email"
@@ -222,22 +195,17 @@ export default function LoginPage() {
                 style={{
                   background: loading || !email.trim() ? 'var(--bg-2)' : 'var(--ink)',
                   color: loading || !email.trim() ? 'var(--muted)' : 'var(--bg)',
-                  borderRadius: 100,
-                  padding: '13px',
-                  width: '100%',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  border: 'none',
+                  borderRadius: 100, padding: '13px', width: '100%',
+                  fontSize: 14, fontWeight: 600, border: 'none',
                   cursor: loading || !email.trim() ? 'not-allowed' : 'pointer',
                   transition: 'background 0.15s',
                 }}
               >
-                {step === 'loading_send' ? 'Enviando…' : 'Enviar código →'}
+                {step === 'loading_send' ? 'Enviando…' : 'Continuar →'}
               </button>
 
               <p style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
-                Acesso por código de uso único.{' '}
-                <span style={{ color: 'var(--coral)', fontWeight: 500 }}>Sem senha pra lembrar.</span>
+                Sem senha. Acesso por código enviado ao e-mail.
               </p>
             </form>
           )}
@@ -249,11 +217,8 @@ export default function LoginPage() {
               <div style={{
                 background: 'rgba(122,158,126,0.12)',
                 border: '1px solid rgba(122,158,126,0.3)',
-                borderRadius: 12,
-                padding: '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
+                borderRadius: 12, padding: '10px 14px',
+                display: 'flex', alignItems: 'center', gap: 10,
               }}>
                 <span style={{ fontSize: 18 }}>✉️</span>
                 <div>
@@ -263,18 +228,11 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="otp"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.8px',
-                    textTransform: 'uppercase',
-                    color: 'var(--muted)',
-                    display: 'block',
-                    marginBottom: 6,
-                  }}
-                >
+                <label htmlFor="otp" style={{
+                  fontSize: 11, fontWeight: 600, letterSpacing: '0.8px',
+                  textTransform: 'uppercase', color: 'var(--muted)',
+                  display: 'block', marginBottom: 6,
+                }}>
                   Código de 8 dígitos
                 </label>
                 <input
@@ -296,16 +254,11 @@ export default function LoginPage() {
                     width: '100%',
                     background: 'var(--bg)',
                     border: '1.5px solid var(--coral)',
-                    borderRadius: 12,
-                    padding: '14px',
-                    fontSize: 22,
-                    letterSpacing: '0.4em',
-                    textAlign: 'center',
-                    color: 'var(--ink)',
-                    fontWeight: 600,
-                    fontFamily: 'monospace',
-                    outline: 'none',
-                    opacity: loading ? 0.6 : 1,
+                    borderRadius: 12, padding: '14px',
+                    fontSize: 22, letterSpacing: '0.4em',
+                    textAlign: 'center', color: 'var(--ink)',
+                    fontWeight: 600, fontFamily: 'monospace',
+                    outline: 'none', opacity: loading ? 0.6 : 1,
                   }}
                 />
               </div>
@@ -322,12 +275,8 @@ export default function LoginPage() {
                 style={{
                   background: loading || otp.length < 6 ? 'var(--bg-2)' : 'var(--ink)',
                   color: loading || otp.length < 6 ? 'var(--muted)' : 'var(--bg)',
-                  borderRadius: 100,
-                  padding: '13px',
-                  width: '100%',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  border: 'none',
+                  borderRadius: 100, padding: '13px', width: '100%',
+                  fontSize: 14, fontWeight: 600, border: 'none',
                   cursor: loading || otp.length < 6 ? 'not-allowed' : 'pointer',
                   transition: 'background 0.15s',
                 }}
@@ -339,14 +288,9 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => { setStep('email'); setOtp(''); setErrorMsg('') }}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: 12,
-                  color: 'var(--muted)',
-                  width: '100%',
-                  cursor: 'pointer',
-                  padding: '4px 0',
-                  textAlign: 'center',
+                  background: 'none', border: 'none', fontSize: 12,
+                  color: 'var(--muted)', width: '100%', cursor: 'pointer',
+                  padding: '4px 0', textAlign: 'center',
                 }}
               >
                 Outro e-mail?{' '}
@@ -355,6 +299,22 @@ export default function LoginPage() {
             </form>
           )}
         </div>
+
+        {/* ── Conheça mais ── */}
+        {showEmail && (
+          <a
+            href="/sobre"
+            style={{
+              marginTop: 20,
+              fontSize: 12,
+              color: 'var(--muted)',
+              textDecoration: 'none',
+              textAlign: 'center',
+            }}
+          >
+            Conheça mais sobre o DinDin →
+          </a>
+        )}
       </div>
     </main>
   )

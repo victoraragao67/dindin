@@ -38,8 +38,8 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Rotas públicas: /login e /auth/*
-  const isPublicRoute = pathname === '/login' || pathname.startsWith('/auth/')
+  // Rotas públicas: /login, /sobre e /auth/*
+  const isPublicRoute = pathname === '/login' || pathname === '/sobre' || pathname.startsWith('/auth/')
 
   // Não autenticado → /login
   if (!user && !isPublicRoute) {
