@@ -21,13 +21,12 @@ export function DissolveCasalButton({ casalId }: { casalId: string }) {
     setErro('')
 
     const supabase = createClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.rpc as any)('dissolver_casal', { p_casal_id: casalId })
-    const result = data as { ok: boolean; error?: string } | null
+    const rpcResult = await supabase.rpc('dissolver_casal', { p_casal_id: casalId } as never)
+    const result = rpcResult.data as { ok: boolean; error?: string } | null
 
     setLoading(false)
 
-    if (error) { setErro((error as Error).message); return }
+    if (rpcResult.error) { setErro(rpcResult.error.message); return }
     if (!result?.ok) { setErro(result?.error ?? 'Erro ao encerrar casal.'); return }
 
     // Limpa qualquer cache local

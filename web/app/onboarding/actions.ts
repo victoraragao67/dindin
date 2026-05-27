@@ -200,11 +200,10 @@ export async function entrarCasal(token: string): Promise<OnboardingResult> {
   }
 
   const supabase = createClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.rpc as any)('accept_invite', { p_token: t })
-  const result = data as { ok: boolean; error?: string; casal_id?: string } | null
+  const rpcResult = await supabase.rpc('accept_invite', { p_token: t } as never)
+  const result = rpcResult.data as { ok: boolean; error?: string; casal_id?: string } | null
 
-  if (error) return { ok: false, error: (error as Error).message }
+  if (rpcResult.error) return { ok: false, error: rpcResult.error.message }
 
   if (!result?.ok) {
     return { ok: false, error: result?.error ?? 'Código inválido.' }
