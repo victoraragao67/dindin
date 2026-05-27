@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 
 const emailSchema = z.string().email('E-mail inválido')
 const otpSchema  = z.string().regex(/^\d{6,8}$/, 'Código deve ter 6 a 8 dígitos')
+
+const SEEN_KEY = 'dindin_seen_landing'
 
 type Step = 'landing' | 'email' | 'otp' | 'loading_send' | 'loading_verify' | 'error'
 
@@ -16,6 +18,13 @@ export default function LoginPage() {
   const [otp,      setOtp]      = useState('')
   const [step,     setStep]     = useState<Step>('landing')
   const [errorMsg, setErrorMsg] = useState('')
+
+  // Retornantes pulam direto para o email
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem(SEEN_KEY)) {
+      setStep('email')
+    }
+  }, [])
 
   /* ── Passo 1: enviar OTP ─────────────────────────────────────── */
   async function handleSendOtp(e: React.FormEvent) {
@@ -187,7 +196,7 @@ export default function LoginPage() {
 
           {/* CTA */}
           <button
-            onClick={() => setStep('email')}
+            onClick={() => { localStorage.setItem(SEEN_KEY, '1'); setStep('email') }}
             style={{
               background: 'var(--ink)',
               color: 'var(--bg)',
@@ -207,7 +216,7 @@ export default function LoginPage() {
           <p style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
             Já tem conta?{' '}
             <button
-              onClick={() => setStep('email')}
+              onClick={() => { localStorage.setItem(SEEN_KEY, '1'); setStep('email') }}
               style={{
                 background: 'none',
                 border: 'none',
