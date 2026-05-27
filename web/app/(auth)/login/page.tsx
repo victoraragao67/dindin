@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 
-const ALLOWED_EMAILS = ['victoraragao67@gmail.com', 'leticiar.gaia@gmail.com']
 const emailSchema = z.string().email('E-mail inválido')
 const otpSchema  = z.string().regex(/^\d{6,8}$/, 'Código deve ter 6 a 8 dígitos')
 
@@ -30,12 +29,6 @@ export default function LoginPage() {
       setStep('error')
       return
     }
-    if (!ALLOWED_EMAILS.includes(parsed.data)) {
-      setErrorMsg('E-mail não autorizado.')
-      setStep('error')
-      return
-    }
-
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email: parsed.data,
