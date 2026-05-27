@@ -36,8 +36,10 @@ export async function salvarApelido(apelido: string): Promise<OnboardingResult> 
   const supabase = createClient()
   const { error } = await supabase
     .from('users')
-    .update({ apelido: trimmed })
-    .eq('id', user.id)
+    .upsert(
+      { id: user.id, email: user.email ?? '', nome: '', apelido: trimmed },
+      { onConflict: 'id', ignoreDuplicates: false }
+    )
 
   if (error) return { ok: false, error: 'Erro ao salvar apelido.' }
 
