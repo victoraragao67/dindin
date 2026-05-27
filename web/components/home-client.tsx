@@ -9,13 +9,12 @@ import { Onboarding } from '@/components/onboarding'
 import { BottomNav } from '@/components/bottom-nav'
 import { Fab } from '@/components/fab'
 
-type Apelido = 'Vitim' | 'Gaia'
-
 type Props = {
-  currentApelido: Apelido
+  currentApelido: string
+  apelidos?: [string, string]
 }
 
-export function HomeClient({ currentApelido }: Props) {
+export function HomeClient({ currentApelido, apelidos }: Props) {
   const router = useRouter()
   const [modalOpen, setModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -55,6 +54,7 @@ export function HomeClient({ currentApelido }: Props) {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         currentApelido={currentApelido}
+        apelidos={apelidos ?? [currentApelido, currentApelido]}
         onSuccess={handleSuccess}
       />
 

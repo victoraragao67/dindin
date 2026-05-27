@@ -1,28 +1,16 @@
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
-import { getUser } from '@/lib/supabase/get-user'
+import { getCasal } from '@/lib/supabase/get-casal'
 import { SaldoHeader, SaldoHeaderSkeleton } from '@/components/saldo-header'
 import { ListaGastos, ListaGastosSkeleton } from '@/components/lista-gastos'
 import { HomeClient } from '@/components/home-client'
 import { MetaAlertBanner } from '@/components/meta-alert-banner'
 
-type Apelido = 'Vitim' | 'Gaia'
-
 export const metadata = { title: 'Gastos' }
 
 export default async function GastosPage() {
-  const user = await getUser()
-  const supabase = createClient()
-
-  let currentApelido: Apelido = 'Vitim'
-  if (user?.email) {
-    const { data } = await supabase
-      .from('users')
-      .select('apelido')
-      .eq('email', user.email)
-      .maybeSingle()
-    if (data?.apelido === 'Gaia') currentApelido = 'Gaia'
-  }
+  const casal = await getCasal()
+  const currentApelido = casal.meuApelido ?? ''
+  const apelidos = casal.apelidos ?? [currentApelido, currentApelido] as [string, string]
 
   return (
     <>
@@ -35,10 +23,10 @@ export default async function GastosPage() {
       </Suspense>
 
       <Suspense fallback={<ListaGastosSkeleton />}>
-        <ListaGastos currentApelido={currentApelido} />
+        <ListaGastos currentApelido={currentApelido} apelidos={apelidos} />
       </Suspense>
 
-      <HomeClient currentApelido={currentApelido} />
+      <HomeClient currentApelido={currentApelido} apelidos={apelidos} />
     </>
   )
 }

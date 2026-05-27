@@ -1,42 +1,32 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { getUser } from '@/lib/supabase/get-user'
+import { getCasal } from '@/lib/supabase/get-casal'
 import { ListaRecorrentes } from '@/components/lista-recorrentes'
 import { PrevisibilidadeRecorrentes } from '@/components/previsibilidade-recorrentes'
 import { BottomNav } from '@/components/bottom-nav'
 
-type Apelido = 'Vitim' | 'Gaia'
-
 export default async function RecorrentesPage() {
   const supabase = createClient()
+  const casal = await getCasal()
 
-  const [
-    user,
-    { data: templates },
-  ] = await Promise.all([
-    getUser(),
-    supabase
-      .from('recurring_templates')
-      .select(`
-        id,
-        categoria_id,
-        valor_centavos,
-        descricao,
-        divisao,
-        split_pagador_pct,
-        dia_do_mes,
-        ativo,
-        pagador:users!recurring_templates_pagador_id_fkey ( apelido )
-      `)
-      .order('dia_do_mes', { ascending: true }),
-  ])
+  const { data: templates } = await supabase
+    .from('recurring_templates')
+    .select(`
+      id,
+      categoria_id,
+      valor_centavos,
+      descricao,
+      divisao,
+      split_pagador_pct,
+      dia_do_mes,
+      ativo,
+      pagador:users!recurring_templates_pagador_id_fkey ( apelido )
+    `)
+    .order('dia_do_mes', { ascending: true })
 
-  let currentApelido: Apelido = 'Vitim'
-  if (user?.email) {
-    const { data } = await supabase.from('users').select('apelido').eq('email', user.email).maybeSingle()
-    if (data?.apelido === 'Gaia') currentApelido = 'Gaia'
-  }
+  const currentApelido = casal.meuApelido ?? ''
+  const apelidos = casal.apelidos ?? [currentApelido, currentApelido] as [string, string]
 
   type RawTemplate = {
     id: string
@@ -57,7 +47,7 @@ export default async function RecorrentesPage() {
     descricao: t.descricao,
     pagador_apelido: (
       Array.isArray(t.pagador) ? t.pagador[0]?.apelido : t.pagador?.apelido
-    ?? 'Vitim') as Apelido,
+    ) ?? currentApelido,
     divisao: t.divisao,
     split_pagador_pct: t.split_pagador_pct,
     dia_do_mes: t.dia_do_mes,
@@ -90,7 +80,7 @@ export default async function RecorrentesPage() {
             <PrevisibilidadeRecorrentes />
           </Suspense>
 
-          <ListaRecorrentes templates={normalized} currentApelido={currentApelido} />
+          <ListaRecorrentes templates={normalized} currentApelido={currentApelido} apelidos={apelidos} />
         </div>
       </div>
 

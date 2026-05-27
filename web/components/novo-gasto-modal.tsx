@@ -19,7 +19,6 @@ const CATEGORIES = [
   { id: 9,  nome: 'Outros',      emoji: '📦' },
 ] as const
 
-type Apelido = 'Vitim' | 'Gaia'
 type Divisao = '50_50' | 'so_pagador' | 'so_outro' | 'customizada'
 
 export type RecorrenteInitial = RecorrenteInput & { id: string }
@@ -28,7 +27,9 @@ export type GastoInitial = NovoGastoInput & { id: string }
 type Props = {
   open: boolean
   onClose: () => void
-  currentApelido: Apelido
+  currentApelido: string
+  /** Tupla com os dois apelidos do casal [eu, parceiro] */
+  apelidos: [string, string]
   onSuccess: (msg: string) => void
   modo?: 'gasto' | 'recorrente'
   editando?: RecorrenteInitial    // edição de recorrente
@@ -52,7 +53,7 @@ function labelForDate(dateStr: string): string {
   return `${d}/${m}/${y}`
 }
 
-export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo = 'gasto', editando, editandoGasto }: Props) {
+export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSuccess, modo = 'gasto', editando, editandoGasto }: Props) {
   const inputRef  = useRef<HTMLInputElement>(null)
   const dateRef   = useRef<HTMLInputElement>(null)
   const isRecorrente = modo === 'recorrente'
@@ -63,7 +64,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
   // ── Campos básicos ──────────────────────────────────────────
   const [rawDigits, setRawDigits]     = useState('')
   const [categoriaId, setCategoriaId] = useState<number | null>(null)
-  const [pagador, setPagador]         = useState<Apelido>(currentApelido)
+  const [pagador, setPagador]         = useState<string>(currentApelido)
 
   // ── Recorrente ──────────────────────────────────────────────
   const [diaDoMes, setDiaDoMes]       = useState(1)
@@ -93,7 +94,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
 
   const valorPorParcela = parcelas > 1 ? Math.floor(centavos / parcelas) : centavos
   const previewParcelas = parcelas > 1 ? `${parcelas}x de ${formatCurrency(valorPorParcela)}` : 'à vista'
-  const outraApelido: Apelido = pagador === 'Vitim' ? 'Gaia' : 'Vitim'
+  const outraApelido: string = apelidos.find(a => a !== pagador) ?? apelidos[0]
 
   // ── Reset / preencher ao abrir ──────────────────────────────
   useEffect(() => {
@@ -194,7 +195,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
     if (isRecorrente) {
       onSuccess(`✅ ${descricaoMain} — ${cat?.emoji} ${cat?.nome} · dia ${diaDoMes}`)
     } else {
-      const outroAp = pagador === 'Vitim' ? 'Gaia' : 'Vitim'
+      const outroAp = apelidos.find(a => a !== pagador) ?? apelidos[0]
       const divisaoLabel = divisao === '50_50' ? '50/50'
         : divisao === 'so_pagador' ? `só ${pagador}`
         : divisao === 'so_outro'   ? `só ${outroAp}`
@@ -279,7 +280,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, onSuccess, modo 
           <div>
             <p className="text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>PAGO POR</p>
             <div className="flex gap-3">
-              {(['Vitim', 'Gaia'] as const).map(ap => (
+              {apelidos.map(ap => (
                 <button
                   key={ap}
                   onClick={() => setPagador(ap)}

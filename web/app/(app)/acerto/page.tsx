@@ -1,45 +1,38 @@
 import { createClient } from '@/lib/supabase/server'
-import { getUser } from '@/lib/supabase/get-user'
+import { getCasal } from '@/lib/supabase/get-casal'
 import { AcertoClient } from '@/components/acerto-client'
 import Link from 'next/link'
 
-type Apelido = 'Vitim' | 'Gaia'
-
 export default async function AcertoPage() {
   const supabase = createClient()
+  const casal = await getCasal()
 
-  const [
-    user,
-    { data: saldoRows },
-    { data: usersData },
-  ] = await Promise.all([
-    getUser(),  // deduplica com layout (React cache)
-    supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
-    supabase.from('users').select('id, apelido, email'),
-  ])
+  const { data: saldoRows } = await supabase
+    .from('v_saldo_atual')
+    .select('devedor_id, credor_id, valor_centavos')
+
+  const { data: usersData } = await supabase
+    .from('users')
+    .select('id, apelido')
 
   const users  = usersData ?? []
   const saldo  = (saldoRows ?? [])[0] ?? null
 
-  // Apelido do usuário logado
-  const meRow        = users.find(u => u.email === user?.email)
-  const meuApelido   = (meRow?.apelido ?? 'Vitim') as Apelido
-  const outroApelido = (meuApelido === 'Vitim' ? 'Gaia' : 'Vitim') as Apelido
+  const meuApelido   = casal.meuApelido ?? ''
+  const outroApelido = casal.parceiro?.apelido ?? ''
+  const apelidos     = casal.apelidos ?? [meuApelido, outroApelido] as [string, string]
 
   // Default inteligente: quem deve paga — se há saldo, devedor é o "De"
-  let defaultDe:   Apelido
-  let defaultPara: Apelido
+  let defaultDe   = meuApelido
+  let defaultPara = outroApelido
   let defaultValor = 0
 
   if (saldo) {
     const devedorRow = users.find(u => u.id === saldo.devedor_id)
     const credorRow  = users.find(u => u.id === saldo.credor_id)
-    defaultDe   = (devedorRow?.apelido ?? meuApelido)  as Apelido
-    defaultPara = (credorRow?.apelido  ?? outroApelido) as Apelido
+    defaultDe   = devedorRow?.apelido ?? meuApelido
+    defaultPara = credorRow?.apelido  ?? outroApelido
     defaultValor = saldo.valor_centavos
-  } else {
-    defaultDe   = meuApelido
-    defaultPara = outroApelido
   }
 
   return (
@@ -61,6 +54,7 @@ export default async function AcertoPage() {
         defaultDe={defaultDe}
         defaultPara={defaultPara}
         defaultValorCentavos={defaultValor}
+        apelidos={apelidos}
       />
     </div>
   )

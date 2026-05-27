@@ -25,7 +25,7 @@ type Template = {
   categoria_id: number
   valor_centavos: number
   descricao: string
-  pagador_apelido: 'Vitim' | 'Gaia'
+  pagador_apelido: string
   divisao: '50_50' | 'so_pagador' | 'so_outro' | 'customizada'
   split_pagador_pct: number | null
   dia_do_mes: number
@@ -34,10 +34,11 @@ type Template = {
 
 type Props = {
   templates: Template[]
-  currentApelido: 'Vitim' | 'Gaia'
+  currentApelido: string
+  apelidos?: [string, string]
 }
 
-export function ListaRecorrentes({ templates, currentApelido }: Props) {
+export function ListaRecorrentes({ templates, currentApelido, apelidos }: Props) {
   const router = useRouter()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmRemoverId, setConfirmRemoverId] = useState<string | null>(null)
@@ -224,6 +225,7 @@ export function ListaRecorrentes({ templates, currentApelido }: Props) {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         currentApelido={currentApelido}
+        apelidos={apelidos ?? [currentApelido, currentApelido]}
         onSuccess={handleSuccess}
         modo="recorrente"
         editando={editando}
