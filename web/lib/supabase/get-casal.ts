@@ -29,7 +29,7 @@ export const getCasal = cache(async (): Promise<CasalContext> => {
 
   // Busca o casal mais recente (pending ou active)
   // Usa .order + .limit(1) em vez de .maybeSingle() para não falhar silenciosamente
-  // quando o usuário tem múltiplas rows em casal_membros (dados inconsistentes)
+  // quando o usuário tem múltiplas rows em casal_membros (situação de dados inconsistentes)
   const { data: membros } = await supabase
     .from('casal_membros')
     .select(`
