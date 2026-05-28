@@ -32,7 +32,7 @@ export function useCategorias() {
       .select('id, nome, emoji, ordem')
       .eq('ativo', true)
       .order('ordem', { ascending: true })
-      .then(({ data }) => {
+      .then(({ data }: { data: Categoria[] | null }) => {
         if (data) {
           _cache = data as Categoria[]
           setCategorias(_cache)
