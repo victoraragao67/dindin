@@ -81,20 +81,29 @@ export function Onboarding({ apelido }: { apelido: string }) {
 
   // ── UI ─────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col">
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 50,
+      background: 'var(--bg)',
+      display: 'flex', flexDirection: 'column',
+    }}>
 
       {/* Barra de progresso */}
-      <div className="flex justify-center items-center gap-2 pt-12">
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, paddingTop: 48 }}>
         {Array.from({ length: totalDots }).map((_, i) => (
           <div
             key={i}
-            className={`rounded-full transition-all duration-300 ${
-              i === dotIndex
-                ? 'w-6 h-2 bg-emerald-500'
+            style={{
+              borderRadius: 999,
+              transition: 'all 0.3s',
+              width:  i === dotIndex ? 24 : 8,
+              height: 8,
+              background: i === dotIndex
+                ? 'var(--coral)'
                 : i < dotIndex
-                  ? 'w-2 h-2 bg-emerald-800'
-                  : 'w-2 h-2 bg-slate-700'
-            }`}
+                  ? 'var(--border)'
+                  : 'var(--border)',
+              opacity: i === dotIndex ? 1 : i < dotIndex ? 0.6 : 0.3,
+            }}
           />
         ))}
       </div>
@@ -102,7 +111,13 @@ export function Onboarding({ apelido }: { apelido: string }) {
       {/* Conteúdo da tela atual — key={step} re-dispara a animação */}
       <div
         key={step}
-        className="flex-1 flex flex-col items-center justify-center px-8 text-center animate-slideInRight"
+        style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '0 32px',
+          textAlign: 'center',
+          animation: 'slideInRight 0.25s ease-out',
+        }}
       >
         {step === 0 && <StepWelcome    apelido={apelido} onNext={nextStep} />}
         {step === 1 && <StepInstall    onNext={nextStep} />}
@@ -113,33 +128,73 @@ export function Onboarding({ apelido }: { apelido: string }) {
   )
 }
 
+// ── Botão primário reutilizável ───────────────────────────────────
+function BtnPrimary({ onClick, disabled, children }: {
+  onClick: () => void
+  disabled?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: '100%',
+        background: disabled ? 'var(--bg-2)' : 'var(--ink)',
+        color: disabled ? 'var(--muted)' : 'var(--bg)',
+        borderRadius: 100,
+        padding: '14px',
+        fontSize: 15,
+        fontWeight: 600,
+        border: 'none',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'background 0.15s',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
 // ── Tela 0: Bem-vindo ─────────────────────────────────────────────
 
 function StepWelcome({ apelido, onNext }: { apelido: string; onNext: () => void }) {
   return (
-    <div className="space-y-8 w-full max-w-xs">
-      <div className="space-y-4">
-        <span className="text-7xl" role="img" aria-label="dinheiro">💰</span>
-        <h1 className="text-3xl font-bold text-white tracking-tight">DinDin</h1>
+    <div style={{ width: '100%', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 32 }}>
+
+      {/* Logo */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 72, height: 72, borderRadius: 24,
+          background: 'var(--ink)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 32, fontWeight: 700, letterSpacing: -2, color: 'var(--bg)' }}>D</span>
+          <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 32, fontWeight: 700, letterSpacing: -2, color: 'var(--coral)' }}>D</span>
+        </div>
+        <h1 style={{
+          fontFamily: 'var(--font-fraunces), Georgia, serif',
+          fontSize: 34, fontWeight: 700, letterSpacing: -1.5,
+          color: 'var(--ink)', lineHeight: 1, margin: 0,
+        }}>
+          Din<em style={{ color: 'var(--coral)', fontStyle: 'italic', fontWeight: 300 }}>Din</em>
+        </h1>
       </div>
 
-      <div className="space-y-3">
-        <p className="text-xl font-semibold text-white">Olá, {apelido}! 👋</p>
-        <p className="text-slate-300 leading-relaxed">
-          Controle financeiro do casal,<br />sem complicação.
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <p style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>
+          Olá, {apelido}! 👋
         </p>
-        <p className="text-slate-400 text-sm leading-relaxed">
+        <p style={{ fontSize: 15, color: 'var(--ink)', margin: 0, lineHeight: 1.5 }}>
+          Finanças a dois,<br />sem enrolação.
+        </p>
+        <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
           Registre gastos em 3 toques.<br />
           Saiba sempre quem deve para quem.
         </p>
       </div>
 
-      <button
-        onClick={onNext}
-        className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-4 text-base transition-colors"
-      >
-        Vamos começar →
-      </button>
+      <BtnPrimary onClick={onNext}>Vamos começar →</BtnPrimary>
     </div>
   )
 }
@@ -148,39 +203,72 @@ function StepWelcome({ apelido, onNext }: { apelido: string; onNext: () => void 
 
 function StepInstall({ onNext }: { onNext: () => void }) {
   return (
-    <div className="space-y-8 w-full max-w-xs">
-      <div className="space-y-3">
-        <span className="text-6xl" role="img" aria-label="celular">📱</span>
-        <h2 className="text-2xl font-bold text-white">Instale o app</h2>
-        <p className="text-slate-300 text-sm leading-relaxed">
+    <div style={{ width: '100%', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <span style={{ fontSize: 56 }} role="img" aria-label="celular">📱</span>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
+          Instale o app
+        </h2>
+        <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
           Para usar o DinDin como um app de verdade, adicione à tela inicial.
         </p>
       </div>
 
-      <div className="space-y-4 text-left">
-        <div className="rounded-xl bg-slate-800 p-4 space-y-2">
-          <p className="text-slate-400 text-xs font-semibold uppercase tracking-wide">No iPhone (Safari)</p>
-          <ol className="text-slate-300 text-sm space-y-1 list-none">
-            <li>1. Toque em <span className="text-white">⬆</span> (compartilhar)</li>
-            <li>2. Role até <span className="text-white">&quot;Adicionar à Tela de Início&quot;</span></li>
-            <li>3. Toque em <span className="text-white">&quot;Adicionar&quot;</span></li>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left' }}>
+
+        <div style={{
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: 16, padding: '14px 16px',
+        }}>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', margin: '0 0 8px' }}>
+            No iPhone (Safari)
+          </p>
+          <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {[
+              <>Toque em <strong style={{ color: 'var(--ink)' }}>⬆</strong> (compartilhar)</>,
+              <>Role até <strong style={{ color: 'var(--ink)' }}>&quot;Adicionar à Tela de Início&quot;</strong></>,
+              <>Toque em <strong style={{ color: 'var(--ink)' }}>&quot;Adicionar&quot;</strong></>,
+            ].map((item, i) => (
+              <li key={i} style={{ fontSize: 13, color: 'var(--muted)' }}>
+                <span style={{ color: 'var(--coral)', fontWeight: 600, marginRight: 6 }}>{i + 1}.</span>
+                {item}
+              </li>
+            ))}
           </ol>
         </div>
 
-        <div className="rounded-xl bg-slate-800 p-4 space-y-2">
-          <p className="text-slate-400 text-xs font-semibold uppercase tracking-wide">No Android (Chrome)</p>
-          <ol className="text-slate-300 text-sm space-y-1 list-none">
-            <li>1. Toque em <span className="text-white">⋮</span> (menu)</li>
-            <li>2. <span className="text-white">&quot;Adicionar à tela inicial&quot;</span></li>
+        <div style={{
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: 16, padding: '14px 16px',
+        }}>
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', margin: '0 0 8px' }}>
+            No Android (Chrome)
+          </p>
+          <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {[
+              <>Toque em <strong style={{ color: 'var(--ink)' }}>⋮</strong> (menu)</>,
+              <><strong style={{ color: 'var(--ink)' }}>&quot;Adicionar à tela inicial&quot;</strong></>,
+            ].map((item, i) => (
+              <li key={i} style={{ fontSize: 13, color: 'var(--muted)' }}>
+                <span style={{ color: 'var(--coral)', fontWeight: 600, marginRight: 6 }}>{i + 1}.</span>
+                {item}
+              </li>
+            ))}
           </ol>
         </div>
       </div>
 
       <button
         onClick={onNext}
-        className="w-full rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium py-3 text-sm transition-colors"
+        style={{
+          background: 'none', border: 'none',
+          fontSize: 13, color: 'var(--muted)',
+          cursor: 'pointer', padding: '4px 0', textAlign: 'center',
+        }}
       >
-        Já está instalado, continuar →
+        Já está instalado →{' '}
+        <span style={{ color: 'var(--coral)', fontWeight: 500 }}>continuar</span>
       </button>
     </div>
   )
@@ -196,31 +284,36 @@ function StepNotifications({
   loading: boolean
 }) {
   return (
-    <div className="space-y-8 w-full max-w-xs">
-      <div className="space-y-3">
-        <span className="text-6xl" role="img" aria-label="sino">🔔</span>
-        <h2 className="text-2xl font-bold text-white">Fique por dentro</h2>
+    <div style={{ width: '100%', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <span style={{ fontSize: 56 }} role="img" aria-label="sino">🔔</span>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
+          Fique por dentro
+        </h2>
       </div>
 
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
-        <p>Todo dia às <strong className="text-white">22h</strong>, te lembramos de registrar os gastos do dia.</p>
-        <p className="text-slate-400">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <p style={{ fontSize: 14, color: 'var(--ink)', margin: 0, lineHeight: 1.6 }}>
+          Todo dia às <strong>22h</strong>, te lembramos de registrar os gastos do dia.
+        </p>
+        <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
           É só 1 notificação por dia — e só se você não tiver registrado nada ainda.
         </p>
       </div>
 
-      <div className="space-y-3 w-full">
-        <button
-          onClick={onAllow}
-          disabled={loading}
-          className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 disabled:text-emerald-600 text-white font-semibold py-4 text-base transition-colors"
-        >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <BtnPrimary onClick={onAllow} disabled={loading}>
           {loading ? 'Ativando…' : 'Permitir notificações'}
-        </button>
+        </BtnPrimary>
         <button
           onClick={onSkip}
           disabled={loading}
-          className="w-full text-slate-500 hover:text-slate-300 text-sm py-2 transition-colors"
+          style={{
+            background: 'none', border: 'none',
+            fontSize: 13, color: 'var(--muted)',
+            cursor: 'pointer', padding: '4px 0',
+          }}
         >
           Agora não
         </button>
@@ -233,25 +326,25 @@ function StepNotifications({
 
 function StepDone({ onFinish }: { onFinish: () => void }) {
   return (
-    <div className="space-y-8 w-full max-w-xs">
-      <div className="space-y-3">
-        <span className="text-7xl" role="img" aria-label="feito">✅</span>
-        <h2 className="text-2xl font-bold text-white">Pronto!</h2>
-        <p className="text-slate-300 leading-relaxed">O DinDin está configurado.</p>
+    <div style={{ width: '100%', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <span style={{ fontSize: 64 }} role="img" aria-label="feito">🎉</span>
+        <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
+          Tudo pronto!
+        </h2>
+        <p style={{ fontSize: 15, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+          O DinDin está configurado e pronto pra usar.
+        </p>
       </div>
 
-      <p className="text-slate-400 text-sm leading-relaxed">
+      <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
         Registre seu primeiro gasto tocando no botão{' '}
-        <span className="text-white font-bold text-lg">+</span>{' '}
+        <span style={{ color: 'var(--ink)', fontWeight: 700, fontSize: 18 }}>+</span>{' '}
         na tela principal.
       </p>
 
-      <button
-        onClick={onFinish}
-        className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-4 text-base transition-colors"
-      >
-        Ir para o DinDin →
-      </button>
+      <BtnPrimary onClick={onFinish}>Ir para o DinDin →</BtnPrimary>
     </div>
   )
 }
