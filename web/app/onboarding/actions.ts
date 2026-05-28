@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getUser } from '@/lib/supabase/get-user'
 import { getCasal } from '@/lib/supabase/get-casal'
 
@@ -33,7 +34,8 @@ export async function salvarApelido(apelido: string): Promise<OnboardingResult> 
   const user = await getUser()
   if (!user) return { ok: false, error: 'Usuário não autenticado.' }
 
-  const supabase = createClient()
+  // Admin client: getUser() já verificou a identidade, upsert seguro por user.id
+  const supabase = createAdminClient()
   const { error } = await supabase
     .from('users')
     .upsert(
