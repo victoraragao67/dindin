@@ -28,7 +28,9 @@ export const getCasal = cache(async (): Promise<CasalContext> => {
   const supabase = createClient()
 
   // Busca o casal mais recente (pending ou active)
-  const { data: membro } = await supabase
+  // Usa .order + .limit(1) em vez de .maybeSingle() para não falhar silenciosamente
+  // quando o usuário tem múltiplas rows em casal_membros (situação de dados inconsistentes)
+  const { data: membros } = await supabase
     .from('casal_membros')
     .select(`
       casal_id,
@@ -36,7 +38,10 @@ export const getCasal = cache(async (): Promise<CasalContext> => {
       users!casal_membros_user_id_fkey ( id, apelido )
     `)
     .eq('user_id', user.id)
-    .maybeSingle()
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  const membro = membros?.[0] ?? null
 
   if (!membro) return empty
 
