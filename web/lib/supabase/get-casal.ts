@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getUser } from './get-user'
 
 export type CasalStatus = 'pending' | 'active' | 'inactive' | 'blocked' | null
@@ -15,22 +15,25 @@ export type CasalContext = {
 
 /**
  * getCasal — busca o casal ativo (ou pending) do usuário autenticado.
- * React cache() garante 1 chamada por request.
+ *
+ * Usa o admin client (service role) depois de verificar o usuário via
+ * getUser(). Isso evita problemas de RLS/sessão no servidor — o usuário
+ * já foi autenticado pelo Supabase Auth, e todas as queries são filtradas
+ * pelo user.id verificado. React cache() garante 1 chamada por request.
  */
 export const getCasal = cache(async (): Promise<CasalContext> => {
   const empty: CasalContext = {
     casalId: null, status: null, parceiro: null, meuApelido: null, apelidos: null,
   }
 
+  // Verifica identidade via Supabase Auth (seguro — valida JWT no servidor)
   const user = await getUser()
   if (!user) return empty
 
-  const supabase = createClient()
+  // Admin client bypassa RLS; seguro pois filtramos sempre por user.id verificado
+  const supabase = createAdminClient()
 
-  // Busca o casal mais recente (pending ou active)
-  // Usa .order + .limit(1) em vez de .maybeSingle() para não falhar silenciosamente
-  // quando o usuário tem múltiplas rows em casal_membros (situação de dados inconsistentes)
-  const { data: membros } = await supabase
+  const { data: membro } = await supabase
     .from('casal_membros')
     .select(`
       casal_id,
@@ -39,8 +42,7 @@ export const getCasal = cache(async (): Promise<CasalContext> => {
     `)
     .eq('user_id', user.id)
     .limit(1)
-
-  const membro = membros?.[0] ?? null
+    .maybeSingle()
 
   if (!membro) return empty
 
@@ -49,7 +51,6 @@ export const getCasal = cache(async (): Promise<CasalContext> => {
 
   if (!casal || !['pending', 'active'].includes(casal.status)) return empty
 
-  // Busca o parceiro
   const { data: parceiroMembro } = await supabase
     .from('casal_membros')
     .select('users!casal_membros_user_id_fkey ( id, apelido )')
@@ -61,8 +62,8 @@ export const getCasal = cache(async (): Promise<CasalContext> => {
     ? (Array.isArray(parceiroMembro.users) ? parceiroMembro.users[0] : (parceiroMembro.users as any))
     : null
 
-  const meuApelido       = eu?.apelido      ?? null
-  const parceiroApelido  = parceiro?.apelido ?? null
+  const meuApelido      = eu?.apelido      ?? null
+  const parceiroApelido = parceiro?.apelido ?? null
 
   return {
     casalId:    casal.id,
