@@ -38,7 +38,6 @@ export const getCasal = cache(async (): Promise<CasalContext> => {
       users!casal_membros_user_id_fkey ( id, apelido )
     `)
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
     .limit(1)
 
   const membro = membros?.[0] ?? null
