@@ -205,7 +205,8 @@ export default function LoginPage() {
               </button>
 
               <p style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
-                Sem senha. Acesso por código enviado ao e-mail.
+                Vamos enviar um código de 8 dígitos.{' '}
+                <span style={{ color: 'var(--coral)', fontWeight: 500 }}>Digite-o aqui — não clique no link.</span>
               </p>
             </form>
           )}
