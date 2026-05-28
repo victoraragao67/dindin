@@ -1,12 +1,17 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/get-user'
+import { getCasal } from '@/lib/supabase/get-casal'
 import { createClient } from '@/lib/supabase/server'
 import { ApelidoForm } from './apelido-form'
 
 export default async function OnboardingPage() {
   const user = await getUser()
   if (!user) redirect('/login')
+
+  // Se já tem casal ativo, não precisa de onboarding
+  const casal = await getCasal()
+  if (casal.casalId && casal.status === 'active') redirect('/')
 
   // Verifica se já tem apelido
   const supabase = createClient()
