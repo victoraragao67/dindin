@@ -35,6 +35,24 @@ type DetalheRow = {
   custo_b: number
 }
 
+type RecurringImbalanceRow = {
+  user_id: string
+  apelido: string
+  saldo_bruto_centavos: number
+  saldo_liquido_centavos: number
+  total_pago_centavos: number
+  meses_count: number
+}
+
+type SaldoRecorrentesRow = {
+  user_id: string
+  apelido: string
+  pago_centavos: number
+  ideal_centavos: number
+  saldo_centavos: number
+  total_mes_centavos: number
+}
+
 type CategoriaRow = {
   categoria_id: number
   categoria_nome: string
@@ -95,25 +113,72 @@ async function BalanceSection({ userId }: { userId: string | null }) {
     { data: saldoRows },
     { data: users },
     { data: detalheRows },
+    { data: imbalanceRows },
   ] = await Promise.all([
     supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
     supabase.from('users').select('id, apelido'),
     // v_saldo_detalhado_mes: escopo mês atual, só gastos variáveis (origem='pwa'), + custo real
     supabase.from('v_saldo_detalhado_mes').select('apelido_a, apelido_b, pagou_a, pagou_b, credito_a, credito_b, acertos_net, custo_a, custo_b'),
+    supabase.from('v_recurring_imbalance').select('user_id, apelido, saldo_bruto_centavos, saldo_liquido_centavos, total_pago_centavos, meses_count'),
   ])
 
-  const saldo = (saldoRows as SaldoRow[] | null)?.[0] ?? null
-  const userList = (users as UserRow[] | null) ?? []
-  const detalhe = (detalheRows as DetalheRow[] | null)?.[0] ?? null
+  const saldo      = (saldoRows as SaldoRow[] | null)?.[0] ?? null
+  const userList   = (users as UserRow[] | null) ?? []
+  const detalhe    = (detalheRows as DetalheRow[] | null)?.[0] ?? null
+  const imbalance  = (imbalanceRows as RecurringImbalanceRow[] | null) ?? []
 
-  // Acerto banner
-  let saldoCentavos = 0
-  let devedorApelido = ''
-  let credorApelido = ''
-  if (saldo) {
-    saldoCentavos = saldo.valor_centavos
-    devedorApelido = userList.find(u => u.id === saldo.devedor_id)?.apelido ?? ''
-    credorApelido  = userList.find(u => u.id === saldo.credor_id)?.apelido ?? ''
+  // ── Compute dívida líquida real (isonomia de dados) ──────────
+  const credorRecorrente  = imbalance.find(r => r.saldo_liquido_centavos > 0)
+  const imbalanceCentavos = credorRecorrente ? Math.max(credorRecorrente.saldo_liquido_centavos, 0) : 0
+  const nomeCredorRec     = credorRecorrente?.apelido ?? ''
+  const nomeDevedorRec    = imbalance.find(r => r.apelido !== nomeCredorRec)?.apelido ?? ''
+
+  const dividaVariavel   = saldo?.valor_centavos ?? 0
+  const nomeCredorVar    = saldo ? (userList.find(u => u.id === saldo.credor_id)?.apelido ?? '') : ''
+  const nomeDevedorVar   = saldo ? (userList.find(u => u.id === saldo.devedor_id)?.apelido ?? '') : ''
+  const hasImbalance     = imbalanceCentavos >= 5000  // R$ 50 threshold
+
+  let dividaLiquidaValor   = 0
+  let devedorLiquidoApelido = ''
+  let credorLiquidoApelido  = ''
+
+  if (!hasImbalance) {
+    dividaLiquidaValor    = dividaVariavel
+    devedorLiquidoApelido = nomeDevedorVar
+    credorLiquidoApelido  = nomeCredorVar
+  } else if (!saldo) {
+    // Só imbalance de recorrentes, sem dívida variável
+    dividaLiquidaValor    = imbalanceCentavos
+    devedorLiquidoApelido = nomeDevedorRec
+    credorLiquidoApelido  = nomeCredorRec
+  } else if (nomeCredorVar === nomeCredorRec) {
+    // Mesmo credor: somam
+    dividaLiquidaValor    = dividaVariavel + imbalanceCentavos
+    devedorLiquidoApelido = nomeDevedorVar
+    credorLiquidoApelido  = nomeCredorVar
+  } else {
+    // Sentidos opostos: subtrai
+    const net = dividaVariavel - imbalanceCentavos
+    if (net >= 0) {
+      dividaLiquidaValor    = net
+      devedorLiquidoApelido = nomeDevedorVar
+      credorLiquidoApelido  = nomeCredorVar
+    } else {
+      dividaLiquidaValor    = Math.abs(net)
+      devedorLiquidoApelido = nomeCredorVar   // inverteu
+      credorLiquidoApelido  = nomeDevedorVar
+    }
+  }
+
+  const devedorLiquidoId = userList.find(u => u.apelido === devedorLiquidoApelido)?.id ?? ''
+  const credorLiquidoId  = userList.find(u => u.apelido === credorLiquidoApelido)?.id ?? ''
+
+  const dividaLiquida = {
+    valor:          dividaLiquidaValor,
+    devedorId:      devedorLiquidoId,
+    credorId:       credorLiquidoId,
+    devedorApelido: devedorLiquidoApelido,
+    credorApelido:  credorLiquidoApelido,
   }
 
   return (
@@ -123,11 +188,15 @@ async function BalanceSection({ userId }: { userId: string | null }) {
         saldo={saldo}
         users={userList}
         detalhe={detalhe}
+        imbalance={imbalance}
+        dividaLiquida={dividaLiquidaValor > 0 ? dividaLiquida : null}
       />
       <HomeAcertoBanner
-        saldoCentavos={saldoCentavos}
-        devedorApelido={devedorApelido}
-        credorApelido={credorApelido}
+        dividaLiquidaValor={dividaLiquidaValor}
+        dividaLiquidaDevedor={devedorLiquidoApelido}
+        dividaLiquidaCredor={credorLiquidoApelido}
+        imbalanceCentavos={imbalanceCentavos}
+        nomePagaMais={nomeCredorRec}
       />
     </>
   )
@@ -255,16 +324,24 @@ async function RecentTxSection() {
 
 async function RecorrentesSection() {
   const supabase = createClient()
-  const { data } = await supabase
-    .from('recurring_templates')
-    .select('valor_centavos')
-    .eq('ativo', true)
+  const [{ data: templates }, { data: saldoRecRows }] = await Promise.all([
+    supabase.from('recurring_templates').select('valor_centavos').eq('ativo', true),
+    supabase.from('v_saldo_recorrentes').select('user_id, apelido, pago_centavos, ideal_centavos, saldo_centavos, total_mes_centavos'),
+  ])
 
-  const items = (data ?? []) as { valor_centavos: number }[]
+  const items = (templates ?? []) as { valor_centavos: number }[]
   const total = items.reduce((s, r) => s + r.valor_centavos, 0)
   const count = items.length
 
   if (count === 0) return null
+
+  // Compute imbalance: quem tem saldo_centavos mais alto paga a mais
+  const saldoRec = (saldoRecRows ?? []) as SaldoRecorrentesRow[]
+  const sorted   = [...saldoRec].sort((a, b) => b.saldo_centavos - a.saldo_centavos)
+  const maiorSaldo = sorted[0]
+  const delta = maiorSaldo ? Math.abs(maiorSaldo.saldo_centavos) : 0
+  // Threshold: only show alert if delta > R$ 200
+  const showAlerta = delta > 20000
 
   return (
     <Link
@@ -284,6 +361,13 @@ async function RecorrentesSection() {
           <p className="text-xs" style={{ color: 'var(--muted)' }}>
             {count} item{count !== 1 ? 's' : ''} · {formatCurrency(total)}<span>/mês</span>
           </p>
+          {showAlerta ? (
+            <p className="text-xs mt-0.5" style={{ color: 'var(--coral)' }}>
+              ⚠️ {maiorSaldo!.apelido} paga {formatCurrency(delta)} a mais — Rebalancear →
+            </p>
+          ) : (
+            <p className="text-xs mt-0.5" style={{ color: 'var(--sage)' }}>✅ Equilibrados</p>
+          )}
         </div>
       </div>
       <span className="text-sm" style={{ color: 'var(--muted)' }}>›</span>
