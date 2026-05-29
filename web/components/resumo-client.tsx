@@ -283,7 +283,12 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
           const apelidos = Object.keys(grupos).sort()
           return (
             <section className="space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Recorrentes</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Recorrentes</h2>
+                <a href="/recorrentes" className="text-xs transition-opacity active:opacity-60" style={{ color: 'var(--muted)' }}>
+                  Ver todos →
+                </a>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 {apelidos.map(apelido => {
                   const items = grupos[apelido]

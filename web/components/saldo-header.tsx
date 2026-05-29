@@ -27,15 +27,6 @@ type DetalheRow = {
   acertos_net: number
 }
 
-type RecorrenteRow = {
-  user_id: string
-  apelido: string
-  pago_centavos: number
-  ideal_centavos: number
-  saldo_centavos: number
-  total_mes_centavos: number
-}
-
 type ImbalanceRow = {
   user_id: string
   apelido: string
@@ -51,21 +42,18 @@ export async function SaldoHeader() {
     { data: saldoRows },
     { data: users },
     { data: detalheRows },
-    { data: recorrentesRows },
     { data: imbalanceRows },
   ] = await Promise.all([
     getUser(),
     supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
     supabase.from('users').select('id, apelido'),
     supabase.from('v_saldo_detalhado').select('*'),
-    supabase.from('v_saldo_recorrentes').select('*').order('apelido'),
     supabase.from('v_recurring_imbalance').select('user_id, apelido, saldo_liquido_centavos, meses_count'),
   ])
 
   const saldo      = (saldoRows as SaldoRow[] | null)?.[0] ?? null
   const userList   = (users as UserRow[] | null) ?? []
   const detalhe    = (detalheRows as DetalheRow[] | null)?.[0] ?? null
-  const recorrentes = (recorrentesRows as RecorrenteRow[] | null) ?? []
   const imbalance  = (imbalanceRows as ImbalanceRow[] | null) ?? []
 
   function getApelido(id: string) {
@@ -159,15 +147,6 @@ export async function SaldoHeader() {
     credor:  dividaLiquidaCredor,
   } : null
 
-  // ── Card 2: saldo recorrentes ───────────────────────────────
-  const totalMesRec = recorrentes[0]?.total_mes_centavos ?? 0
-  const equilibrado = totalMesRec > 0 && recorrentes.every(r => r.saldo_centavos === 0)
-  const quemCobre   = recorrentes.find(r => r.saldo_centavos < 0)
-
-  const mesLabelRec = new Date().toLocaleDateString('pt-BR', {
-    month: 'short', year: '2-digit', timeZone: 'America/Sao_Paulo',
-  })
-
   return (
     <div className="border-b" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
       {/* Card 1 — Gastos variáveis */}
@@ -183,41 +162,6 @@ export async function SaldoHeader() {
         />
       </div>
 
-      {/* Card 2 — Recorrentes (só aparece se há recorrentes no mês) */}
-      {totalMesRec > 0 && (
-        <div className="px-4 pb-4 pt-0 border-t" style={{ borderColor: 'var(--border)' }}>
-          <div className="rounded-xl px-4 py-3 space-y-2" style={{ background: 'var(--bg-2)' }}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm">🏠</span>
-                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-                  Recorrentes · {mesLabelRec}
-                </span>
-              </div>
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>{formatCurrency(totalMesRec)}</span>
-            </div>
-
-            <div className="space-y-1">
-              {recorrentes.map(r => (
-                <div key={r.apelido} className="flex items-center justify-between">
-                  <span className="text-sm" style={{ color: 'var(--muted)' }}>{r.apelido} pagou</span>
-                  <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(r.pago_centavos)}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
-              {equilibrado ? (
-                <p className="text-sm" style={{ color: 'var(--sage)' }}>✅ Fixos equilibrados este mês</p>
-              ) : quemCobre ? (
-                <p className="text-sm" style={{ color: 'var(--coral)' }}>
-                  → {quemCobre.apelido} precisa cobrir {formatCurrency(Math.abs(quemCobre.saldo_centavos))}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

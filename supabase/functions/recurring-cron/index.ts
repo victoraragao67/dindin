@@ -23,20 +23,22 @@ Deno.serve(async (_req: Request) => {
   const agora = new Date()
   const brt   = new Date(agora.getTime() - 3 * 60 * 60 * 1000)
 
-  const diaAtual  = brt.getUTCDate()
-  const year      = brt.getUTCFullYear()
-  const month     = String(brt.getUTCMonth() + 1).padStart(2, '0')
-  const day       = String(diaAtual).padStart(2, '0')
-  const dataCompra = `${year}-${month}-${day}`   // YYYY-MM-DD em BRT
+  const diaAtual = brt.getUTCDate()
+  const year     = brt.getUTCFullYear()
+  const month    = String(brt.getUTCMonth() + 1).padStart(2, '0')
 
-  console.log(`[recurring-cron] iniciando — dia ${diaAtual}, data ${dataCompra}`)
+  console.log(`[recurring-cron] iniciando — dia ${diaAtual}, mês ${year}-${month}`)
 
-  // ── Buscar templates ativos para hoje ─────────────────────
+  // ── Buscar templates ativos cujo dia já chegou este mês ───
+  // Usa lte (≤ diaAtual) para ser auto-recuperável:
+  // se o cron falhar num dia, na próxima execução ele processa
+  // os templates perdidos. O índice único uq_expense_recurring_mes
+  // garante idempotência — duplicatas retornam código 23505.
   const { data: templates, error: fetchError } = await supabase
     .from('recurring_templates')
-    .select('id, pagador_id, categoria_id, valor_centavos, descricao, divisao, split_pagador_pct')
+    .select('id, casal_id, pagador_id, categoria_id, valor_centavos, descricao, divisao, split_pagador_pct, dia_do_mes')
     .eq('ativo', true)
-    .eq('dia_do_mes', diaAtual)
+    .lte('dia_do_mes', diaAtual)
 
   if (fetchError) {
     console.error('[recurring-cron] erro ao buscar templates:', fetchError.message)
@@ -55,12 +57,17 @@ Deno.serve(async (_req: Request) => {
 
   // ── Processar cada template ───────────────────────────────
   for (const t of lista) {
+    // data_compra = dia_do_mes correto no mês atual
+    const dia        = String(t.dia_do_mes).padStart(2, '0')
+    const dataCompra = `${year}-${month}-${dia}`
+
     const { error: insertError } = await supabase
       .from('expenses')
       .insert({
+        casal_id:             t.casal_id,
         pagador_id:           t.pagador_id,
         categoria_id:         t.categoria_id,
-        valor_total_centavos: t.valor_centavos,   // recurring usa valor_centavos
+        valor_total_centavos: t.valor_centavos,
         parcelas:             1,
         divisao:              t.divisao,
         split_pagador_pct:    t.split_pagador_pct ?? null,
