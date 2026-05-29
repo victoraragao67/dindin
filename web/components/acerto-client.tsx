@@ -5,12 +5,22 @@ import { useRouter } from 'next/navigation'
 import { registrarAcerto } from '@/app/(app)/actions'
 import { formatCurrency } from '@/lib/money'
 import { Toast } from '@/components/toast'
+import { InfoTooltip } from '@/components/info-tooltip'
+import type { RecurringImbalanceRow } from '@/app/(app)/acerto/page'
+
+type SaldoRow = {
+  devedor_id:     string
+  credor_id:      string
+  valor_centavos: number
+}
 
 type Props = {
   defaultDe:            string
   defaultPara:          string
   defaultValorCentavos: number
   apelidos:             [string, string]
+  saldo:                SaldoRow | null
+  imbalance:            RecurringImbalanceRow[]
 }
 
 function todayStr() {
@@ -22,7 +32,182 @@ function yesterdayStr() {
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 }
 
-export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos, apelidos }: Props) {
+/* ── Painel de Dívida Real (Feature A + C) ──────────────────────
+ * Mostra:
+ *  1. Dívida variável acumulada (v_saldo_atual)
+ *  2. Desbalanceamento de recorrentes (v_recurring_imbalance)
+ *  3. Dívida líquida real = (1) - (2)
+ * Só exibe quando há imbalance relevante (>= R$ 50).
+ */
+function PainelDividaReal({
+  saldo,
+  imbalance,
+  apelidos,
+}: {
+  saldo:     SaldoRow | null
+  imbalance: RecurringImbalanceRow[]
+  apelidos:  [string, string]
+}) {
+  // Imbalance: quem tem saldo_liquido positivo pagou mais que o ideal em recorrentes
+  const credorRecorrente = imbalance.find(r => r.saldo_liquido_centavos > 0)
+  const imbalanceCentavos = credorRecorrente?.saldo_liquido_centavos ?? 0
+  const nomeCredorRec     = credorRecorrente?.apelido ?? ''
+  const nomeDevedorRec    = apelidos.find(a => a !== nomeCredorRec) ?? ''
+
+  // Só exibe se imbalance >= R$ 50
+  if (imbalanceCentavos < 5000) return null
+
+  const dividaVariavel = saldo?.valor_centavos ?? 0
+  const credorVariavel = saldo ? imbalance.find(r => r.user_id === saldo.credor_id) : null
+  const nomeCredorVar  = credorVariavel?.apelido ?? ''
+  const nomeDevedorVar = saldo
+    ? (imbalance.find(r => r.user_id === saldo.devedor_id)?.apelido ?? '')
+    : ''
+
+  // Dívida líquida: subtrai o crédito estrutural da dívida variável
+  // O crédito de recorrentes vai do mesmo sentido que a dívida variável?
+  let dividaLiquida = 0
+  let devedorLiquido = ''
+  let credorLiquido  = ''
+
+  if (!saldo) {
+    // Sem dívida variável: o crédito de recorrentes vira dívida inversa
+    dividaLiquida  = imbalanceCentavos
+    devedorLiquido = nomeDevedorRec
+    credorLiquido  = nomeCredorRec
+  } else if (nomeCredorVar === nomeCredorRec) {
+    // Mesmo credor: dívida variável e estrutural apontam no mesmo sentido → somam
+    dividaLiquida  = dividaVariavel + imbalanceCentavos
+    devedorLiquido = nomeDevedorVar
+    credorLiquido  = nomeCredorVar
+  } else {
+    // Sentidos opostos: subtrai
+    const net = dividaVariavel - imbalanceCentavos
+    if (net >= 0) {
+      dividaLiquida  = net
+      devedorLiquido = nomeDevedorVar
+      credorLiquido  = nomeCredorVar
+    } else {
+      dividaLiquida  = Math.abs(net)
+      devedorLiquido = nomeCredorVar   // inverteu
+      credorLiquido  = nomeDevedorVar
+    }
+  }
+
+  return (
+    <div style={{
+      borderRadius: 16,
+      border:       '1px solid var(--border)',
+      background:   'var(--card)',
+      overflow:     'hidden',
+    }}>
+      {/* Linha 1: dívida variável */}
+      <div style={{
+        padding:      '12px 16px',
+        borderBottom: '1px solid var(--border)',
+        display:      'flex',
+        alignItems:   'center',
+        justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 16 }}>💳</span>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Dívida variável</p>
+            {saldo ? (
+              <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>
+                {nomeDevedorVar} deve a {nomeCredorVar}
+              </p>
+            ) : (
+              <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>Estão quite</p>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+            {formatCurrency(dividaVariavel)}
+          </span>
+          <InfoTooltip
+            titulo="Dívida variável acumulada"
+            explicacao={`${nomeCredorVar || 'Uma pessoa'} pagou mais do que sua parte em gastos variáveis (registrados manualmente). Calculado sobre todos os meses não acertados.`}
+          />
+        </div>
+      </div>
+
+      {/* Linha 2: imbalance de recorrentes */}
+      <div style={{
+        padding:      '12px 16px',
+        borderBottom: '1px solid var(--border)',
+        display:      'flex',
+        alignItems:   'center',
+        justifyContent: 'space-between',
+        background:   'color-mix(in srgb, var(--bg-2) 60%, transparent)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 16 }}>🏠</span>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Crédito de recorrentes</p>
+            <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>
+              {nomeCredorRec} pagou {credorRecorrente?.meses_count ?? 0} {(credorRecorrente?.meses_count ?? 0) === 1 ? 'mês' : 'meses'} a mais
+            </p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--sage)' }}>
+            − {formatCurrency(imbalanceCentavos)}
+          </span>
+          <InfoTooltip
+            titulo="Crédito estrutural de recorrentes"
+            explicacao={`${nomeCredorRec} paga consistentemente mais do que ${nomeDevedorRec} nos gastos fixos (recorrentes). Esse valor é subtraído da dívida variável para calcular o que é realmente devido.`}
+            formula={`${formatCurrency(dividaVariavel)} − ${formatCurrency(imbalanceCentavos)}`}
+          />
+        </div>
+      </div>
+
+      {/* Linha 3: dívida líquida real */}
+      <div style={{
+        padding:      '12px 16px',
+        display:      'flex',
+        alignItems:   'center',
+        justifyContent: 'space-between',
+        background:   dividaLiquida > 0
+          ? 'color-mix(in srgb, var(--coral) 8%, transparent)'
+          : 'color-mix(in srgb, var(--sage) 8%, transparent)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 16 }}>⚖️</span>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Dívida líquida real</p>
+            {dividaLiquida > 0 ? (
+              <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>
+                {devedorLiquido} deve a {credorLiquido}
+              </p>
+            ) : (
+              <p style={{ fontSize: 11, color: 'var(--sage)', margin: 0 }}>Estão quite!</p>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color: dividaLiquida > 0 ? 'var(--coral)' : 'var(--sage)',
+          }}>
+            {formatCurrency(dividaLiquida)}
+          </span>
+          <InfoTooltip
+            titulo="Dívida líquida real"
+            explicacao="Dívida real após descontar o crédito estrutural de recorrentes. Se positivo, alguém deve; se zero, estão quite levando em conta tudo."
+            formula={`${formatCurrency(dividaVariavel)} − ${formatCurrency(imbalanceCentavos)} = ${formatCurrency(dividaLiquida)}`}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Componente principal ──────────────────────────────────────── */
+
+export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos, apelidos, saldo, imbalance }: Props) {
   const router = useRouter()
 
   const [de,        setDe]        = useState(defaultDe)
@@ -48,7 +233,6 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos, ape
 
   function handleDe(apelido: string) {
     setDe(apelido)
-    // Auto-seleciona o outro apelido para "Para"
     const outro = apelidos.find(a => a !== apelido) ?? apelidos[0]
     setPara(outro)
   }
@@ -85,6 +269,9 @@ export function AcertoClient({ defaultDe, defaultPara, defaultValorCentavos, ape
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col flex-1 px-4 py-6 space-y-5">
+
+      {/* Painel de dívida real (Feature A) */}
+      <PainelDividaReal saldo={saldo} imbalance={imbalance} apelidos={apelidos} />
 
       {/* De / Para */}
       <div className="space-y-3">

@@ -31,6 +31,8 @@ type DetalheRow = {
   credito_a: number
   credito_b: number
   acertos_net: number
+  custo_a: number
+  custo_b: number
 }
 
 type CategoriaRow = {
@@ -96,7 +98,8 @@ async function BalanceSection({ userId }: { userId: string | null }) {
   ] = await Promise.all([
     supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
     supabase.from('users').select('id, apelido'),
-    supabase.from('v_saldo_detalhado').select('apelido_a, apelido_b, pagou_a, pagou_b, credito_a, credito_b, acertos_net'),
+    // v_saldo_detalhado_mes: escopo mês atual, só gastos variáveis (origem='pwa'), + custo real
+    supabase.from('v_saldo_detalhado_mes').select('apelido_a, apelido_b, pagou_a, pagou_b, credito_a, credito_b, acertos_net, custo_a, custo_b'),
   ])
 
   const saldo = (saldoRows as SaldoRow[] | null)?.[0] ?? null

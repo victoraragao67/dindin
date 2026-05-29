@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/money'
+import { InfoTooltip } from '@/components/info-tooltip'
 
 type SaldoRow = {
   devedor_id: string
@@ -14,6 +15,7 @@ type UserRow = {
   apelido: string
 }
 
+// v_saldo_detalhado_mes agora inclui custo_a, custo_b
 type DetalheRow = {
   apelido_a: string
   apelido_b: string
@@ -22,6 +24,8 @@ type DetalheRow = {
   credito_a: number
   credito_b: number
   acertos_net: number
+  custo_a?: number
+  custo_b?: number
 }
 
 type Props = {
@@ -64,7 +68,13 @@ export function HomeBalanceCard({ currentUserId, saldo, users, detalhe }: Props)
       >
         {/* Total do mês */}
         <div className="mb-3">
-          <p className="text-sm mb-1" style={{ color: 'var(--muted)' }}>Total gasto no mês</p>
+          <div className="flex items-center gap-1.5 mb-1">
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>Total gasto no mês</p>
+            <InfoTooltip
+              titulo="Total gasto no mês"
+              explicacao="Soma de todos os gastos variáveis com data de competência no mês atual, registrados manualmente. Não inclui recorrentes (fixos)."
+            />
+          </div>
           <p className="font-serif text-5xl font-semibold tracking-tight" style={{ color: 'var(--ink)' }}>
             {formatCurrency(totalMes)}
           </p>
@@ -97,7 +107,7 @@ export function HomeBalanceCard({ currentUserId, saldo, users, detalhe }: Props)
               style={{ background: 'var(--bg-2)' }}
             >
               <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--muted)' }}>
-                {detalhe.apelido_a}
+                {detalhe.apelido_a} pagou
               </p>
               <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
                 {formatCurrency(detalhe.pagou_a)}
@@ -108,7 +118,7 @@ export function HomeBalanceCard({ currentUserId, saldo, users, detalhe }: Props)
               style={{ background: 'var(--bg-2)' }}
             >
               <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--muted)' }}>
-                {detalhe.apelido_b}
+                {detalhe.apelido_b} pagou
               </p>
               <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
                 {formatCurrency(detalhe.pagou_b)}
@@ -138,9 +148,11 @@ export function HomeBalanceCard({ currentUserId, saldo, users, detalhe }: Props)
             </div>
 
             <div className="px-5 py-5 space-y-4">
-              {/* Quem pagou */}
+              {/* Quem pagou — mês atual, só variáveis */}
               <div className="rounded-xl px-4 py-3 space-y-2" style={{ background: 'var(--bg-2)' }}>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>Total desembolsado</p>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>
+                  Desembolsado este mês (variáveis)
+                </p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm" style={{ color: 'var(--muted)' }}>{detalhe.apelido_a} pagou</span>
                   <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(detalhe.pagou_a)}</span>
@@ -151,12 +163,36 @@ export function HomeBalanceCard({ currentUserId, saldo, users, detalhe }: Props)
                 </div>
               </div>
 
-              {/* Crédito */}
+              {/* Custo real (se disponível) */}
+              {detalhe.custo_a !== undefined && detalhe.custo_b !== undefined && (
+                <div className="rounded-xl px-4 py-3 space-y-2" style={{ background: 'var(--bg-2)' }}>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Custo real</p>
+                    <InfoTooltip
+                      titulo="Custo real"
+                      explicacao="Quanto custou de fato para cada um: gastos 100% deles + a parte que lhes cabe nos gastos compartilhados (50% em 50/50, % definido em customizado)."
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: 'var(--muted)' }}>Custo {detalhe.apelido_a}</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(detalhe.custo_a)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: 'var(--muted)' }}>Custo {detalhe.apelido_b}</span>
+                    <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(detalhe.custo_b)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Crédito acumulado */}
               <div className="rounded-xl px-4 py-3 space-y-2" style={{ background: 'var(--bg-2)' }}>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>Crédito acumulado</p>
-                <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>
-                  Quanto cada um pagou além da sua parte
-                </p>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Crédito acumulado</p>
+                  <InfoTooltip
+                    titulo="Crédito acumulado"
+                    explicacao="Quanto cada um pagou além da sua parte em todos os meses não acertados. Quem pagou mais tem crédito positivo — o outro deve esse valor."
+                  />
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm" style={{ color: 'var(--muted)' }}>{detalhe.apelido_a}</span>
                   <span className="text-sm font-medium" style={{ color: detalhe.credito_a >= 0 ? 'var(--sage)' : 'var(--coral)' }}>
