@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/bottom-nav'
 import { formatCurrency } from '@/lib/money'
+import { InfoTooltip } from '@/components/info-tooltip'
 import type { ResumoData, CompraItem, ParcelaEmAberto } from '@/app/(app)/resumo/page'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -49,6 +50,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
   const [catAberta, setCatAberta]       = useState<CategoriaRow | null>(null)
   const [pessoaAberta, setPessoaAberta] = useState<DivisaoItem | null>(null)
+  const [modoDivisao, setModoDivisao]   = useState<'pagou' | 'custo'>('pagou')
 
   function navMes(mes: string) {
     router.push(`/resumo?mes=${mes}`)
@@ -139,16 +141,53 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
         {/* ── Bloco: Divisão ── */}
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Divisão do mês</h2>
+          {/* Header com toggle e tooltip */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Divisão do mês</h2>
+              <InfoTooltip
+                titulo={modoDivisao === 'pagou' ? 'Quem pagou' : 'Custo real'}
+                explicacao={
+                  modoDivisao === 'pagou'
+                    ? 'Quanto cada um desembolsou fisicamente em gastos variáveis deste mês. Inclui 100% dos gastos pagos por cada um, mas não indica quem arcou com o quê em gastos compartilhados.'
+                    : 'Quanto custou de fato para cada um neste mês: gastos 100% deles + a parte que lhes cabe nos compartilhados (50% em 50/50, % definido em customizado). Responde: "quanto deste mês foi genuinamente meu?"'
+                }
+              />
+            </div>
+            {/* Toggle Quem pagou / Custo real */}
+            <div className="flex rounded-lg overflow-hidden border text-xs" style={{ borderColor: 'var(--border)' }}>
+              {(['pagou', 'custo'] as const).map(modo => (
+                <button
+                  key={modo}
+                  type="button"
+                  onClick={() => setModoDivisao(modo)}
+                  style={{
+                    padding:    '4px 10px',
+                    background: modoDivisao === modo ? 'var(--ink)' : 'var(--bg-2)',
+                    color:      modoDivisao === modo ? 'var(--bg)' : 'var(--muted)',
+                    fontWeight: modoDivisao === modo ? 600 : 400,
+                    border:     'none',
+                    cursor:     'pointer',
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  {modo === 'pagou' ? 'Pagou' : 'Custo real'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="rounded-xl px-4 py-4 space-y-3 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-            {data.divisao.map(d => (
+            {(modoDivisao === 'pagou' ? data.divisao : data.divisaoCusto).map(d => (
               <button
                 key={d.apelido}
                 onClick={() => setPessoaAberta(d)}
                 className="w-full text-left space-y-1 transition-opacity active:opacity-70"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm" style={{ color: 'var(--muted)' }}>{d.apelido} pagou</span>
+                  <span className="text-sm" style={{ color: 'var(--muted)' }}>
+                    {modoDivisao === 'pagou' ? `${d.apelido} pagou` : `Custo ${d.apelido}`}
+                  </span>
                   <div className="text-right">
                     <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(d.total)}</span>
                     <span className="text-xs ml-2" style={{ color: 'var(--muted)' }}>{d.pct}%</span>
@@ -158,7 +197,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
                   <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${d.pct}%`, background: 'var(--coral)' }}
+                    style={{ width: `${d.pct}%`, background: modoDivisao === 'pagou' ? 'var(--coral)' : 'var(--sage)' }}
                   />
                 </div>
               </button>
