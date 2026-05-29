@@ -355,6 +355,37 @@ export async function removerMeta(categoriaId: number, mes: number, ano: number)
   return { data: { id: `${categoriaId}-${mes}-${ano}` } }
 }
 
+// ── Rebalancear recorrentes ───────────────────────────────────
+
+/**
+ * Transfere os templates selecionados para o novo pagador.
+ * "Transferir" = atualizar pagador_id nos recurring_templates indicados.
+ */
+export async function rebalancearRecorrentes(
+  templateIds: string[],
+  novoPagadorId: string,
+): Promise<{ error?: string }> {
+  if (templateIds.length === 0) return {}
+
+  const casal = await getCasal()
+  if (!casal.casalId || casal.status !== 'active') return { error: 'Nenhum casal ativo.' }
+
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('recurring_templates')
+    .update({ pagador_id: novoPagadorId })
+    .in('id', templateIds)
+
+  if (error) {
+    console.error('[rebalancearRecorrentes]', error.message)
+    return { error: 'Erro ao rebalancear recorrentes. Tente novamente.' }
+  }
+
+  revalidatePath('/recorrentes')
+  revalidatePath('/')
+  return {}
+}
+
 export async function registrarAcerto(input: AcertoInput): Promise<ActionResult> {
   const parsed = AcertoSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
