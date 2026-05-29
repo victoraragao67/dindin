@@ -40,7 +40,30 @@ export default async function AcertoPage() {
     const credorRow  = users.find(u => u.id === saldo.credor_id)
     defaultDe   = devedorRow?.apelido ?? meuApelido
     defaultPara = credorRow?.apelido  ?? outroApelido
-    defaultValor = saldo.valor_centavos
+
+    // Calcula valor líquido: dívida variável − crédito estrutural de recorrentes
+    const credorRecorrente  = imbalance.find(r => r.saldo_liquido_centavos > 0)
+    const imbalanceCentavos = credorRecorrente?.saldo_liquido_centavos ?? 0
+
+    if (imbalanceCentavos >= 5000) {
+      if (credorRecorrente!.user_id === saldo.credor_id) {
+        // Mesmo credor em ambos: crédito de recorrentes reduz dívida variável
+        const net = saldo.valor_centavos - imbalanceCentavos
+        if (net < 0) {
+          // Saldo inverte: o credor variável passa a dever ao outro
+          defaultDe    = credorRow?.apelido  ?? outroApelido
+          defaultPara  = devedorRow?.apelido ?? meuApelido
+          defaultValor = Math.abs(net)
+        } else {
+          defaultValor = net
+        }
+      } else {
+        // Credores opostos: somam
+        defaultValor = saldo.valor_centavos + imbalanceCentavos
+      }
+    } else {
+      defaultValor = saldo.valor_centavos
+    }
   }
 
   return (

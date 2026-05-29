@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/get-user'
 import { formatCurrency } from '@/lib/money'
 import { SaldoDetalheButton } from './saldo-detalhe-modal'
-import type { SaldoDetalhe } from './saldo-detalhe-modal'
+import type { SaldoDetalhe, ImbalanceInfo, DividaLiquidaInfo } from './saldo-detalhe-modal'
 
 type SaldoRow = {
   devedor_id: string
@@ -36,6 +36,13 @@ type RecorrenteRow = {
   total_mes_centavos: number
 }
 
+type ImbalanceRow = {
+  user_id: string
+  apelido: string
+  saldo_liquido_centavos: number
+  meses_count: number
+}
+
 export async function SaldoHeader() {
   const supabase = createClient()
 
@@ -45,41 +52,88 @@ export async function SaldoHeader() {
     { data: users },
     { data: detalheRows },
     { data: recorrentesRows },
+    { data: imbalanceRows },
   ] = await Promise.all([
-    getUser(),  // deduplica com layout + page (React cache)
+    getUser(),
     supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
     supabase.from('users').select('id, apelido'),
     supabase.from('v_saldo_detalhado').select('*'),
     supabase.from('v_saldo_recorrentes').select('*').order('apelido'),
+    supabase.from('v_recurring_imbalance').select('user_id, apelido, saldo_liquido_centavos, meses_count'),
   ])
 
-  const saldo = (saldoRows as SaldoRow[] | null)?.[0] ?? null
-  const userList = (users as UserRow[] | null) ?? []
-  const detalhe = (detalheRows as DetalheRow[] | null)?.[0] ?? null
+  const saldo      = (saldoRows as SaldoRow[] | null)?.[0] ?? null
+  const userList   = (users as UserRow[] | null) ?? []
+  const detalhe    = (detalheRows as DetalheRow[] | null)?.[0] ?? null
   const recorrentes = (recorrentesRows as RecorrenteRow[] | null) ?? []
+  const imbalance  = (imbalanceRows as ImbalanceRow[] | null) ?? []
 
   function getApelido(id: string) {
     return userList.find(u => u.id === id)?.apelido ?? '?'
   }
 
-  // ── Card 1: saldo variável ──────────────────────────────────
+  // ── Imbalance de recorrentes ─────────────────────────────────
+  const credorRecorrente  = imbalance.find(r => r.saldo_liquido_centavos > 0)
+  const imbalanceCentavos = credorRecorrente ? Math.max(credorRecorrente.saldo_liquido_centavos, 0) : 0
+  const nomeCredorRec     = credorRecorrente?.apelido ?? ''
+  const nomeDevedorRec    = imbalance.find(r => r.apelido !== nomeCredorRec)?.apelido ?? ''
+  const mesesCount        = credorRecorrente?.meses_count ?? 0
+  const hasImbalance      = imbalanceCentavos >= 5000
+
+  // ── Dívida líquida real (mesma lógica do BalanceSection) ──────
+  const dividaVariavel   = saldo?.valor_centavos ?? 0
+  const nomeCredorVar    = saldo ? getApelido(saldo.credor_id) : ''
+  const nomeDevedorVar   = saldo ? getApelido(saldo.devedor_id) : ''
+
+  let dividaLiquidaValor    = 0
+  let dividaLiquidaDevedor  = ''
+  let dividaLiquidaCredor   = ''
+
+  if (!hasImbalance) {
+    dividaLiquidaValor   = dividaVariavel
+    dividaLiquidaDevedor = nomeDevedorVar
+    dividaLiquidaCredor  = nomeCredorVar
+  } else if (!saldo) {
+    dividaLiquidaValor   = imbalanceCentavos
+    dividaLiquidaDevedor = nomeDevedorRec
+    dividaLiquidaCredor  = nomeCredorRec
+  } else if (nomeCredorVar === nomeCredorRec) {
+    const net = dividaVariavel - imbalanceCentavos
+    if (net >= 0) {
+      dividaLiquidaValor   = net
+      dividaLiquidaDevedor = nomeDevedorVar
+      dividaLiquidaCredor  = nomeCredorVar
+    } else {
+      dividaLiquidaValor   = Math.abs(net)
+      dividaLiquidaDevedor = nomeCredorVar   // inverteu
+      dividaLiquidaCredor  = nomeDevedorVar
+    }
+  } else {
+    dividaLiquidaValor   = dividaVariavel + imbalanceCentavos
+    dividaLiquidaDevedor = nomeDevedorVar
+    dividaLiquidaCredor  = nomeCredorVar
+  }
+
+  // ── Card 1: mensagem do chip ─────────────────────────────────
+  // Usa o valor LÍQUIDO para isonomia de dados
   let mensagem: string
   let devedorApelido: string | null = null
   let credorApelido:  string | null = null
-  let saldoValor:     number | null = null
 
-  if (!saldo) {
+  const exibeValor = hasImbalance ? dividaLiquidaValor : dividaVariavel
+
+  if (exibeValor <= 0) {
     mensagem = '✅ Variáveis: quite!'
-  } else if (saldo.devedor_id === user?.id) {
-    credorApelido  = getApelido(saldo.credor_id)
-    devedorApelido = getApelido(saldo.devedor_id)
-    saldoValor     = saldo.valor_centavos
-    mensagem = `⚡ Você deve ${formatCurrency(saldo.valor_centavos)} para ${credorApelido}`
   } else {
-    credorApelido  = getApelido(saldo.credor_id)
-    devedorApelido = getApelido(saldo.devedor_id)
-    saldoValor     = saldo.valor_centavos
-    mensagem = `⚡ ${devedorApelido} te deve ${formatCurrency(saldo.valor_centavos)}`
+    const devApelido = hasImbalance ? dividaLiquidaDevedor : nomeDevedorVar
+    const crdApelido = hasImbalance ? dividaLiquidaCredor  : nomeCredorVar
+    devedorApelido = devApelido
+    credorApelido  = crdApelido
+    if (saldo?.devedor_id === user?.id || dividaLiquidaDevedor === getApelido(user?.id ?? '')) {
+      mensagem = `⚡ Você deve ${formatCurrency(exibeValor)} para ${crdApelido}`
+    } else {
+      mensagem = `⚡ ${devApelido} te deve ${formatCurrency(exibeValor)}`
+    }
   }
 
   const detalheProps: SaldoDetalhe | null = detalhe ? {
@@ -92,12 +146,24 @@ export async function SaldoHeader() {
     acertos_net: detalhe.acertos_net,
   } : null
 
+  const imbalanceProps: ImbalanceInfo | null = hasImbalance ? {
+    imbalanceCentavos,
+    nomeCredorRec,
+    nomeDevedorRec,
+    mesesCount,
+  } : null
+
+  const dividaLiquidaProps: DividaLiquidaInfo | null = hasImbalance ? {
+    valor:   dividaLiquidaValor,
+    devedor: dividaLiquidaDevedor,
+    credor:  dividaLiquidaCredor,
+  } : null
+
   // ── Card 2: saldo recorrentes ───────────────────────────────
   const totalMesRec = recorrentes[0]?.total_mes_centavos ?? 0
   const equilibrado = totalMesRec > 0 && recorrentes.every(r => r.saldo_centavos === 0)
   const quemCobre   = recorrentes.find(r => r.saldo_centavos < 0)
 
-  // Mês atual em pt-BR
   const mesLabelRec = new Date().toLocaleDateString('pt-BR', {
     month: 'short', year: '2-digit', timeZone: 'America/Sao_Paulo',
   })
@@ -111,7 +177,9 @@ export async function SaldoHeader() {
           detalhe={detalheProps}
           devedorApelido={devedorApelido}
           credorApelido={credorApelido}
-          saldoValor={saldoValor}
+          saldoValor={dividaVariavel > 0 ? dividaVariavel : null}
+          imbalance={imbalanceProps}
+          dividaLiquida={dividaLiquidaProps}
         />
       </div>
 
@@ -119,7 +187,6 @@ export async function SaldoHeader() {
       {totalMesRec > 0 && (
         <div className="px-4 pb-4 pt-0 border-t" style={{ borderColor: 'var(--border)' }}>
           <div className="rounded-xl px-4 py-3 space-y-2" style={{ background: 'var(--bg-2)' }}>
-            {/* Título */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm">🏠</span>
@@ -130,7 +197,6 @@ export async function SaldoHeader() {
               <span className="text-xs" style={{ color: 'var(--muted)' }}>{formatCurrency(totalMesRec)}</span>
             </div>
 
-            {/* Quem pagou quanto */}
             <div className="space-y-1">
               {recorrentes.map(r => (
                 <div key={r.apelido} className="flex items-center justify-between">
@@ -140,7 +206,6 @@ export async function SaldoHeader() {
               ))}
             </div>
 
-            {/* Status */}
             <div className="pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
               {equilibrado ? (
                 <p className="text-sm" style={{ color: 'var(--sage)' }}>✅ Fixos equilibrados este mês</p>
