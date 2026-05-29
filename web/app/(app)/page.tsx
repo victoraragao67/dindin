@@ -264,16 +264,29 @@ async function InsightSection() {
 async function CategorySection() {
   const supabase = createClient()
   const mesAtual = currentMesStr()
+  const { start, end } = mesRange(mesAtual)
 
-  const { data } = await supabase
-    .from('v_gastos_por_categoria_mes')
-    .select('categoria_id, categoria_nome, categoria_emoji, total_centavos')
-    .gte('mes', mesAtual)
-    .lte('mes', mesAtual)
-    .order('total_centavos', { ascending: false })
+  const [catRes, recRes] = await Promise.all([
+    supabase
+      .from('v_gastos_por_categoria_mes')
+      .select('categoria_id, categoria_nome, categoria_emoji, total_centavos')
+      .gte('mes', mesAtual)
+      .lte('mes', mesAtual)
+      .order('total_centavos', { ascending: false }),
+    supabase
+      .from('expense_installments')
+      .select('valor_centavos, expenses!inner(cancelado, origem)')
+      .gte('data_competencia', start)
+      .lte('data_competencia', end)
+      .eq('expenses.cancelado', false)
+      .eq('expenses.origem', 'recorrente'),
+  ])
 
-  const categorias = (data ?? []) as CategoriaRow[]
-  return <HomeCategoryBars categorias={categorias} />
+  const categorias = (catRes.data ?? []) as CategoriaRow[]
+  const totalRecorrentes = ((recRes.data ?? []) as any[])
+    .reduce((s, r) => s + (r.valor_centavos as number), 0)
+
+  return <HomeCategoryBars categorias={categorias} totalRecorrentes={totalRecorrentes} />
 }
 
 async function RecentTxSection() {
