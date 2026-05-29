@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/bottom-nav'
 import { formatCurrency } from '@/lib/money'
 import { InfoTooltip } from '@/components/info-tooltip'
-import type { ResumoData, CompraItem, ParcelaEmAberto } from '@/app/(app)/resumo/page'
+import type { ResumoData, CompraItem, ParcelaEmAberto, CustoRealRow } from '@/app/(app)/resumo/page'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
@@ -48,9 +48,10 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
   const router = useRouter()
   const isMesAtual = mesAtual === currentMesStr()
 
-  const [catAberta, setCatAberta]       = useState<CategoriaRow | null>(null)
-  const [pessoaAberta, setPessoaAberta] = useState<DivisaoItem | null>(null)
-  const [modoDivisao, setModoDivisao]   = useState<'pagou' | 'custo'>('pagou')
+  const [catAberta, setCatAberta]             = useState<CategoriaRow | null>(null)
+  const [pessoaAberta, setPessoaAberta]       = useState<DivisaoItem | null>(null)
+  const [modoDivisao, setModoDivisao]         = useState<'pagou' | 'custo' | 'custo_total'>('pagou')
+  const [pessoaExpandida, setPessoaExpandida] = useState<string | null>(null)
 
   function navMes(mes: string) {
     router.push(`/resumo?mes=${mes}`)
@@ -141,68 +142,135 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
         {/* ── Bloco: Divisão ── */}
         <section className="space-y-3">
-          {/* Header com toggle e tooltip */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+          {/* Header com toggle 3 modos e tooltip */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Divisão do mês</h2>
               <InfoTooltip
-                titulo={modoDivisao === 'pagou' ? 'Quem pagou' : 'Custo real'}
+                titulo={
+                  modoDivisao === 'pagou'       ? 'Quem pagou'
+                  : modoDivisao === 'custo'     ? 'Custo variável'
+                  : 'Custo total'
+                }
                 explicacao={
                   modoDivisao === 'pagou'
                     ? 'Quanto cada um desembolsou fisicamente em gastos variáveis deste mês. Inclui 100% dos gastos pagos por cada um, mas não indica quem arcou com o quê em gastos compartilhados.'
-                    : 'Quanto custou de fato para cada um neste mês: gastos 100% deles + a parte que lhes cabe nos compartilhados (50% em 50/50, % definido em customizado). Responde: "quanto deste mês foi genuinamente meu?"'
+                    : modoDivisao === 'custo'
+                    ? 'Quanto custou de fato para cada um em gastos variáveis: gastos 100% deles + a parte que lhes cabe nos compartilhados (50% em 50/50, % definido em customizado). Responde: "quanto dos gastos do dia a dia foi genuinamente meu?"'
+                    : 'Quanto o mês custou de verdade para cada um, considerando a divisão combinada em cada gasto. Inclui gastos do dia a dia e fixos mensais. Não é quanto cada um pagou — é quanto de cada gasto era responsabilidade de cada um.'
                 }
               />
             </div>
-            {/* Toggle Quem pagou / Custo real */}
-            <div className="flex rounded-lg overflow-hidden border text-xs" style={{ borderColor: 'var(--border)' }}>
-              {(['pagou', 'custo'] as const).map(modo => (
+            {/* Toggle 3 modos */}
+            <div className="flex rounded-lg overflow-hidden border text-xs shrink-0" style={{ borderColor: 'var(--border)' }}>
+              {(['pagou', 'custo', 'custo_total'] as const).map(modo => (
                 <button
                   key={modo}
                   type="button"
-                  onClick={() => setModoDivisao(modo)}
+                  onClick={() => { setModoDivisao(modo); setPessoaExpandida(null) }}
                   style={{
-                    padding:    '4px 10px',
+                    padding:    '4px 8px',
                     background: modoDivisao === modo ? 'var(--ink)' : 'var(--bg-2)',
                     color:      modoDivisao === modo ? 'var(--bg)' : 'var(--muted)',
                     fontWeight: modoDivisao === modo ? 600 : 400,
                     border:     'none',
                     cursor:     'pointer',
                     transition: 'background 0.15s',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {modo === 'pagou' ? 'Pagou' : 'Custo real'}
+                  {modo === 'pagou' ? 'Pagou' : modo === 'custo' ? 'Variável' : 'Total'}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="rounded-xl px-4 py-4 space-y-3 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-            {(modoDivisao === 'pagou' ? data.divisao : data.divisaoCusto).map(d => (
-              <button
-                key={d.apelido}
-                onClick={() => setPessoaAberta(d)}
-                className="w-full text-left space-y-1 transition-opacity active:opacity-70"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm" style={{ color: 'var(--muted)' }}>
-                    {modoDivisao === 'pagou' ? `${d.apelido} pagou` : `Custo ${d.apelido}`}
-                  </span>
-                  <div className="text-right">
-                    <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(d.total)}</span>
-                    <span className="text-xs ml-2" style={{ color: 'var(--muted)' }}>{d.pct}%</span>
-                    <span className="text-xs ml-1" style={{ color: 'var(--muted)' }}>›</span>
+          {/* Modos "Quem pagou" e "Custo variável" */}
+          {modoDivisao !== 'custo_total' && (
+            <div className="rounded-xl px-4 py-4 space-y-3 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+              {(modoDivisao === 'pagou' ? data.divisao : data.divisaoCusto).map(d => (
+                <button
+                  key={d.apelido}
+                  onClick={() => setPessoaAberta(d)}
+                  className="w-full text-left space-y-1 transition-opacity active:opacity-70"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: 'var(--muted)' }}>
+                      {modoDivisao === 'pagou' ? `${d.apelido} pagou` : `Custo variável ${d.apelido}`}
+                    </span>
+                    <div className="text-right">
+                      <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(d.total)}</span>
+                      <span className="text-xs ml-2" style={{ color: 'var(--muted)' }}>{d.pct}%</span>
+                      <span className="text-xs ml-1" style={{ color: 'var(--muted)' }}>›</span>
+                    </div>
                   </div>
-                </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${d.pct}%`, background: modoDivisao === 'pagou' ? 'var(--coral)' : 'var(--sage)' }}
-                  />
-                </div>
-              </button>
-            ))}
-          </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${d.pct}%`, background: modoDivisao === 'pagou' ? 'var(--coral)' : 'var(--sage)' }}
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Modo "Custo total" (variável + recorrente) */}
+          {modoDivisao === 'custo_total' && (
+            <div className="rounded-xl px-4 py-4 space-y-3 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+              {data.custoRealCompleto.length === 0 ? (
+                <p className="text-sm text-center" style={{ color: 'var(--muted)' }}>Sem dados para este mês.</p>
+              ) : data.custoRealCompleto.map(d => {
+                const expandido = pessoaExpandida === d.apelido
+                return (
+                  <div key={d.apelido} className="space-y-1.5">
+                    <button
+                      onClick={() => setPessoaExpandida(expandido ? null : d.apelido)}
+                      className="w-full text-left space-y-1 transition-opacity active:opacity-70"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm" style={{ color: 'var(--muted)' }}>
+                          Custo total {d.apelido}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(d.custo_total)}</span>
+                          <span className="text-xs" style={{ color: 'var(--muted)' }}>{d.pct}%</span>
+                          <span className="text-xs" style={{ color: 'var(--muted)', transform: expandido ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>›</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${d.pct}%`, background: 'color-mix(in srgb, var(--sage) 70%, var(--coral))' }}
+                        />
+                      </div>
+                    </button>
+
+                    {/* Breakdown expansível: variável vs. recorrente */}
+                    {expandido && (
+                      <div
+                        className="rounded-lg px-3 py-2.5 space-y-1.5 ml-0"
+                        style={{ background: 'var(--bg-2)' }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs" style={{ color: 'var(--muted)' }}>↳ variável</span>
+                          <span className="text-xs font-medium" style={{ color: 'var(--coral)' }}>
+                            {formatCurrency(d.custo_variavel)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs" style={{ color: 'var(--muted)' }}>↳ recorrente</span>
+                          <span className="text-xs font-medium" style={{ color: 'var(--sage)' }}>
+                            {formatCurrency(d.custo_recorrente)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </section>
 
         {/* ── Bloco: Recorrentes por pessoa ── */}
