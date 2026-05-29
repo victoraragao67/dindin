@@ -41,6 +41,14 @@ type RecorrenteItem = {
   categoria_emoji:  string
 }
 
+export type CustoRealRow = {
+  apelido:          string
+  custo_variavel:   number
+  custo_recorrente: number
+  custo_total:      number
+  pct:              number  // % do custo total do casal
+}
+
 export type CompraItem = {
   installment_valor: number
   data_competencia:  string
@@ -70,7 +78,8 @@ export type ResumoData = {
   totalMes:             number
   categorias:           CategoriaRow[]
   divisao:              DivisaoItem[]
-  divisaoCusto:         DivisaoItem[]   // Feature B: custo real por pessoa
+  divisaoCusto:         DivisaoItem[]   // Feature B: custo real variável por pessoa
+  custoRealCompleto:    CustoRealRow[]  // Feature: custo total (variável + recorrente)
   recorrentes:          RecorrenteItem[]
   metasPorCategoria:    Record<number, number>
   topGastos:            TopGasto[]
@@ -121,6 +130,7 @@ export default async function ResumoPage({
     metasRes,
     comprasRes,
     parcelasAbertoRes,
+    custoRealRes,
   ] = await Promise.all([
     // Gastos por categoria no mês
     supabase
@@ -190,6 +200,13 @@ export default async function ResumoPage({
       .gt('data_competencia', end)
       .eq('expenses.cancelado', false)
       .order('data_competencia', { ascending: true }),
+
+    // Custo real completo (variável + recorrente, splits dos dois lados)
+    // Nota: v_custo_real_mes sempre usa o mês atual via current_date —
+    // só faz sentido quando o mês selecionado é o atual.
+    supabase
+      .from('v_custo_real_mes')
+      .select('user_id, apelido, custo_variavel, custo_recorrente, custo_total'),
   ])
 
   const categorias = (categoriasRes.data ?? []) as CategoriaRow[]
@@ -324,12 +341,26 @@ export default async function ResumoPage({
     .map(p => ({ ...p, parcela_atual: p.num_parcelas - p.parcelas_restantes }))
     .sort((a, b) => a.proxima_data.localeCompare(b.proxima_data))
 
+  // Custo real completo (variável + recorrente)
+  const custoRealRaw = (custoRealRes.data ?? []) as { user_id: string; apelido: string; custo_variavel: number; custo_recorrente: number; custo_total: number }[]
+  const totalCustoReal = custoRealRaw.reduce((s, r) => s + r.custo_total, 0)
+  const custoRealCompleto: CustoRealRow[] = custoRealRaw
+    .map(r => ({
+      apelido:          r.apelido,
+      custo_variavel:   r.custo_variavel,
+      custo_recorrente: r.custo_recorrente,
+      custo_total:      r.custo_total,
+      pct:              totalCustoReal > 0 ? Math.round((r.custo_total / totalCustoReal) * 100) : 0,
+    }))
+    .sort((a, b) => b.custo_total - a.custo_total)
+
   const resumoData: ResumoData = {
     mesLabel:          mesParaLabel(mesStr),
     totalMes,
     categorias,
     divisao,
     divisaoCusto,
+    custoRealCompleto,
     recorrentes,
     metasPorCategoria,
     topGastos,
