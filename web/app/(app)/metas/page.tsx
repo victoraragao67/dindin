@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/bottom-nav'
 import { MetasV2Client } from '@/components/metas-v2-client'
+import { MetasEmptyActions } from '@/components/metas-empty-actions'
 
 export const metadata = { title: 'Metas · DinDin' }
 
@@ -38,7 +39,9 @@ export default async function MetasPage({
   const mesStr   = `${ano}-${String(mes).padStart(2, '0')}-01`
   const supabase = createClient()
 
-  const [categoriasRes, metasRes, variaveisRes, recorrentesRes] = await Promise.all([
+  const prevMes = prevMesAno(mes, ano)
+
+  const [categoriasRes, metasRes, variaveisRes, recorrentesRes, metasAntRes] = await Promise.all([
     // 1. Todas as categorias
     supabase
       .from('categories')
@@ -63,12 +66,21 @@ export default async function MetasPage({
       .from('recurring_templates')
       .select('categoria_id, valor_centavos')
       .eq('ativo', true),
+
+    // 5. Metas do mês anterior (para botão "manter")
+    supabase
+      .from('spending_goals')
+      .select('id')
+      .eq('mes', prevMes.mes)
+      .eq('ano', prevMes.ano)
+      .limit(1),
   ])
 
   // ── Lookup maps ──────────────────────────────────────────────
   type CatRow = { id: number; nome: string; emoji: string }
 
   const categorias = (categoriasRes.data ?? []) as CatRow[]
+  const temMetasAnteriores = (metasAntRes.data ?? []).length > 0
 
   const metasPorCat: Record<number, number> = {}
   for (const m of (metasRes.data ?? []) as { categoria_id: number; valor_centavos: number }[]) {
@@ -168,9 +180,12 @@ export default async function MetasPage({
             <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>
               Nenhuma meta ainda
             </p>
-            <p style={{ fontSize: 13 }}>
+            <p style={{ fontSize: 13, marginBottom: temMetasAnteriores ? 20 : 0 }}>
               Registre gastos ou adicione metas para acompanhar seu orçamento.
             </p>
+            {temMetasAnteriores && (
+              <MetasEmptyActions mes={mes} ano={ano} />
+            )}
           </div>
         )}
 

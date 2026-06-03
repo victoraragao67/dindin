@@ -44,13 +44,10 @@ type RecurringImbalanceRow = {
   meses_count: number
 }
 
-type SaldoRecorrentesRow = {
-  user_id: string
-  apelido: string
-  pago_centavos: number
-  ideal_centavos: number
-  saldo_centavos: number
-  total_mes_centavos: number
+type PrevisibilidadePagadorRow = {
+  pagador_id: string
+  pagador_apelido: string
+  total_centavos: number
 }
 
 type CategoriaRow = {
@@ -337,9 +334,22 @@ async function RecentTxSection() {
 
 async function RecorrentesSection() {
   const supabase = createClient()
-  const [{ data: templates }, { data: saldoRecRows }] = await Promise.all([
+
+  // Data atual em BRT para calcular início do mês
+  const now    = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  const mesStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+
+  const [{ data: templates }, { data: prevPagRows }, lancadosRes] = await Promise.all([
     supabase.from('recurring_templates').select('valor_centavos').eq('ativo', true),
-    supabase.from('v_saldo_recorrentes').select('user_id, apelido, pago_centavos, ideal_centavos, saldo_centavos, total_mes_centavos'),
+    // Projeção mensal por pagador (baseada nos templates, independente do que foi lançado)
+    supabase.from('v_previsibilidade_por_pagador').select('pagador_id, pagador_apelido, total_centavos'),
+    // Quantos recorrentes já foram lançados este mês
+    supabase
+      .from('expenses')
+      .select('id', { count: 'exact', head: true })
+      .eq('origem', 'recorrente')
+      .eq('cancelado', false)
+      .gte('data_compra', mesStr),
   ])
 
   const items = (templates ?? []) as { valor_centavos: number }[]
@@ -348,13 +358,17 @@ async function RecorrentesSection() {
 
   if (count === 0) return null
 
-  // Compute imbalance: quem tem saldo_centavos mais alto paga a mais
-  const saldoRec = (saldoRecRows ?? []) as SaldoRecorrentesRow[]
-  const sorted   = [...saldoRec].sort((a, b) => b.saldo_centavos - a.saldo_centavos)
-  const maiorSaldo = sorted[0]
-  const delta = maiorSaldo ? Math.abs(maiorSaldo.saldo_centavos) : 0
-  // Threshold: only show alert if delta > R$ 200
-  const showAlerta = delta > 20000
+  // Desequilíbrio projetado (baseado nos templates, não no que foi lançado)
+  const prevPag = (prevPagRows ?? []) as PrevisibilidadePagadorRow[]
+  const sorted  = [...prevPag].filter(p => p.total_centavos > 0).sort((a, b) => b.total_centavos - a.total_centavos)
+  const maiorPagador = sorted[0]
+  const totalPrevisto = prevPag.reduce((s, p) => s + p.total_centavos, 0)
+  // Quem paga mais do que a metade: é o credor projetado
+  const deltaPrevisto = maiorPagador ? maiorPagador.total_centavos - Math.floor(totalPrevisto / 2) : 0
+  const showAlerta = deltaPrevisto > 20000 // > R$ 200
+
+  const lancadosCount = lancadosRes.count ?? 0
+  const todosLancados = lancadosCount >= count
 
   return (
     <Link
@@ -374,12 +388,19 @@ async function RecorrentesSection() {
           <p className="text-xs" style={{ color: 'var(--muted)' }}>
             {count} item{count !== 1 ? 's' : ''} · {formatCurrency(total)}<span>/mês</span>
           </p>
+          {/* Linha: lançados este mês */}
+          <p className="text-xs mt-0.5" style={{ color: todosLancados ? 'var(--sage)' : 'var(--muted)' }}>
+            {todosLancados
+              ? `✅ ${lancadosCount} lançado${lancadosCount !== 1 ? 's' : ''} este mês`
+              : `⏳ ${lancadosCount} de ${count} lançado${count !== 1 ? 's' : ''} este mês`}
+          </p>
+          {/* Linha: desequilíbrio projetado */}
           {showAlerta ? (
             <p className="text-xs mt-0.5" style={{ color: 'var(--coral)' }}>
-              ⚠️ {maiorSaldo!.apelido} paga {formatCurrency(delta)} a mais — Rebalancear →
+              ⚠️ {maiorPagador!.pagador_apelido} paga {formatCurrency(deltaPrevisto)} a mais — Rebalancear →
             </p>
           ) : (
-            <p className="text-xs mt-0.5" style={{ color: 'var(--sage)' }}>✅ Equilibrados</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--sage)' }}>✅ Split equilibrado</p>
           )}
         </div>
       </div>
