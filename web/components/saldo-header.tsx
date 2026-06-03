@@ -86,6 +86,12 @@ export async function SaldoHeader() {
     dividaLiquidaDevedor = nomeDevedorRec
     dividaLiquidaCredor  = nomeCredorRec
   } else if (nomeCredorVar === nomeCredorRec) {
+    // Mesmo credor em variável e recorrente: as dívidas somam
+    dividaLiquidaValor   = dividaVariavel + imbalanceCentavos
+    dividaLiquidaDevedor = nomeDevedorVar
+    dividaLiquidaCredor  = nomeCredorVar
+  } else {
+    // Credores opostos: crédito de recorrente abate dívida variável
     const net = dividaVariavel - imbalanceCentavos
     if (net >= 0) {
       dividaLiquidaValor   = net
@@ -96,10 +102,6 @@ export async function SaldoHeader() {
       dividaLiquidaDevedor = nomeCredorVar   // inverteu
       dividaLiquidaCredor  = nomeDevedorVar
     }
-  } else {
-    dividaLiquidaValor   = dividaVariavel + imbalanceCentavos
-    dividaLiquidaDevedor = nomeDevedorVar
-    dividaLiquidaCredor  = nomeCredorVar
   }
 
   // ── Card 1: mensagem do chip ─────────────────────────────────
