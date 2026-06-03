@@ -416,10 +416,9 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                     valor:   r.total_centavos / 100,
                   }))}
                   margin={{ top: 16, right: 8, left: 8, bottom: 0 }}
-                  onClick={(e) => {
-                    if (e?.activePayload?.[0]?.payload?.mesStr) {
-                      router.push(`/resumo?mes=${e.activePayload[0].payload.mesStr}`)
-                    }
+                  onClick={(e: any) => {
+                    const mesStr = e?.activePayload?.[0]?.payload?.mesStr
+                    if (mesStr) router.push(`/resumo?mes=${mesStr}`)
                   }}
                   style={{ cursor: 'pointer' }}
                 >
