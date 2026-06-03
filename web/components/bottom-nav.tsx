@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 const HomeIcon = () => (
   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -35,6 +36,15 @@ const MetasIcon = () => (
 
 export function BottomNav() {
   const pathname = usePathname()
+  const router   = useRouter()
+
+  // Pré-carrega todos os bundles de rota ao montar — elimina lentidão no 1º clique
+  useEffect(() => {
+    router.prefetch('/')
+    router.prefetch('/gastos')
+    router.prefetch('/resumo')
+    router.prefetch('/metas')
+  }, [router])
 
   const tabs = [
     { href: '/',       label: 'Home',   Icon: HomeIcon   },
