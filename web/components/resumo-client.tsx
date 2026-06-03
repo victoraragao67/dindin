@@ -411,10 +411,16 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart
                   data={data.gastosMensais.map(r => ({
-                    mes:   mesLabel(r.mes),
-                    valor: r.total_centavos / 100,
+                    mes:     mesLabel(r.mes),
+                    mesStr:  r.mes,
+                    valor:   r.total_centavos / 100,
                   }))}
                   margin={{ top: 16, right: 8, left: 8, bottom: 0 }}
+                  onClick={(e: any) => {
+                    const mesStr = e?.activePayload?.[0]?.payload?.mesStr
+                    if (mesStr) router.push(`/resumo?mes=${mesStr}`)
+                  }}
+                  style={{ cursor: 'pointer' }}
                 >
                   <XAxis
                     dataKey="mes"
@@ -429,13 +435,13 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                       return [`R$ ${n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`, 'Total']
                     }}
                     contentStyle={{ background: '#FFFDF7', border: '1px solid #E2DAD0', borderRadius: 8, color: '#1A1612', fontSize: 12 }}
-                    cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                    cursor={{ fill: 'rgba(0,0,0,0.08)' }}
                   />
                   <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                    {data.gastosMensais.map((_, i) => (
+                    {data.gastosMensais.map((r, i) => (
                       <Cell
                         key={i}
-                        fill={i === data.gastosMensais.length - 1 ? '#7A9E7E' : '#E2DAD0'}
+                        fill={r.mes === mesAtual ? '#7A9E7E' : '#E2DAD0'}
                       />
                     ))}
                   </Bar>
