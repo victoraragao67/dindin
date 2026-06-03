@@ -11,25 +11,27 @@ type Props = {
 export function HistoricoRecorrentes({ historico }: Props) {
   const [expandido, setExpandido] = useState<string | null>(null)
 
-  // Imbalance acumulado: correndo do mais antigo para o mais recente
+  // Imbalance DO MÊS (não acumulado) para cada card
+  const imbalancePorMes: Record<string, { apelido: string; centavos: number } | null> = {}
+  for (const m of historico) {
+    if (m.pagamentos.length < 2) {
+      imbalancePorMes[m.mes] = null
+    } else {
+      const media = m.totalMes / m.pagamentos.length
+      const maior = m.pagamentos[0] // já vem sorted por total desc
+      const delta = maior.total - media
+      imbalancePorMes[m.mes] = delta >= 100
+        ? { apelido: maior.apelido, centavos: Math.round(delta) }
+        : null
+    }
+  }
+
+  // Imbalance ACUMULADO para o banner (correndo do mais antigo)
   const mesOrdenado = [...historico].sort((a, b) => a.mes.localeCompare(b.mes))
   const acumulado: Record<string, number> = {}
-  const imbalancePorMes: Record<string, { apelido: string; centavos: number } | null> = {}
-
   for (const m of mesOrdenado) {
     for (const p of m.pagamentos) {
       acumulado[p.apelido] = (acumulado[p.apelido] ?? 0) + p.total
-    }
-    const apelidos = Object.keys(acumulado)
-    if (apelidos.length < 2) {
-      imbalancePorMes[m.mes] = null
-    } else {
-      const [a, b] = apelidos
-      const media   = (acumulado[a] + acumulado[b]) / 2
-      const delta   = acumulado[a] - media
-      imbalancePorMes[m.mes] = Math.abs(delta) >= 100
-        ? { apelido: delta > 0 ? a : b, centavos: Math.abs(Math.round(delta)) }
-        : null
     }
   }
 

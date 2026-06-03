@@ -51,7 +51,7 @@ export async function MetaAlertBanner() {
   const primeiro = alertas[0]
 
   return (
-    <Link href="/metas" style={{ display: 'block', margin: '0 16px', textDecoration: 'none' }}>
+    <Link href="/metas" style={{ display: 'block', margin: '8px 16px 0', textDecoration: 'none' }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         borderRadius: 14,

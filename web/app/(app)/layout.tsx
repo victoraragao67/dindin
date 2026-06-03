@@ -59,14 +59,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             paddingBottom: 0,
             paddingLeft: 16,
             paddingRight: 16,
-            height: 'calc(44px + env(safe-area-inset-top))',
+            height: 'calc(40px + env(safe-area-inset-top))',
             background: 'var(--bg)',
             borderBottom: '1px solid var(--border)',
           }}
         >
           <span style={{
             fontFamily: 'var(--font-fraunces), Georgia, serif',
-            fontSize: 22,
+            fontSize: 20,
             fontWeight: 700,
             color: 'var(--ink)',
             letterSpacing: -1,
