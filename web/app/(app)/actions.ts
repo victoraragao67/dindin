@@ -355,6 +355,51 @@ export async function removerMeta(categoriaId: number, mes: number, ano: number)
   return { data: { id: `${categoriaId}-${mes}-${ano}` } }
 }
 
+export async function copiarMetasMesAnterior(mes: number, ano: number): Promise<ActionResult> {
+  const casal = await getCasal()
+  if (!casal.casalId || casal.status !== 'active') return { error: 'Nenhum casal ativo.' }
+
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Calcular mês anterior
+  const mesAnt = mes === 1 ? 12 : mes - 1
+  const anoAnt = mes === 1 ? ano - 1 : ano
+
+  // Buscar metas do mês anterior
+  const { data: metasAnt, error: errBusca } = await supabase
+    .from('spending_goals')
+    .select('categoria_id, valor_centavos')
+    .eq('mes', mesAnt)
+    .eq('ano', anoAnt)
+
+  if (errBusca) return { error: 'Erro ao buscar metas anteriores.' }
+  if (!metasAnt || metasAnt.length === 0) return { error: 'Nenhuma meta no mês anterior.' }
+
+  // Upsert todas no mês atual
+  const rows = (metasAnt as { categoria_id: number; valor_centavos: number }[]).map(m => ({
+    categoria_id: m.categoria_id,
+    valor_centavos: m.valor_centavos,
+    mes,
+    ano,
+    created_by: user?.id ?? null,
+    casal_id: casal.casalId,
+  }))
+
+  const { error: errUpsert } = await supabase
+    .from('spending_goals')
+    .upsert(rows, { onConflict: 'categoria_id,mes,ano' })
+
+  if (errUpsert) {
+    console.error('[copiarMetasMesAnterior]', errUpsert.message)
+    return { error: 'Erro ao copiar metas.' }
+  }
+
+  revalidatePath('/metas')
+  revalidatePath('/resumo')
+  return { data: { id: `copied-${mesAnt}-${anoAnt}` } }
+}
+
 // ── Rebalancear recorrentes ───────────────────────────────────
 
 /**
@@ -386,41 +431,3 @@ export async function rebalancearRecorrentes(
   return {}
 }
 
-export async function registrarAcerto(input: AcertoInput): Promise<ActionResult> {
-  const parsed = AcertoSchema.safeParse(input)
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' }
-
-  const { de_apelido, para_apelido, valor_centavos, data, nota } = parsed.data
-
-  const casal = await getCasal()
-  if (!casal.casalId || casal.status !== 'active') return { error: 'Nenhum casal ativo.' }
-
-  const [deId, paraId] = await Promise.all([
-    resolverPagadorId(de_apelido),
-    resolverPagadorId(para_apelido),
-  ])
-  if (!deId)   return { error: 'Usuário "De" não encontrado.' }
-  if (!paraId) return { error: 'Usuário "Para" não encontrado.' }
-
-  const supabase = createClient()
-  const { data: row, error } = await supabase
-    .from('transfers')
-    .insert({
-      de_id:          deId,
-      para_id:        paraId,
-      valor_centavos,
-      data,
-      nota:           nota || null,
-      casal_id:       casal.casalId,
-    })
-    .select('id')
-    .single()
-
-  if (error) {
-    console.error('[registrarAcerto]', error.message)
-    return { error: 'Erro ao registrar acerto. Tente novamente.' }
-  }
-
-  revalidatePath('/')
-  return { data: { id: row.id } }
-}

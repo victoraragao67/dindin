@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/money'
-import { salvarMeta, removerMeta } from '@/app/(app)/actions'
+import { salvarMeta, removerMeta, copiarMetasMesAnterior } from '@/app/(app)/actions'
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
@@ -36,11 +36,12 @@ export function MetasV2Client({
   ano,
 }: Props) {
   const router = useRouter()
-  const [editando, setEditando]   = useState<number | null>(null)
-  const [rawInput, setRawInput]   = useState('')
-  const [loading, setLoading]     = useState(false)
-  const [erro, setErro]           = useState('')
-  const [overrides, setOverrides] = useState<Record<number, number>>({})
+  const [editando, setEditando]     = useState<number | null>(null)
+  const [rawInput, setRawInput]     = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [loadingCopy, setLoadingCopy] = useState(false)
+  const [erro, setErro]             = useState('')
+  const [overrides, setOverrides]   = useState<Record<number, number>>({})
 
   function abrirEdicao(catId: number, metaAtual: number) {
     setRawInput(metaAtual > 0 ? String(metaAtual) : '')
@@ -64,6 +65,14 @@ export function MetasV2Client({
     if (res.error) { setErro(res.error); return }
     setOverrides(prev => ({ ...prev, [catId]: centavos }))
     fechar()
+    router.refresh()
+  }
+
+  async function handleCopiarMesAnterior() {
+    setLoadingCopy(true)
+    const res = await copiarMetasMesAnterior(mes, ano)
+    setLoadingCopy(false)
+    if (res.error) { setErro(res.error); return }
     router.refresh()
   }
 
@@ -102,12 +111,29 @@ export function MetasV2Client({
         borderRadius: 20,
         padding: '14px 16px',
       }}>
-        <p style={{
-          fontSize: 9, fontWeight: 700, letterSpacing: 1,
-          textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10,
-        }}>
-          Metas · {MESES[mes - 1]} {ano}
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <p style={{
+            fontSize: 9, fontWeight: 700, letterSpacing: 1,
+            textTransform: 'uppercase', color: 'var(--muted)',
+          }}>
+            Metas · {MESES[mes - 1]} {ano}
+          </p>
+          <button
+            onClick={handleCopiarMesAnterior}
+            disabled={loadingCopy}
+            style={{
+              fontSize: 10, fontWeight: 600,
+              padding: '3px 10px', borderRadius: 100,
+              background: 'color-mix(in srgb, var(--sage) 12%, transparent)',
+              color: 'var(--sage)',
+              border: '1px solid color-mix(in srgb, var(--sage) 30%, transparent)',
+              cursor: loadingCopy ? 'not-allowed' : 'pointer',
+              opacity: loadingCopy ? 0.6 : 1,
+            }}
+          >
+            {loadingCopy ? '...' : '↩ Manter do mês anterior'}
+          </button>
+        </div>
 
         {/* Pills */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -467,6 +493,34 @@ export function MetasV2Client({
                 )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
+                    onClick={fechar}
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: 8, cursor: 'pointer',
+                      background: 'var(--card)', border: '1px solid var(--border)',
+                      color: 'var(--muted)', fontSize: 13,
+                    }}
+                  >Cancelar</button>
+                  <button
+                    onClick={() => handleSalvar(cat.id)}
+                    disabled={loading || !rawInput}
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: 'var(--sage)', color: '#fff', fontSize: 13, fontWeight: 600,
+                      opacity: loading || !rawInput ? 0.5 : 1,
+                    }}
+                  >{loading ? 'Salvando…' : 'Salvar'}</button>
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+
+      {/* Espaço para BottomNav */}
+      <div style={{ height: 'calc(72px + env(safe-area-inset-bottom) + 16px)' }} />
+    </div>
+  )
+}
                     onClick={fechar}
                     style={{
                       flex: 1, padding: '8px', borderRadius: 8, cursor: 'pointer',
