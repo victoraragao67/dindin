@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/money'
 
 export type SaldoDetalhe = {
@@ -47,14 +46,6 @@ export function SaldoDetalheButton({
   dividaLiquida,
 }: Props) {
   const [open, setOpen] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const router = useRouter()
-
-  async function handleRefresh() {
-    setRefreshing(true)
-    router.refresh()
-    setTimeout(() => setRefreshing(false), 1200)
-  }
 
   const hasImbalance = (imbalance?.imbalanceCentavos ?? 0) >= 5000
   const canOpen = !!(detalhe || hasImbalance)
@@ -73,15 +64,6 @@ export function SaldoDetalheButton({
         </p>
       </button>
 
-      {/* Botão refresh */}
-      <button
-        onClick={handleRefresh}
-        aria-label="Atualizar dados"
-        className={`shrink-0 transition-all p-1 text-base ${refreshing ? 'animate-spin' : ''}`}
-        style={{ color: 'var(--muted)' }}
-      >
-        🔄
-      </button>
 
       {/* Modal de detalhes */}
       {open && (

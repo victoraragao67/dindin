@@ -98,15 +98,15 @@ export function PullToRefresh() {
       aria-hidden="true"
       style={{
         position:       'fixed',
-        top:            'calc(env(safe-area-inset-top) + 42px)',
+        top:            'calc(env(safe-area-inset-top) + 44px)',
         left:           0,
         right:          0,
-        zIndex:         25,
+        zIndex:         29,
         display:        'flex',
         justifyContent: 'center',
-        paddingTop:     10,
+        paddingTop:     6,
         opacity:        visible ? 1 : 0,
-        transform:      `translateY(${Math.min(pullPx * 0.35, 18)}px)`,
+        transform:      `translateY(${Math.min(pullPx * 0.4, 20)}px)`,
         transition:     'none',
         pointerEvents:  'none',
       }}
