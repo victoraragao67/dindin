@@ -112,28 +112,6 @@ export function SaldoDetalheButton({
                 </div>
               )}
 
-              {/* Crédito acumulado */}
-              {detalhe && (
-                <div className="rounded-xl px-4 py-3 space-y-2" style={{ background: 'var(--bg-2)' }}>
-                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>Crédito acumulado</p>
-                  <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>
-                    Quanto cada um pagou além da sua parte (considerando as divisões de cada gasto)
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: 'var(--muted)' }}>{detalhe.apelido_a}</span>
-                    <span className="text-sm font-medium" style={{ color: detalhe.credito_a >= 0 ? 'var(--sage)' : 'var(--coral)' }}>
-                      {detalhe.credito_a >= 0 ? '+' : ''}{formatCurrency(detalhe.credito_a)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm" style={{ color: 'var(--muted)' }}>{detalhe.apelido_b}</span>
-                    <span className="text-sm font-medium" style={{ color: detalhe.credito_b >= 0 ? 'var(--sage)' : 'var(--coral)' }}>
-                      {detalhe.credito_b >= 0 ? '+' : ''}{formatCurrency(detalhe.credito_b)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
               {/* Acertos */}
               {detalhe && detalhe.acertos_net !== 0 && (
                 <div className="rounded-xl px-4 py-3" style={{ background: 'var(--bg-2)' }}>

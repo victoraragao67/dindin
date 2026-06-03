@@ -150,14 +150,14 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                 titulo={
                   modoDivisao === 'pagou'       ? 'Quem pagou'
                   : modoDivisao === 'custo'     ? 'Custo variável'
-                  : 'Custo total'
+                  : 'Com fixos'
                 }
                 explicacao={
                   modoDivisao === 'pagou'
-                    ? 'Quanto cada um desembolsou fisicamente em gastos variáveis deste mês. Inclui 100% dos gastos pagos por cada um, mas não indica quem arcou com o quê em gastos compartilhados.'
+                    ? 'Quem desembolsou o quê nos gastos variáveis do mês. Se Gaia pagou o jantar do casal, aparece tudo no dela — independente de ser 50/50.'
                     : modoDivisao === 'custo'
-                    ? 'Quanto custou de fato para cada um em gastos variáveis: gastos 100% deles + a parte que lhes cabe nos compartilhados (50% em 50/50, % definido em customizado). Responde: "quanto dos gastos do dia a dia foi genuinamente meu?"'
-                    : 'Quanto o mês custou de verdade para cada um, considerando a divisão combinada em cada gasto. Inclui gastos do dia a dia e fixos mensais. Não é quanto cada um pagou — é quanto de cada gasto era responsabilidade de cada um.'
+                    ? 'O que cada um realmente deve nas despesas variáveis, já considerando a divisão combinada. Num gasto 50/50, cada um arca com metade — independente de quem passou o cartão.'
+                    : 'Soma o custo variável com os fixos mensais (aluguel, assinaturas, etc.), já rateados pela divisão de cada um. É o custo total real do mês para cada pessoa.'
                 }
               />
             </div>
@@ -179,7 +179,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {modo === 'pagou' ? 'Pagou' : modo === 'custo' ? 'Variável' : 'Total'}
+                  {modo === 'pagou' ? 'Pagou' : modo === 'custo' ? 'Custo var.' : 'Com fixos'}
                 </button>
               ))}
             </div>
@@ -196,7 +196,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm" style={{ color: 'var(--muted)' }}>
-                      {modoDivisao === 'pagou' ? `${d.apelido} pagou` : `Custo variável ${d.apelido}`}
+                      {modoDivisao === 'pagou' ? `${d.apelido} pagou` : `Deve pagar ${d.apelido}`}
                     </span>
                     <div className="text-right">
                       <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(d.total)}</span>
