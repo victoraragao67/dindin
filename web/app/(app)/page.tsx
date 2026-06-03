@@ -44,15 +44,6 @@ type RecurringImbalanceRow = {
   meses_count: number
 }
 
-type SaldoRecorrentesRow = {
-  user_id: string
-  apelido: string
-  pago_centavos: number
-  ideal_centavos: number
-  saldo_centavos: number
-  total_mes_centavos: number
-}
-
 type PrevisibilidadePagadorRow = {
   pagador_id: string
   pagador_apelido: string
@@ -358,7 +349,7 @@ async function RecorrentesSection() {
       .select('id', { count: 'exact', head: true })
       .eq('origem', 'recorrente')
       .eq('cancelado', false)
-      .gte('data_competencia', mesStr),
+      .gte('data_compra', mesStr),
   ])
 
   const items = (templates ?? []) as { valor_centavos: number }[]
