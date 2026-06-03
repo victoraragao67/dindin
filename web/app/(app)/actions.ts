@@ -400,6 +400,44 @@ export async function copiarMetasMesAnterior(mes: number, ano: number): Promise<
   return { data: { id: `copied-${mesAnt}-${anoAnt}` } }
 }
 
+// ── Acerto (transfer) ────────────────────────────────────────
+
+export async function registrarAcerto(input: {
+  de_apelido:     string
+  para_apelido:   string
+  valor_centavos: number
+  data:           string
+  nota:           string | null
+}): Promise<ActionResult> {
+  const { de_apelido, para_apelido, valor_centavos, data, nota } = input
+
+  if (valor_centavos <= 0) return { error: 'Valor deve ser maior que zero.' }
+
+  const [deId, paraId] = await Promise.all([
+    resolverPagadorId(de_apelido),
+    resolverPagadorId(para_apelido),
+  ])
+
+  if (!deId)   return { error: `Usuário "${de_apelido}" não encontrado.` }
+  if (!paraId) return { error: `Usuário "${para_apelido}" não encontrado.` }
+
+  const supabase = createClient()
+  const { data: inserted, error } = await supabase
+    .from('transfers')
+    .insert({ de_id: deId, para_id: paraId, valor_centavos, data, nota: nota || null })
+    .select('id')
+    .single()
+
+  if (error) {
+    console.error('[registrarAcerto]', error.message)
+    return { error: 'Erro ao registrar acerto.' }
+  }
+
+  revalidatePath('/')
+  revalidatePath('/acerto')
+  return { data: { id: inserted.id } }
+}
+
 // ── Rebalancear recorrentes ───────────────────────────────────
 
 /**

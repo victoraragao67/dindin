@@ -521,31 +521,3 @@ export function MetasV2Client({
     </div>
   )
 }
-                    onClick={fechar}
-                    style={{
-                      flex: 1, padding: '8px', borderRadius: 8, cursor: 'pointer',
-                      background: 'var(--card)', border: '1px solid var(--border)',
-                      color: 'var(--muted)', fontSize: 13,
-                    }}
-                  >Cancelar</button>
-                  <button
-                    onClick={() => handleSalvar(cat.id)}
-                    disabled={loading || !rawInput}
-                    style={{
-                      flex: 1, padding: '8px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                      background: 'var(--sage)', color: '#fff', fontSize: 13, fontWeight: 600,
-                      opacity: loading || !rawInput ? 0.5 : 1,
-                    }}
-                  >{loading ? 'Salvando…' : 'Salvar'}</button>
-                </div>
-              </div>
-            )
-          })()}
-        </div>
-      )}
-
-      {/* Espaço para BottomNav */}
-      <div style={{ height: 'calc(72px + env(safe-area-inset-bottom) + 16px)' }} />
-    </div>
-  )
-}
