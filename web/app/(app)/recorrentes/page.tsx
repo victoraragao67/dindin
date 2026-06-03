@@ -109,7 +109,7 @@ export default async function RecorrentesPage() {
           <h1 className="font-semibold text-base" style={{ color: 'var(--ink)' }}>Recorrentes</h1>
         </header>
 
-        <div className="pt-4">
+        <div className="pt-4" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
           <Suspense fallback={
             <div className="mx-4 mb-4 h-40 rounded-xl animate-pulse border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }} />
           }>
