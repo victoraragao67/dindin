@@ -47,7 +47,7 @@ export async function SaldoHeader() {
     getUser(),
     supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
     supabase.from('users').select('id, apelido'),
-    supabase.from('v_saldo_detalhado').select('*'),
+    supabase.from('v_saldo_detalhado_mes').select('*'),
     supabase.from('v_recurring_imbalance').select('user_id, apelido, saldo_liquido_centavos, meses_count'),
   ])
 
