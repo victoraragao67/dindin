@@ -124,6 +124,7 @@ FROM public.expense_installments ei
 JOIN public.expenses   e ON e.id = ei.expense_id
 JOIN public.categories c ON c.id = e.categoria_id
 WHERE e.cancelado = false
+  AND e.origem = 'pwa'   -- apenas gastos variáveis; recorrentes têm seção própria
 GROUP BY 1, 2, 3, 4;
 
 
