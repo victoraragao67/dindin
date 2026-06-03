@@ -448,9 +448,6 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              <p className="text-center text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                Toque em um mês para ver o resumo
-              </p>
             </div>
           </section>
         )}
