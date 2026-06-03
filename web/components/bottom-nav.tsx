@@ -52,7 +52,7 @@ export function BottomNav() {
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      <div className="flex items-end h-[72px]">
+      <div className="flex h-[56px]">
         {tabs.map(tab => {
           const isActive = tab.href === '/'
             ? pathname === '/'
@@ -61,11 +61,16 @@ export function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex-1 flex flex-col items-center justify-center h-full gap-1 transition-colors"
-              style={{ color: isActive ? 'var(--coral)' : 'var(--muted)', textDecoration: 'none' }}
+              className="flex-1 flex flex-col items-center justify-center gap-1 transition-colors"
+              style={{
+                color: isActive ? 'var(--coral)' : 'var(--muted)',
+                textDecoration: 'none',
+                minHeight: 56,
+                WebkitTapHighlightColor: 'transparent',
+              }}
             >
               <tab.Icon />
-              <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 400 }}>{tab.label}</span>
+              <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 400 }}>{tab.label}</span>
             </Link>
           )
         })}

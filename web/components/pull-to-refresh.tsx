@@ -101,7 +101,7 @@ export function PullToRefresh() {
         top:            'env(safe-area-inset-top)',
         left:           0,
         right:          0,
-        height:         40,
+        height:         36,
         zIndex:         35,
         display:        'flex',
         alignItems:     'center',
