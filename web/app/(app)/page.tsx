@@ -263,16 +263,17 @@ async function CategorySection() {
   const mesAtual = currentMesStr()
   const { start, end } = mesRange(mesAtual)
 
-  const [catRes, recRes] = await Promise.all([
+  const [catRes, recCatRes] = await Promise.all([
     supabase
       .from('v_gastos_por_categoria_mes')
       .select('categoria_id, categoria_nome, categoria_emoji, total_centavos')
       .gte('mes', mesAtual)
       .lte('mes', mesAtual)
       .order('total_centavos', { ascending: false }),
+    // Recorrentes do mês por categoria (para fundir no modo Total)
     supabase
       .from('expense_installments')
-      .select('valor_centavos, expenses!inner(cancelado, origem)')
+      .select('valor_centavos, expenses!inner(cancelado, origem, cat:categories(id, nome, emoji))')
       .gte('data_competencia', start)
       .lte('data_competencia', end)
       .eq('expenses.cancelado', false)
@@ -280,10 +281,18 @@ async function CategorySection() {
   ])
 
   const categorias = (catRes.data ?? []) as CategoriaRow[]
-  const totalRecorrentes = ((recRes.data ?? []) as any[])
-    .reduce((s, r) => s + (r.valor_centavos as number), 0)
 
-  return <HomeCategoryBars categorias={categorias} totalRecorrentes={totalRecorrentes} />
+  // Agrega recorrentes por categoria
+  type RecCat = { nome: string; emoji: string; total: number }
+  const recPorCat: Record<number, RecCat> = {}
+  for (const row of (recCatRes.data ?? []) as any[]) {
+    const cat = Array.isArray(row.expenses?.cat) ? row.expenses.cat[0] : row.expenses?.cat
+    if (!cat?.id) continue
+    if (!recPorCat[cat.id]) recPorCat[cat.id] = { nome: cat.nome, emoji: cat.emoji, total: 0 }
+    recPorCat[cat.id].total += row.valor_centavos as number
+  }
+
+  return <HomeCategoryBars categorias={categorias} recorrentePorCategoria={recPorCat} />
 }
 
 async function RecentTxSection() {
