@@ -23,6 +23,7 @@ type Installment = {
     data_compra: string
     valor_total_centavos: number
     created_at: string
+    origem: string
     pagador: { id: string; apelido: string } | null
     categoria: { id: number; nome: string; emoji: string } | null
   }
@@ -39,10 +40,16 @@ export function ListaGastosClient({ installments, currentApelido = '', apelidos 
   const [gastoSelecionado, setGastoSelecionado] = useState<GastoSelecionado | null>(null)
   const [editandoGasto, setEditandoGasto] = useState<GastoInitial | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [modo, setModo] = useState<'dia_a_dia' | 'fixos'>('dia_a_dia')
 
-  const totalMes = installments.reduce((acc, i) => acc + i.valor_centavos, 0)
+  // Separa por origem
+  const pwa      = installments.filter(i => i.expenses.origem === 'pwa')
+  const fixos    = installments.filter(i => i.expenses.origem === 'recorrente')
+  const visiveis = modo === 'dia_a_dia' ? pwa : fixos
 
-  const sorted = [...installments].sort((a, b) => {
+  const totalMes = visiveis.reduce((acc, i) => acc + i.valor_centavos, 0)
+
+  const sorted = [...visiveis].sort((a, b) => {
     if (b.data_competencia !== a.data_competencia) {
       return b.data_competencia.localeCompare(a.data_competencia)
     }
@@ -105,23 +112,58 @@ export function ListaGastosClient({ installments, currentApelido = '', apelidos 
   return (
     <>
       <section className="flex-1 overflow-y-auto px-4" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
-        {/* Resumo do mês */}
+        {/* Resumo do mês + toggle */}
         <div className="py-4">
-          <p className="text-sm capitalize" style={{ color: 'var(--muted)' }}>
-            {mesLabel} · <span className="font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(totalMes)} gasto</span>
-          </p>
-          <div className="mt-2 h-px" style={{ background: 'var(--border)' }} />
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm capitalize" style={{ color: 'var(--muted)' }}>
+              {mesLabel} · <span className="font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(totalMes)} gasto</span>
+            </p>
+            {/* Toggle Dia a dia / Fixos */}
+            <div className="flex rounded-lg overflow-hidden border text-xs shrink-0" style={{ borderColor: 'var(--border)' }}>
+              {(['dia_a_dia', 'fixos'] as const).map(m => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setModo(m)}
+                  style={{
+                    padding:    '4px 10px',
+                    background: modo === m ? 'var(--ink)' : 'var(--bg-2)',
+                    color:      modo === m ? 'var(--bg)'  : 'var(--muted)',
+                    fontWeight: modo === m ? 600 : 400,
+                    border:     'none',
+                    cursor:     'pointer',
+                    transition: 'background 0.15s',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {m === 'dia_a_dia' ? 'Dia a dia' : 'Fixos'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="h-px" style={{ background: 'var(--border)' }} />
         </div>
 
         {/* Lista vazia */}
         {sorted.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <span className="text-5xl">🪹</span>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
-              Nenhum gasto registrado este mês.
-              <br />
-              Toque em <strong style={{ color: 'var(--ink)' }}>+</strong> para começar!
-            </p>
+            {modo === 'dia_a_dia' ? (
+              <>
+                <span className="text-5xl">🪹</span>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
+                  Nenhum gasto registrado este mês.
+                  <br />
+                  Toque em <strong style={{ color: 'var(--ink)' }}>+</strong> para começar!
+                </p>
+              </>
+            ) : (
+              <>
+                <span className="text-5xl">✅</span>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
+                  Nenhum fixo lançado ainda este mês.
+                </p>
+              </>
+            )}
           </div>
         )}
 

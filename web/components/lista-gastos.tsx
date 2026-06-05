@@ -16,6 +16,7 @@ type Installment = {
     data_compra: string
     valor_total_centavos: number
     created_at: string
+    origem: string
     pagador: { id: string; apelido: string } | null
     categoria: { id: number; nome: string; emoji: string } | null
   }
@@ -41,6 +42,7 @@ export async function ListaGastos({ currentApelido = '', apelidos }: { currentAp
         data_compra,
         valor_total_centavos,
         created_at,
+        origem,
         pagador:users!expenses_pagador_id_fkey ( id, apelido ),
         categoria:categories!expenses_categoria_id_fkey ( id, nome, emoji )
       )
