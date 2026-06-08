@@ -34,6 +34,10 @@ export const metadata: Metadata = {
     title: 'Nosso DinDin',
   },
   icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', type: 'image/png' },
+    ],
     apple: '/apple-touch-icon.png',
   },
 }
