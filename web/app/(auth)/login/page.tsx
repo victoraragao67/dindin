@@ -96,16 +96,16 @@ export default function LoginPage() {
           marginBottom: 14,
         }}>
           <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 28, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: 'var(--bg)' }}>D</span>
-          <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 28, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: 'var(--coral)' }}>D</span>
+          <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 28, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: '#7A9E7E' }}>D</span>
         </div>
 
         <h1 style={{
           fontFamily: 'var(--font-fraunces), Georgia, serif',
-          fontSize: 30, fontWeight: 700, letterSpacing: -1.5,
+          fontSize: 28, fontWeight: 700, letterSpacing: -1,
           color: 'var(--ink)', textAlign: 'center',
           marginBottom: 6, lineHeight: 1,
         }}>
-          Din<em style={{ color: 'var(--coral)', fontStyle: 'italic', fontWeight: 300 }}>Din</em>
+          Nosso <em style={{ color: '#7A9E7E', fontStyle: 'italic', fontWeight: 300 }}>DinDin</em>
         </h1>
 
         <p style={{ fontSize: 14, color: 'var(--muted)', textAlign: 'center', marginBottom: 24, lineHeight: 1.5 }}>

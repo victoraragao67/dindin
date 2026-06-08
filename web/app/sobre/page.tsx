@@ -29,11 +29,11 @@ export default function SobrePage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 22, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: 'var(--bg)' }}>D</span>
-            <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 22, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: 'var(--coral)' }}>D</span>
+            <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 22, fontWeight: 700, letterSpacing: -2, lineHeight: 1, color: '#7A9E7E' }}>D</span>
           </div>
           <div>
-            <p style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 22, fontWeight: 700, letterSpacing: -1, color: 'var(--ink)', lineHeight: 1 }}>
-              Din<em style={{ color: 'var(--coral)', fontStyle: 'italic', fontWeight: 300 }}>Din</em>
+            <p style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 20, fontWeight: 700, letterSpacing: -0.5, color: 'var(--ink)', lineHeight: 1 }}>
+              Nosso <em style={{ color: '#7A9E7E', fontStyle: 'italic', fontWeight: 300 }}>DinDin</em>
             </p>
             <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>Finanças a dois, sem enrolação.</p>
           </div>
