@@ -71,7 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             color: 'var(--ink)',
             letterSpacing: -1,
           }}>
-            Din<span style={{ color: 'var(--coral)' }}>Din</span>
+            Nosso <span style={{ color: '#7A9E7E' }}>DinDin</span>
           </span>
           <HamburgerMenu />
         </div>
