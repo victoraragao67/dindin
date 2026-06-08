@@ -67,7 +67,9 @@ export default function LoginPage() {
       return
     }
 
-    router.replace('/')
+    // Full page reload para garantir que os cookies de sessão
+    // (setados pelo Supabase após verifyOtp) sejam enviados ao servidor
+    window.location.href = '/'
   }
 
   const loading   = step === 'loading_send' || step === 'loading_verify'
