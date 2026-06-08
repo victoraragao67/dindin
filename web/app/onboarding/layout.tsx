@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = { title: 'Configurar casal — DinDin' }
+export const metadata: Metadata = { title: 'Configurar casal — Nosso DinDin' }
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (

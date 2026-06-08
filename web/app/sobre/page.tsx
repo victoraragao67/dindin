@@ -41,9 +41,9 @@ export default function SobrePage() {
 
         {/* ── O que é ── */}
         <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>O que é o DinDin?</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>O que é o Nosso DinDin?</h2>
           <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7 }}>
-            DinDin é um app de finanças compartilhadas para casais. Chega de planilha, de &ldquo;quem pagou o quê&rdquo; e de conversas chatas sobre dinheiro. Tudo num lugar só, em tempo real, para os dois.
+            Nosso DinDin é um app de finanças compartilhadas para casais. Chega de planilha, de &ldquo;quem pagou o quê&rdquo; e de conversas chatas sobre dinheiro. Tudo num lugar só, em tempo real, para os dois.
           </p>
         </section>
 
@@ -70,7 +70,7 @@ export default function SobrePage() {
               {
                 emoji: '🔄',
                 title: 'Gastos recorrentes',
-                desc: 'Aluguel, assinaturas, academia — cadastre uma vez e o DinDin lança automaticamente todo mês.',
+                desc: 'Aluguel, assinaturas, academia — cadastre uma vez e o Nosso DinDin lança automaticamente todo mês.',
               },
               {
                 emoji: '💸',

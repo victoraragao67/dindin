@@ -170,14 +170,14 @@ function StepWelcome({ apelido, onNext }: { apelido: string; onNext: () => void 
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 32, fontWeight: 700, letterSpacing: -2, color: 'var(--bg)' }}>D</span>
-          <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 32, fontWeight: 700, letterSpacing: -2, color: 'var(--coral)' }}>D</span>
+          <span style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 32, fontWeight: 700, letterSpacing: -2, color: '#7A9E7E' }}>D</span>
         </div>
         <h1 style={{
           fontFamily: 'var(--font-fraunces), Georgia, serif',
-          fontSize: 34, fontWeight: 700, letterSpacing: -1.5,
+          fontSize: 28, fontWeight: 700, letterSpacing: -1,
           color: 'var(--ink)', lineHeight: 1, margin: 0,
         }}>
-          Din<em style={{ color: 'var(--coral)', fontStyle: 'italic', fontWeight: 300 }}>Din</em>
+          Nosso <em style={{ color: '#7A9E7E', fontStyle: 'italic', fontWeight: 300 }}>DinDin</em>
         </h1>
       </div>
 
@@ -211,7 +211,7 @@ function StepInstall({ onNext }: { onNext: () => void }) {
           Instale o app
         </h2>
         <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-          Para usar o DinDin como um app de verdade, adicione à tela inicial.
+          Para usar o Nosso DinDin como um app de verdade, adicione à tela inicial.
         </p>
       </div>
 
@@ -334,7 +334,7 @@ function StepDone({ onFinish }: { onFinish: () => void }) {
           Tudo pronto!
         </h2>
         <p style={{ fontSize: 15, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-          O DinDin está configurado e pronto pra usar.
+          O Nosso DinDin está configurado e pronto pra usar.
         </p>
       </div>
 
@@ -344,7 +344,7 @@ function StepDone({ onFinish }: { onFinish: () => void }) {
         na tela principal.
       </p>
 
-      <BtnPrimary onClick={onFinish}>Ir para o DinDin →</BtnPrimary>
+      <BtnPrimary onClick={onFinish}>Ir para o Nosso DinDin →</BtnPrimary>
     </div>
   )
 }

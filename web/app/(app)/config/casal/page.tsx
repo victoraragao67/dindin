@@ -4,7 +4,7 @@ import { getCasal } from '@/lib/supabase/get-casal'
 import { createClient } from '@/lib/supabase/server'
 import { DissolveCasalButton } from './dissolve-button'
 
-export const metadata = { title: 'Meu Casal — DinDin' }
+export const metadata = { title: 'Meu Casal — Nosso DinDin' }
 
 export default async function CasalPage() {
   const casal = await getCasal()

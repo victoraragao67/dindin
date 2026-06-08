@@ -25,13 +25,13 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: { default: 'DinDin', template: '%s · DinDin' },
+  title: { default: 'Nosso DinDin', template: '%s · Nosso DinDin' },
   description: 'Controle financeiro do casal',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'DinDin',
+    title: 'Nosso DinDin',
   },
   icons: {
     apple: '/apple-touch-icon.png',

@@ -24,7 +24,7 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
     return {
       ok: false,
       reason: 'denied',
-      message: 'Notificações bloqueadas. Vá em Ajustes > DinDin > Notificações e ative.',
+      message: 'Notificações bloqueadas. Vá em Ajustes > Nosso DinDin > Notificações e ative.',
     }
   }
 
@@ -33,7 +33,7 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
     return {
       ok: false,
       reason: 'denied',
-      message: 'Permissão negada. Você pode ativar em Ajustes > DinDin > Notificações.',
+      message: 'Permissão negada. Você pode ativar em Ajustes > Nosso DinDin > Notificações.',
     }
   }
 
