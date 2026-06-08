@@ -313,7 +313,7 @@ export default function LoginPage() {
               textAlign: 'center',
             }}
           >
-            Conheça mais sobre o DinDin →
+            Conheça mais sobre o Nosso DinDin →
           </a>
         )}
       </div>

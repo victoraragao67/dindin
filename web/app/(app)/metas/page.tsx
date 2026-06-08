@@ -4,7 +4,7 @@ import { BottomNav } from '@/components/bottom-nav'
 import { MetasV2Client } from '@/components/metas-v2-client'
 import { MetasEmptyActions } from '@/components/metas-empty-actions'
 
-export const metadata = { title: 'Metas · DinDin' }
+export const metadata = { title: 'Metas · Nosso DinDin' }
 
 function currentMesAno(): { mes: number; ano: number } {
   const now = new Date(

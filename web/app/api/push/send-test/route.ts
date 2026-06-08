@@ -43,7 +43,7 @@ export async function POST() {
   for (const sub of subscriptions) {
     try {
       await sendPushNotification(sub, {
-        title: '💰 DinDin',
+        title: '💚 Nosso DinDin',
         body:  `Oi ${userRow.apelido}! Este é um push de teste. Tudo certo!`,
         url:   '/',
       })

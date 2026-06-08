@@ -120,7 +120,7 @@ function StepWelcome({ apelido, onNext }: { apelido: string; onNext: () => void 
     <div className="space-y-8 w-full max-w-xs">
       <div className="space-y-4">
         <span className="text-7xl" role="img" aria-label="dinheiro">💰</span>
-        <h1 className="text-3xl font-bold text-white tracking-tight">DinDin</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Nosso DinDin</h1>
       </div>
 
       <div className="space-y-3">
@@ -153,7 +153,7 @@ function StepInstall({ onNext }: { onNext: () => void }) {
         <span className="text-6xl" role="img" aria-label="celular">📱</span>
         <h2 className="text-2xl font-bold text-white">Instale o app</h2>
         <p className="text-slate-300 text-sm leading-relaxed">
-          Para usar o DinDin como um app de verdade, adicione à tela inicial.
+          Para usar o Nosso DinDin como um app de verdade, adicione à tela inicial.
         </p>
       </div>
 
@@ -237,7 +237,7 @@ function StepDone({ onFinish }: { onFinish: () => void }) {
       <div className="space-y-3">
         <span className="text-7xl" role="img" aria-label="feito">✅</span>
         <h2 className="text-2xl font-bold text-white">Pronto!</h2>
-        <p className="text-slate-300 leading-relaxed">O DinDin está configurado.</p>
+        <p className="text-slate-300 leading-relaxed">O Nosso DinDin está configurado.</p>
       </div>
 
       <p className="text-slate-400 text-sm leading-relaxed">
@@ -250,7 +250,7 @@ function StepDone({ onFinish }: { onFinish: () => void }) {
         onClick={onFinish}
         className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-4 text-base transition-colors"
       >
-        Ir para o DinDin →
+        Ir para o Nosso DinDin →
       </button>
     </div>
   )

@@ -2,14 +2,14 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'DinDin',
-    short_name: 'DinDin',
+    name: 'Nosso DinDin',
+    short_name: 'Nosso DinDin',
     description: 'Controle financeiro do casal',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',
     background_color: '#F5F0E8',
-    theme_color: '#1A1612',
+    theme_color: '#7A9E7E',
     categories: ['finance', 'lifestyle'],
     icons: [
       {

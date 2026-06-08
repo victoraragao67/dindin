@@ -12,10 +12,10 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json()
   } catch {
-    payload = { title: '💰 DinDin', body: event.data.text(), url: '/' }
+    payload = { title: '💚 Nosso DinDin', body: event.data.text(), url: '/' }
   }
 
-  const { title = '💰 DinDin', body = '', url = '/' } = payload
+  const { title = '💚 Nosso DinDin', body = '', url = '/' } = payload
 
   event.waitUntil(
     self.registration.showNotification(title, {
