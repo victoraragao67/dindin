@@ -5,11 +5,18 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
-  // Inclui handlers de push/notificationclick (worker/index.js)
+
+  // Desabilita o precaching de todos os assets estáticos do Next.js.
+  // Sem precaching, o SW instala em milissegundos em vez de aguardar
+  // ~40 requests de chunks JS/CSS (que podiam levar 30s+ em 4G fraco),
+  // o que estava causando o sw-timeout na inscrição de push.
+  // O app continua funcional: assets são carregados normalmente pela rede.
+  buildExcludes: [/.*/],
+
+  // Cache em runtime apenas para a API do Supabase — NetworkFirst com
+  // fallback para cache em caso de timeout (útil em 4G instável).
   runtimeCaching: [
     {
-      // Supabase API — NetworkFirst: tenta rede primeiro, fallback para cache
-      // em caso de timeout (útil em 4G instável). Cache dura 60s.
       urlPattern: /^https:\/\/.+\.supabase\.co\/.*/i,
       handler: 'NetworkFirst',
       options: {
