@@ -23,6 +23,7 @@ export function Onboarding({ apelido }: { apelido: string }) {
   const [isStandalone, setIsStandalone] = useState(false)
   const [notifGranted, setNotifGranted] = useState(false)
   const [loadingPush,  setLoadingPush]  = useState(false)
+  const [pushErro,     setPushErro]     = useState<string | null>(null)
 
   useEffect(() => {
     if (localStorage.getItem('onboarding_concluido') === 'true') return
@@ -53,6 +54,7 @@ export function Onboarding({ apelido }: { apelido: string }) {
 
   async function handleAllowNotifications() {
     setLoadingPush(true)
+    setPushErro(null)
     try {
       const result = await subscribeToPush()
       if (result.ok) {
@@ -67,10 +69,23 @@ export function Onboarding({ apelido }: { apelido: string }) {
             auth:     keys?.auth,
           }),
         })
+        // Sucesso — avança para a tela final
+        setLoadingPush(false)
+        setStep(3)
+      } else if (result.reason === 'sw-timeout') {
+        // SW não ativou — mostra erro mas deixa o usuário pular
+        setLoadingPush(false)
+        setPushErro('App desatualizado. Feche o Nosso DinDin, aguarde 5s e reabra.')
+      } else {
+        // Outro erro (denied, unsupported) — avança sem bloquear
+        setLoadingPush(false)
+        setStep(3)
       }
-    } catch { /* silencia erros — não bloqueia o fluxo */ }
-    setLoadingPush(false)
-    setStep(3)
+    } catch {
+      // Erro inesperado — não bloqueia o fluxo
+      setLoadingPush(false)
+      setStep(3)
+    }
   }
 
   function finish() {
@@ -121,7 +136,7 @@ export function Onboarding({ apelido }: { apelido: string }) {
       >
         {step === 0 && <StepWelcome    apelido={apelido} onNext={nextStep} />}
         {step === 1 && <StepInstall    onNext={nextStep} />}
-        {step === 2 && <StepNotifications onAllow={handleAllowNotifications} onSkip={() => setStep(3)} loading={loadingPush} />}
+        {step === 2 && <StepNotifications onAllow={handleAllowNotifications} onSkip={() => setStep(3)} loading={loadingPush} erro={pushErro} />}
         {step === 3 && <StepDone       onFinish={finish} />}
       </div>
     </div>
@@ -277,11 +292,12 @@ function StepInstall({ onNext }: { onNext: () => void }) {
 // ── Tela 2: Notificações ──────────────────────────────────────────
 
 function StepNotifications({
-  onAllow, onSkip, loading
+  onAllow, onSkip, loading, erro
 }: {
   onAllow: () => void
   onSkip:  () => void
   loading: boolean
+  erro?: string | null
 }) {
   return (
     <div style={{ width: '100%', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -302,21 +318,29 @@ function StepNotifications({
         </p>
       </div>
 
+      {erro && (
+        <p style={{ fontSize: 13, color: 'var(--coral)', margin: 0, lineHeight: 1.5, textAlign: 'center' }}>
+          ⚠️ {erro}
+        </p>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <BtnPrimary onClick={onAllow} disabled={loading}>
-          {loading ? 'Ativando…' : 'Permitir notificações'}
+        <BtnPrimary onClick={erro ? onSkip : onAllow} disabled={loading}>
+          {loading ? 'Ativando…' : erro ? 'Pular por agora' : 'Permitir notificações'}
         </BtnPrimary>
-        <button
-          onClick={onSkip}
-          disabled={loading}
-          style={{
-            background: 'none', border: 'none',
-            fontSize: 13, color: 'var(--muted)',
-            cursor: 'pointer', padding: '4px 0',
-          }}
-        >
-          Agora não
-        </button>
+        {!erro && (
+          <button
+            onClick={onSkip}
+            disabled={loading}
+            style={{
+              background: 'none', border: 'none',
+              fontSize: 13, color: 'var(--muted)',
+              cursor: 'pointer', padding: '4px 0',
+            }}
+          >
+            Agora não
+          </button>
+        )}
       </div>
     </div>
   )
