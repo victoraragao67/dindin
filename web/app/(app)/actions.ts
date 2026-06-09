@@ -512,28 +512,3 @@ export async function rebalancearRecorrentes(
   return {}
 }
 
-// ── Push: teste ───────────────────────────────────────────────
-
-/** Envia uma notificação de teste para o próprio usuário. */
-export async function testarPush(): Promise<{ error?: string }> {
-  const supabase = createClient()
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) return { error: 'Não autenticado.' }
-
-  const { data: subs, error: subsErr } = await supabase
-    .from('push_subscriptions')
-    .select('endpoint, p256dh, auth')
-    .eq('user_id', user.id)
-    .eq('ativo', true)
-
-  if (subsErr) return { error: 'Erro ao buscar subscriptions.' }
-  if (!subs || subs.length === 0) return { error: 'Nenhuma subscription ativa encontrada.' }
-
-  await sendPushToSubs(subs, {
-    title: '✅ Notificações funcionando!',
-    body: 'Se você está lendo isso, o DinDin vai te lembrar todo dia às 22h 💚',
-    url: '/config',
-  })
-
-  return {}
-}
