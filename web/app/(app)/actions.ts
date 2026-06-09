@@ -107,8 +107,7 @@ export async function criarGasto(input: NovoGastoInput): Promise<ActionResult> {
 
 /** Envia push ao parceiro: "[Apelido] registrou em 🍔 Alimentação" */
 async function notifyParceiro(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   parceiroId: string,
   pagadorApelido: string,
   categoriaId: number,
