@@ -72,31 +72,50 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
 }
 
 /**
- * Obtém um ServiceWorkerRegistration ativo, aguardando a ativação se necessário.
+ * Registra um SW mínimo e dedicado ao push (/push-sw.js) em escopo próprio
+ * e aguarda sua ativação via statechange.
  *
- * Usa navigator.serviceWorker.ready que é a API padrão e lida internamente
- * com SW em installing/waiting/active. Timeout de 30s para cobrir iOS lento.
- * Se já existe um SW ativo registrado, retorna imediatamente.
+ * Por que não usa o SW do next-pwa:
+ *   O SW gerado pelo next-pwa carrega workbox + roteamento e pode levar
+ *   vários segundos para ativar (especialmente na primeira abertura do PWA
+ *   ou após atualização). O /push-sw.js é trivial: install + activate
+ *   completam em < 100ms em qualquer conexão.
  */
 async function getActiveRegistration(): Promise<ServiceWorkerRegistration> {
-  // SW já ativo — caminho feliz, sem espera
-  const reg = await navigator.serviceWorker.getRegistration()
-  if (reg?.active) {
-    return reg
-  }
+  // Escopo separado do SW principal (/sw.js) para evitar conflito
+  const SCOPE = '/push-handler/'
 
-  // SW em waiting — manda skipWaiting para acelerar a transição
-  if (reg?.waiting) {
+  // register() retorna o registration imediatamente (mesmo enquanto instalando)
+  const reg = await navigator.serviceWorker.register('/push-sw.js', { scope: SCOPE })
+
+  // Caminho feliz: SW já estava ativo de uma sessão anterior
+  if (reg.active) return reg
+
+  // SW em waiting (atualização pendente): força skipWaiting
+  if (reg.waiting) {
     reg.waiting.postMessage({ type: 'SKIP_WAITING' })
   }
 
-  // Aguarda o SW ficar ativo (instalar + ativar). 30s cobre iOS lento.
-  return Promise.race([
-    navigator.serviceWorker.ready,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('sw-timeout')), 30_000)
-    ),
-  ])
+  // Aguarda ativação pelo evento statechange — muito mais confiável que
+  // navigator.serviceWorker.ready, que pode bloquear no SW do next-pwa
+  const sw = reg.installing ?? reg.waiting
+  if (!sw) throw new Error('sw-timeout')
+
+  return new Promise<ServiceWorkerRegistration>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('sw-timeout')), 30_000)
+
+    sw.addEventListener('statechange', function onState() {
+      if (sw.state === 'activated') {
+        clearTimeout(timer)
+        sw.removeEventListener('statechange', onState)
+        resolve(reg)
+      } else if (sw.state === 'redundant') {
+        clearTimeout(timer)
+        sw.removeEventListener('statechange', onState)
+        reject(new Error('sw-timeout'))
+      }
+    })
+  })
 }
 
 /** Converte a VAPID public key de base64url para Uint8Array */
