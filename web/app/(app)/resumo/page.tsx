@@ -77,9 +77,8 @@ export type ResumoData = {
   mesLabel:             string
   totalMes:             number
   categorias:           CategoriaRow[]
-  divisao:              DivisaoItem[]
-  divisaoCusto:         DivisaoItem[]   // Feature B: custo real variável por pessoa
-  custoRealCompleto:    CustoRealRow[]  // Feature: custo total (variável + recorrente)
+  divisao:              DivisaoItem[]   // quanto cada um pagou fisicamente (variável + recorrente)
+  custoRealCompleto:    CustoRealRow[]  // custo real por pessoa (variável + recorrente, splits aplicados)
   recorrentes:          RecorrenteItem[]
   metasPorCategoria:    Record<number, number>
   topGastos:            TopGasto[]
@@ -140,15 +139,14 @@ export default async function ResumoPage({
       .lte('mes', start)   // mes é o primeiro dia do mês
       .order('total_centavos', { ascending: false }),
 
-    // Divisão: quanto cada um pagou — só gastos variáveis (origem='pwa')
-    // Recorrentes têm seção própria; misturá-los distorce a divisão do dia a dia.
+    // Divisão: quanto cada um pagou — variável + recorrente (todos os origins)
+    // Aba "Quanto pagou" mostra o desembolso físico total de cada pessoa no mês.
     supabase
       .from('expense_installments')
       .select('valor_centavos, expenses!inner(pagador_id, cancelado, origem, divisao, split_pagador_pct)')
       .gte('data_competencia', start)
       .lte('data_competencia', end)
-      .eq('expenses.cancelado', false)
-      .eq('expenses.origem', 'pwa'),
+      .eq('expenses.cancelado', false),
 
     // Top 5 gastos
     supabase
@@ -212,52 +210,23 @@ export default async function ResumoPage({
   const categorias = (categoriasRes.data ?? []) as CategoriaRow[]
   const totalMes = categorias.reduce((s, c) => s + c.total_centavos, 0)
 
-  // Divisão por pagador + custo real (Feature B)
+  // Divisão por pagador — desembolso físico total (variável + recorrente)
   const users = usersRes.data ?? []
   const totaisPorPagador: Record<string, number> = {}
-  const custoPorPessoa:   Record<string, number> = {}
 
   for (const row of (divisaoRes.data ?? []) as any[]) {
-    const pagId  = row.expenses?.pagador_id
-    const div    = row.expenses?.divisao        as string | undefined
-    const pct    = row.expenses?.split_pagador_pct as number | null | undefined
-    const valor  = row.valor_centavos as number
+    const pagId = row.expenses?.pagador_id
+    const valor = row.valor_centavos as number
     if (!pagId) continue
-
-    // Quem pagou (desembolso físico)
     totaisPorPagador[pagId] = (totaisPorPagador[pagId] ?? 0) + valor
-
-    // Custo real de cada user neste gasto
-    for (const u of users) {
-      let custo = 0
-      if (u.id === pagId) {
-        custo = div === 'so_pagador' ? valor
-              : div === 'so_outro'   ? 0
-              : div === 'customizada' && pct != null ? Math.round(valor * pct / 100)
-              : Math.floor(valor / 2)
-      } else {
-        custo = div === 'so_pagador' ? 0
-              : div === 'so_outro'   ? valor
-              : div === 'customizada' && pct != null ? valor - Math.round(valor * pct / 100)
-              : Math.floor(valor / 2)
-      }
-      custoPorPessoa[u.id] = (custoPorPessoa[u.id] ?? 0) + custo
-    }
   }
 
   const totalDivisao = Object.values(totaisPorPagador).reduce((s, v) => s + v, 0)
-  const totalCusto   = Object.values(custoPorPessoa).reduce((s, v) => s + v, 0)
 
   const divisao: DivisaoItem[] = users.map(u => ({
     apelido: u.apelido,
     total:   totaisPorPagador[u.id] ?? 0,
     pct:     totalDivisao > 0 ? Math.round(((totaisPorPagador[u.id] ?? 0) / totalDivisao) * 100) : 0,
-  })).sort((a, b) => b.total - a.total)
-
-  const divisaoCusto: DivisaoItem[] = users.map(u => ({
-    apelido: u.apelido,
-    total:   custoPorPessoa[u.id] ?? 0,
-    pct:     totalCusto > 0 ? Math.round(((custoPorPessoa[u.id] ?? 0) / totalCusto) * 100) : 0,
   })).sort((a, b) => b.total - a.total)
 
   // Top gastos — normaliza o join (pode vir como array)
@@ -359,7 +328,6 @@ export default async function ResumoPage({
     totalMes,
     categorias,
     divisao,
-    divisaoCusto,
     custoRealCompleto,
     recorrentes,
     metasPorCategoria,
