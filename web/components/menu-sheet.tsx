@@ -6,11 +6,29 @@ import { useRouter } from 'next/navigation'
 import { Drawer } from 'vaul'
 import { createClient } from '@/lib/supabase/client'
 
-const MENU_ITEMS = [
-  { href: '/recorrentes', emoji: '🔁', label: 'Recorrentes' },
-  { href: '/acerto',      emoji: '🤝', label: 'Acerto · PIX'  },
-  { href: '/metas',       emoji: '🎯', label: 'Metas'         },
-  { href: '/resumo',      emoji: '📊', label: 'Resumo'        },
+/* ── Ações primárias — cards elevados ─────────────────────── */
+const PRIMARY_ACTIONS = [
+  {
+    href:   '/acerto',
+    emoji:  '💚',
+    label:  'Acerto via PIX',
+    sub:    'Registrar transferência entre vocês',
+    iconBg: 'color-mix(in srgb, var(--sage) 18%, transparent)',
+  },
+  {
+    href:   '/recorrentes',
+    emoji:  '🔄',
+    label:  'Recorrentes',
+    sub:    'Aluguel, assinaturas e fixos',
+    iconBg: 'color-mix(in srgb, var(--coral) 14%, transparent)',
+  },
+]
+
+/* ── Itens secundários — linha discreta ───────────────────── */
+const SECONDARY_ITEMS = [
+  { href: '/resumo', emoji: '📊', label: 'Resumo'        },
+  { href: '/metas',  emoji: '🎯', label: 'Metas'         },
+  { href: '/config', emoji: '⚙️', label: 'Configurações' },
 ]
 
 export function MenuSheet() {
@@ -64,55 +82,115 @@ export function MenuSheet() {
             <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
           </div>
 
-          {/* Título */}
-          <Drawer.Title className="px-5 pt-2 pb-3 font-semibold text-base" style={{ color: 'var(--ink)' }}>
-            Menu
-          </Drawer.Title>
+          {/* Cabeçalho — logo + fechar */}
+          <div className="flex items-center justify-between px-5 pt-3 pb-4">
+            <Drawer.Title asChild>
+              <div aria-label="Nosso DinDin">
+                <span
+                  className="block text-xs font-medium tracking-wide"
+                  style={{ color: 'var(--muted)' }}
+                >
+                  Nosso
+                </span>
+                <span
+                  className="block text-xl font-bold leading-tight"
+                  style={{ fontFamily: 'Georgia, serif', color: 'var(--ink)' }}
+                >
+                  Din<span style={{ color: 'var(--sage)' }}>Din</span>
+                </span>
+              </div>
+            </Drawer.Title>
 
-          {/* Itens primários */}
-          <nav className="px-3">
-            {MENU_ITEMS.map(item => (
+            <button
+              onClick={handleClose}
+              aria-label="Fechar menu"
+              className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity active:opacity-70"
+              style={{ background: 'var(--bg-2)', color: 'var(--muted)' }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Seção: ações rápidas */}
+          <div className="px-4">
+            <p
+              className="text-xs font-semibold tracking-widest uppercase mb-2"
+              style={{ color: 'var(--muted)' }}
+            >
+              Ações rápidas
+            </p>
+            <div className="flex flex-col gap-2.5">
+              {PRIMARY_ACTIONS.map(action => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  onClick={handleClose}
+                  className="flex items-center gap-3 p-3.5 rounded-xl border transition-opacity active:opacity-70"
+                  style={{
+                    background:  'var(--card)',
+                    borderColor: 'var(--border)',
+                    boxShadow:   '0 1px 3px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
+                    style={{ background: action.iconBg }}
+                  >
+                    {action.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
+                      {action.label}
+                    </p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--muted)' }}>
+                      {action.sub}
+                    </p>
+                  </div>
+                  <span className="text-xs shrink-0" style={{ color: 'var(--muted)' }}>›</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Separador */}
+          <div className="mx-5 my-3 border-t" style={{ borderColor: 'var(--border)' }} />
+
+          {/* Seção: itens secundários */}
+          <div className="px-3">
+            {SECONDARY_ITEMS.map(item => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={handleClose}
-                className="flex items-center gap-3 px-3 py-3.5 rounded-xl transition-opacity active:opacity-70 min-h-[48px]"
+                className="flex items-center gap-3 px-3 py-3 rounded-xl transition-opacity active:opacity-70 min-h-[44px]"
               >
-                <span className="text-xl w-7 shrink-0">{item.emoji}</span>
-                <span className="text-sm font-medium flex-1" style={{ color: 'var(--ink)' }}>{item.label}</span>
+                <span className="text-lg w-7 shrink-0">{item.emoji}</span>
+                <span className="text-sm flex-1" style={{ color: 'var(--muted)' }}>{item.label}</span>
                 <span className="text-xs" style={{ color: 'var(--muted)' }}>›</span>
               </Link>
             ))}
-          </nav>
+          </div>
 
           {/* Separador */}
-          <div className="mx-5 my-2 border-t" style={{ borderColor: 'var(--border)' }} />
+          <div className="mx-5 my-1 border-t" style={{ borderColor: 'var(--border)' }} />
 
-          {/* Itens de conta */}
-          <div className="px-3 pb-4">
-            <Link
-              href="/config"
-              onClick={handleClose}
-              className="flex items-center gap-3 px-3 py-3.5 rounded-xl transition-opacity active:opacity-70 min-h-[48px]"
-            >
-              <span className="text-xl w-7 shrink-0">⚙️</span>
-              <span className="text-sm font-medium flex-1" style={{ color: 'var(--ink)' }}>Configurações</span>
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>›</span>
-            </Link>
-
+          {/* Sair — mantém lógica de confirmação */}
+          <div className="px-3 pb-4 pt-1">
             {!confirmSair ? (
               <button
                 onClick={() => setConfirmSair(true)}
-                className="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl transition-opacity active:opacity-70 min-h-[48px]"
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-opacity active:opacity-70 min-h-[44px]"
               >
-                <span className="text-xl w-7 shrink-0">🚪</span>
-                <span className="text-sm font-medium flex-1 text-left" style={{ color: 'var(--coral)' }}>Sair</span>
+                <span className="text-lg w-7 shrink-0">🚪</span>
+                <span className="text-sm flex-1 text-left" style={{ color: 'var(--coral)' }}>Sair</span>
               </button>
             ) : (
               <div
                 className="mt-1 rounded-xl px-4 py-4 space-y-3 border"
                 style={{
-                  background: 'color-mix(in srgb, var(--coral) 8%, transparent)',
+                  background:  'color-mix(in srgb, var(--coral) 8%, transparent)',
                   borderColor: 'var(--coral)',
                 }}
               >
