@@ -9,6 +9,8 @@ import { HomeInsightCard, HomeInsightCardSkeleton } from '@/components/home-insi
 import { HomeCategoryBars, HomeCategoryBarsSkeleton } from '@/components/home-category-bars'
 import { HomeRecentTx, HomeRecentTxSkeleton } from '@/components/home-recent-tx'
 import { BottomNav } from '@/components/bottom-nav'
+import { HomeClient } from '@/components/home-client'
+import { getCasal } from '@/lib/supabase/get-casal'
 
 /* ── Tipos ─────────────────────────────────────────────────── */
 
@@ -435,7 +437,22 @@ function RecorrentesSectionSkeleton() {
 /* ── Page ───────────────────────────────────────────────────── */
 
 export default async function HomePage() {
-  const user = await getUser()
+  const [user, casal] = await Promise.all([getUser(), getCasal()])
+  const currentApelido = casal.meuApelido ?? ''
+  const apelidos = casal.apelidos ?? [currentApelido, currentApelido] as [string, string]
+
+  // Verifica subscription ativa para o banner de push
+  let pushAtivo = false
+  if (user?.email) {
+    const supabase = createClient()
+    const { data: userRow } = await supabase
+      .from('users')
+      .select('id, push_subscriptions(ativo)')
+      .eq('email', user.email)
+      .maybeSingle()
+    const subs = userRow?.push_subscriptions as { ativo: boolean }[] | undefined
+    pushAtivo = subs?.some(s => s.ativo) ?? false
+  }
 
   return (
     <>
@@ -470,6 +487,14 @@ export default async function HomePage() {
       </div>
 
       <BottomNav />
+
+      {/* FAB + modal + push banner (sem BottomNav duplicado) */}
+      <HomeClient
+        currentApelido={currentApelido}
+        apelidos={apelidos}
+        pushAtivo={pushAtivo}
+        hideBottomNav
+      />
     </>
   )
 }
