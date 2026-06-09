@@ -9,6 +9,9 @@
  * Idempotência: o índice uq_expense_recurring_mes no banco
  * impede duplicatas — inserções conflitantes retornam código 23505
  * e são contadas como "pulados".
+ *
+ * Multi-tenant: push é enviado separadamente por casal — cada casal
+ * recebe apenas a contagem dos seus próprios recorrentes.
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -56,6 +59,9 @@ Deno.serve(async (_req: Request) => {
   let pulados = 0
   let erros   = 0
 
+  // Rastreia quantos recorrentes foram gerados por casal (para push isolado)
+  const geradosPorCasal = new Map<string, number>()
+
   // ── Processar cada template ───────────────────────────────
   for (const t of lista) {
     // data_compra = dia_do_mes correto no mês atual
@@ -65,16 +71,16 @@ Deno.serve(async (_req: Request) => {
     const { error: insertError } = await supabase
       .from('expenses')
       .insert({
-        casal_id:             t.casal_id,
-        pagador_id:           t.pagador_id,
-        categoria_id:         t.categoria_id,
-        valor_total_centavos: t.valor_centavos,
-        parcelas:             1,
-        divisao:              t.divisao,
-        split_pagador_pct:    t.split_pagador_pct ?? null,
-        data_compra:          dataCompra,
-        descricao:            t.descricao,
-        origem:               'recorrente',
+        casal_id:              t.casal_id,
+        pagador_id:            t.pagador_id,
+        categoria_id:          t.categoria_id,
+        valor_total_centavos:  t.valor_centavos,
+        parcelas:              1,
+        divisao:               t.divisao,
+        split_pagador_pct:     t.split_pagador_pct ?? null,
+        data_compra:           dataCompra,
+        descricao:             t.descricao,
+        origem:                'recorrente',
         recurring_template_id: t.id,
       })
 
@@ -89,15 +95,17 @@ Deno.serve(async (_req: Request) => {
       }
     } else {
       gerados++
+      geradosPorCasal.set(t.casal_id, (geradosPorCasal.get(t.casal_id) ?? 0) + 1)
       console.log(`[recurring-cron] template ${t.id} → expense gerado (${dataCompra})`)
     }
   }
 
-  const resumo = { gerados, pulados, erros, diaAtual, dataCompra }
+  const resumo = { gerados, pulados, erros, diaAtual }
   console.log('[recurring-cron] concluído —', JSON.stringify(resumo))
 
-  // ── Notifica os dois usuários se algum recorrente foi gerado hoje ─
-  if (gerados > 0) {
+  // ── Notifica cada casal isoladamente ─────────────────────
+  // Cada casal recebe push apenas com a contagem dos SEUS recorrentes.
+  if (geradosPorCasal.size > 0) {
     try {
       webpush.setVapidDetails(
         Deno.env.get('VAPID_SUBJECT')!,
@@ -105,42 +113,57 @@ Deno.serve(async (_req: Request) => {
         Deno.env.get('VAPID_PRIVATE_KEY')!
       )
 
-      // Busca todas as subscriptions ativas do casal
-      const { data: subs } = await supabase
-        .from('push_subscriptions')
-        .select('endpoint, p256dh, auth')
-        .eq('ativo', true)
+      for (const [casalId, count] of geradosPorCasal) {
+        // Busca os user_ids que pertencem a este casal
+        const { data: users } = await supabase
+          .from('users')
+          .select('id')
+          .eq('casal_id', casalId)
 
-      const body = gerados === 1
-        ? 'Venceu 1 gasto recorrente hoje. Confira os gastos do mês.'
-        : `Venceram ${gerados} gastos recorrentes hoje. Confira os gastos do mês.`
+        if (!users || users.length === 0) continue
 
-      const payload = JSON.stringify({
-        title: '🔁 Recorrentes do mês',
-        body,
-        url: '/recorrentes',
-      })
+        const userIds = users.map((u: { id: string }) => u.id)
 
-      await Promise.allSettled(
-        (subs ?? []).map((sub: { endpoint: string; p256dh: string; auth: string }) =>
-          webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            payload
-          ).catch((err: unknown) => {
-            const status = (err as { statusCode?: number }).statusCode
-            if (status === 410) {
-              // Subscription revogada — desativa
-              supabase
-                .from('push_subscriptions')
-                .update({ ativo: false })
-                .eq('endpoint', sub.endpoint)
-                .then(() => console.log('[recurring-cron] subscription desativada (410)'))
-            }
-          })
+        // Busca push_subscriptions apenas dos usuários deste casal
+        const { data: subs } = await supabase
+          .from('push_subscriptions')
+          .select('endpoint, p256dh, auth')
+          .in('user_id', userIds)
+          .eq('ativo', true)
+
+        if (!subs || subs.length === 0) continue
+
+        const body = count === 1
+          ? 'Venceu 1 gasto recorrente hoje. Confira os gastos do mês.'
+          : `Venceram ${count} gastos recorrentes hoje. Confira os gastos do mês.`
+
+        const payload = JSON.stringify({
+          title: '🔁 Recorrentes do mês',
+          body,
+          url: '/recorrentes',
+        })
+
+        await Promise.allSettled(
+          subs.map((sub: { endpoint: string; p256dh: string; auth: string }) =>
+            webpush.sendNotification(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+              payload
+            ).catch((err: unknown) => {
+              const status = (err as { statusCode?: number }).statusCode
+              if (status === 410) {
+                // Subscription revogada — desativa no banco
+                supabase
+                  .from('push_subscriptions')
+                  .update({ ativo: false })
+                  .eq('endpoint', sub.endpoint)
+                  .then(() => console.log('[recurring-cron] subscription desativada (410)'))
+              }
+            })
+          )
         )
-      )
 
-      console.log(`[recurring-cron] push enviado para ${(subs ?? []).length} subscriptions`)
+        console.log(`[recurring-cron] push enviado para casal ${casalId} — ${count} recorrente(s), ${subs.length} subscription(s)`)
+      }
     } catch (err) {
       console.error('[recurring-cron] erro ao enviar push:', err)
     }
