@@ -441,19 +441,6 @@ export default async function HomePage() {
   const currentApelido = casal.meuApelido ?? ''
   const apelidos = casal.apelidos ?? [currentApelido, currentApelido] as [string, string]
 
-  // Verifica subscription ativa para o banner de push
-  let pushAtivo = false
-  if (user?.email) {
-    const supabase = createClient()
-    const { data: userRow } = await supabase
-      .from('users')
-      .select('id, push_subscriptions(ativo)')
-      .eq('email', user.email)
-      .maybeSingle()
-    const subs = userRow?.push_subscriptions as { ativo: boolean }[] | undefined
-    pushAtivo = subs?.some(s => s.ativo) ?? false
-  }
-
   return (
     <>
       <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-4" data-scroll-root style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
@@ -488,11 +475,10 @@ export default async function HomePage() {
 
       <BottomNav />
 
-      {/* FAB + modal + push banner (sem BottomNav duplicado) */}
+      {/* FAB + modal + onboarding (sem BottomNav duplicado) */}
       <HomeClient
         currentApelido={currentApelido}
         apelidos={apelidos}
-        pushAtivo={pushAtivo}
         hideBottomNav
       />
     </>
