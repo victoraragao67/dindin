@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { NovoGastoModal } from '@/components/novo-gasto-modal'
 import { Toast } from '@/components/toast'
-import { PushBanner } from '@/components/push-banner'
 import { Onboarding } from '@/components/onboarding'
 import { BottomNav } from '@/components/bottom-nav'
 import { Fab } from '@/components/fab'
@@ -12,11 +11,10 @@ import { Fab } from '@/components/fab'
 type Props = {
   currentApelido: string
   apelidos?: [string, string]
-  pushAtivo?: boolean
   hideBottomNav?: boolean
 }
 
-export function HomeClient({ currentApelido, apelidos, pushAtivo = false, hideBottomNav = false }: Props) {
+export function HomeClient({ currentApelido, apelidos, hideBottomNav = false }: Props) {
   const router = useRouter()
   const [modalOpen, setModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -41,16 +39,10 @@ export function HomeClient({ currentApelido, apelidos, pushAtivo = false, hideBo
 
   const dismissToast = useCallback(() => setToast(null), [])
 
-  function handlePushSubscribed() {
-    setToast('✅ Tudo certo! Te avisamos às 22h.')
-  }
-
   return (
     <>
       {/* Onboarding sobrepõe tudo — só aparece no primeiro acesso */}
       <Onboarding apelido={currentApelido} />
-
-      <PushBanner onSubscribed={handlePushSubscribed} semSubscription={!pushAtivo} />
 
       <NovoGastoModal
         open={modalOpen}
