@@ -12,9 +12,11 @@ import { Fab } from '@/components/fab'
 type Props = {
   currentApelido: string
   apelidos?: [string, string]
+  pushAtivo?: boolean
+  hideBottomNav?: boolean
 }
 
-export function HomeClient({ currentApelido, apelidos }: Props) {
+export function HomeClient({ currentApelido, apelidos, pushAtivo = false, hideBottomNav = false }: Props) {
   const router = useRouter()
   const [modalOpen, setModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -48,7 +50,7 @@ export function HomeClient({ currentApelido, apelidos }: Props) {
       {/* Onboarding sobrepõe tudo — só aparece no primeiro acesso */}
       <Onboarding apelido={currentApelido} />
 
-      <PushBanner onSubscribed={handlePushSubscribed} />
+      <PushBanner onSubscribed={handlePushSubscribed} semSubscription={!pushAtivo} />
 
       <NovoGastoModal
         open={modalOpen}
@@ -60,7 +62,7 @@ export function HomeClient({ currentApelido, apelidos }: Props) {
 
       {toast && <Toast message={toast} onDismiss={dismissToast} />}
 
-      <BottomNav />
+      {!hideBottomNav && <BottomNav />}
 
       {/* FAB flutuante para adicionar gasto */}
       <Fab onClick={() => setModalOpen(true)} />
