@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { subscribeToPush } from '@/lib/push/subscribe'
+import { testarPush } from '@/app/(app)/actions'
 
 type Props = {
   pushAtivo: boolean
@@ -10,6 +11,7 @@ type Props = {
 export function PushToggle({ pushAtivo: initialAtivo }: Props) {
   const [ativo, setAtivo] = useState(initialAtivo)
   const [loading, setLoading] = useState(false)
+  const [testando, setTestando] = useState(false)
   const [msg, setMsg] = useState('')
 
   async function handleToggle() {
@@ -71,6 +73,18 @@ export function PushToggle({ pushAtivo: initialAtivo }: Props) {
     setLoading(false)
   }
 
+  async function handleTestar() {
+    setTestando(true)
+    setMsg('')
+    const result = await testarPush()
+    if (result.error) {
+      setMsg(result.error)
+    } else {
+      setMsg('📬 Notificação enviada! Aguarde alguns segundos...')
+    }
+    setTestando(false)
+  }
+
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -78,6 +92,16 @@ export function PushToggle({ pushAtivo: initialAtivo }: Props) {
         <div>
           <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>Notificações diárias</p>
           <p className="text-xs" style={{ color: 'var(--muted)' }}>Lembrete às 22h para registrar gastos</p>
+          {ativo && (
+            <button
+              onClick={handleTestar}
+              disabled={testando}
+              className="text-xs mt-1 underline underline-offset-2 disabled:opacity-50"
+              style={{ color: 'var(--sage)' }}
+            >
+              {testando ? 'Enviando...' : 'Enviar notificação de teste'}
+            </button>
+          )}
           {msg && <p className="text-xs mt-1" style={{ color: 'var(--sage)' }}>{msg}</p>}
         </div>
       </div>
