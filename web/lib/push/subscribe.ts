@@ -63,7 +63,7 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
       return {
         ok: false,
         reason: 'sw-timeout',
-        message: 'Service Worker demorou para ativar. Feche o PWA completamente, aguarde 10s e reabra.',
+        message: 'App desatualizado. Feche o Nosso DinDin completamente, aguarde 5s e reabra.',
       }
     }
 
@@ -74,43 +74,27 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
 /**
  * Obtém um ServiceWorkerRegistration ativo, aguardando a ativação se necessário.
  *
- * Estratégia em 3 camadas (mais robusta que navigator.serviceWorker.ready puro):
- * 1. Se já existe um SW ativo, usa direto — sem esperar.
- * 2. Se tem SW em "waiting", manda skipWaiting e espera o controllerchange.
- * 3. Fallback: navigator.serviceWorker.ready com timeout de 20s.
+ * Usa navigator.serviceWorker.ready que é a API padrão e lida internamente
+ * com SW em installing/waiting/active. Timeout de 30s para cobrir iOS lento.
+ * Se já existe um SW ativo registrado, retorna imediatamente.
  */
 async function getActiveRegistration(): Promise<ServiceWorkerRegistration> {
+  // SW já ativo — caminho feliz, sem espera
   const reg = await navigator.serviceWorker.getRegistration()
-
-  // Caso ideal: SW já está ativo
   if (reg?.active) {
-    console.log('[push] SW já ativo')
     return reg
   }
 
-  // SW em "waiting" — força skipWaiting e aguarda controllerchange
+  // SW em waiting — manda skipWaiting para acelerar a transição
   if (reg?.waiting) {
-    console.log('[push] SW em waiting — enviando skipWaiting')
     reg.waiting.postMessage({ type: 'SKIP_WAITING' })
-
-    await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('sw-timeout')), 10_000)
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        clearTimeout(timeout)
-        resolve()
-      }, { once: true })
-    })
-
-    const updated = await navigator.serviceWorker.getRegistration()
-    if (updated?.active) return updated
   }
 
-  // SW ainda instalando (ou nenhum registro) — espera com timeout de 20s
-  console.log('[push] SW instalando — aguardando ready (20s timeout)')
+  // Aguarda o SW ficar ativo (instalar + ativar). 30s cobre iOS lento.
   return Promise.race([
     navigator.serviceWorker.ready,
     new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('sw-timeout')), 20_000)
+      setTimeout(() => reject(new Error('sw-timeout')), 30_000)
     ),
   ])
 }
