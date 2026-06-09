@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getCasal } from '@/lib/supabase/get-casal'
 import { todayBRTStr } from '@/lib/date'
+import { sendPushToSubs } from '@/lib/push/send-server'
 
 // ── Schemas ───────────────────────────────────────────────────
 
@@ -92,7 +93,49 @@ export async function criarGasto(input: NovoGastoInput): Promise<ActionResult> {
   }
 
   revalidatePath('/')
+
+  // Notifica o parceiro (fire-and-forget — não bloqueia a resposta)
+  const parceiroId = casal.parceiro?.id
+  if (parceiroId) {
+    notifyParceiro(supabase, parceiroId, pagador_apelido, categoria_id).catch(
+      err => console.error('[criarGasto] notifyParceiro falhou:', err)
+    )
+  }
+
   return { data: { id: data.id } }
+}
+
+/** Envia push ao parceiro: "[Apelido] registrou em 🍔 Alimentação" */
+async function notifyParceiro(
+  supabase: ReturnType<typeof createClient>,
+  parceiroId: string,
+  pagadorApelido: string,
+  categoriaId: number,
+) {
+  // Busca categoria e subscriptions do parceiro em paralelo
+  const [catRes, subsRes] = await Promise.all([
+    supabase
+      .from('categories')
+      .select('nome, emoji')
+      .eq('id', categoriaId)
+      .single(),
+    supabase
+      .from('push_subscriptions')
+      .select('endpoint, p256dh, auth')
+      .eq('user_id', parceiroId)
+      .eq('ativo', true),
+  ])
+
+  const cat  = catRes.data  as { nome: string; emoji: string } | null
+  const subs = subsRes.data as { endpoint: string; p256dh: string; auth: string }[] | null
+
+  if (!cat || !subs || subs.length === 0) return
+
+  await sendPushToSubs(subs, {
+    title: '💸 Novo gasto registrado',
+    body:  `${pagadorApelido} registrou em ${cat.emoji} ${cat.nome}`,
+    url:   '/gastos',
+  })
 }
 
 export async function atualizarGasto(id: string, input: NovoGastoInput): Promise<ActionResult> {

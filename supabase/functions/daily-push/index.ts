@@ -109,7 +109,7 @@ Deno.serve(async (_req: Request) => {
             keys: { p256dh: sub.p256dh, auth: sub.auth },
           },
           JSON.stringify({
-            title: 'DinDin 💰',
+            title: '💚 Nosso DinDin',
             body:  'Nenhum gasto registrado hoje. Tudo certo?',
             url:   '/?modal=novo-gasto',
           })

@@ -12,6 +12,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import webpush from 'npm:web-push'
 
 Deno.serve(async (_req: Request) => {
   const supabase = createClient(
@@ -94,6 +95,56 @@ Deno.serve(async (_req: Request) => {
 
   const resumo = { gerados, pulados, erros, diaAtual, dataCompra }
   console.log('[recurring-cron] concluído —', JSON.stringify(resumo))
+
+  // ── Notifica os dois usuários se algum recorrente foi gerado hoje ─
+  if (gerados > 0) {
+    try {
+      webpush.setVapidDetails(
+        Deno.env.get('VAPID_SUBJECT')!,
+        Deno.env.get('NEXT_PUBLIC_VAPID_PUBLIC_KEY')!,
+        Deno.env.get('VAPID_PRIVATE_KEY')!
+      )
+
+      // Busca todas as subscriptions ativas do casal
+      const { data: subs } = await supabase
+        .from('push_subscriptions')
+        .select('endpoint, p256dh, auth')
+        .eq('ativo', true)
+
+      const body = gerados === 1
+        ? 'Venceu 1 gasto recorrente hoje. Confira os gastos do mês.'
+        : `Venceram ${gerados} gastos recorrentes hoje. Confira os gastos do mês.`
+
+      const payload = JSON.stringify({
+        title: '🔁 Recorrentes do mês',
+        body,
+        url: '/recorrentes',
+      })
+
+      await Promise.allSettled(
+        (subs ?? []).map((sub: { endpoint: string; p256dh: string; auth: string }) =>
+          webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload
+          ).catch((err: unknown) => {
+            const status = (err as { statusCode?: number }).statusCode
+            if (status === 410) {
+              // Subscription revogada — desativa
+              supabase
+                .from('push_subscriptions')
+                .update({ ativo: false })
+                .eq('endpoint', sub.endpoint)
+                .then(() => console.log('[recurring-cron] subscription desativada (410)'))
+            }
+          })
+        )
+      )
+
+      console.log(`[recurring-cron] push enviado para ${(subs ?? []).length} subscriptions`)
+    } catch (err) {
+      console.error('[recurring-cron] erro ao enviar push:', err)
+    }
+  }
 
   return new Response(
     JSON.stringify(resumo),
