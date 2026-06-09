@@ -3,7 +3,7 @@ import { getUser } from '@/lib/supabase/get-user'
 import { getCasal } from '@/lib/supabase/get-casal'
 import { createClient } from '@/lib/supabase/server'
 import { ThemeProvider } from '@/components/theme-provider'
-import { HamburgerMenu } from '@/components/hamburger-menu'
+import { MenuSheet } from '@/components/menu-sheet'
 import { PullToRefresh } from '@/components/pull-to-refresh'
 
 type Tema = 'light' | 'dark'
@@ -73,7 +73,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }}>
             Nosso <span style={{ color: '#7A9E7E' }}>DinDin</span>
           </span>
-          <HamburgerMenu />
+          <MenuSheet />
         </div>
 
         <PullToRefresh />
