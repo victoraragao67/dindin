@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/money'
 
 type Props = {
-  dividaLiquidaValor:   number    // valor líquido real (após descontar imbalance)
-  dividaLiquidaDevedor: string    // apelido de quem deve
-  dividaLiquidaCredor:  string    // apelido de quem recebe
-  imbalanceCentavos:    number    // imbalance de recorrentes (0 se equilibrado)
-  nomePagaMais:         string    // apelido de quem paga mais em recorrentes
+  dividaLiquidaValor:      number    // valor líquido real (após descontar imbalance)
+  dividaLiquidaDevedor:    string    // apelido de quem deve
+  dividaLiquidaCredor:     string    // apelido de quem recebe
+  imbalanceCentavos:       number    // imbalance acumulado de recorrentes (para cálculo da dívida líquida)
+  nomePagaMais:            string    // apelido de quem paga mais em recorrentes (acumulado)
+  mensalImbalanceCentavos: number    // desequilíbrio dos recorrentes NESTE MÊS (para exibição)
+  nomePagaMaisMensal:      string    // apelido de quem paga mais este mês
 }
 
 export function HomeAcertoBanner({
@@ -17,7 +19,9 @@ export function HomeAcertoBanner({
   dividaLiquidaDevedor,
   dividaLiquidaCredor,
   imbalanceCentavos,
-  nomePagaMais,
+  nomePagaMais: _nomePagaMais,
+  mensalImbalanceCentavos,
+  nomePagaMaisMensal,
 }: Props) {
   const router = useRouter()
   const [showFriccao, setShowFriccao] = useState(false)
@@ -62,12 +66,12 @@ export function HomeAcertoBanner({
       {showFriccao && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/40"
+            className="fixed inset-0 z-[55] bg-black/40"
             onClick={() => setShowFriccao(false)}
             aria-hidden="true"
           />
           <div
-            className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl shadow-2xl px-6 py-6 space-y-4"
+            className="fixed inset-x-0 bottom-0 z-[60] rounded-t-3xl shadow-2xl px-6 py-6 space-y-4"
             style={{ background: 'var(--card)' }}
           >
             {/* Handle */}
@@ -85,9 +89,9 @@ export function HomeAcertoBanner({
               style={{ background: 'var(--bg-2)', color: 'var(--muted)' }}
             >
               <p>
-                <strong style={{ color: 'var(--ink)' }}>{nomePagaMais}</strong> paga{' '}
-                <strong style={{ color: 'var(--ink)' }}>{formatCurrency(imbalanceCentavos)}</strong>{' '}
-                a mais em fixos acumulados.
+                <strong style={{ color: 'var(--ink)' }}>{nomePagaMaisMensal}</strong> pagará{' '}
+                <strong style={{ color: 'var(--ink)' }}>{formatCurrency(mensalImbalanceCentavos > 0 ? mensalImbalanceCentavos : imbalanceCentavos)}</strong>{' '}
+                a mais nos recorrentes este mês.
               </p>
               <p>
                 O valor sugerido ({formatCurrency(dividaLiquidaValor)}) já desconta isso.

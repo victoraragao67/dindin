@@ -50,7 +50,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
   const [catAberta, setCatAberta]             = useState<CategoriaRow | null>(null)
   const [pessoaAberta, setPessoaAberta]       = useState<DivisaoItem | null>(null)
-  const [modoDivisao, setModoDivisao]         = useState<'pagou' | 'custo' | 'custo_total'>('pagou')
+  const [modoDivisao, setModoDivisao]         = useState<'custo_total' | 'pagou'>('custo_total')
   const [pessoaExpandida, setPessoaExpandida] = useState<string | null>(null)
 
   function navMes(mes: string) {
@@ -142,28 +142,24 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
         {/* ── Bloco: Divisão ── */}
         <section className="space-y-3">
-          {/* Header com toggle 3 modos e tooltip */}
+          {/* Header com toggle 2 modos e tooltip */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 shrink-0">
               <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Divisão do mês</h2>
               <InfoTooltip
                 titulo={
-                  modoDivisao === 'pagou'       ? 'Quem pagou'
-                  : modoDivisao === 'custo'     ? 'Custo variável'
-                  : 'Com fixos'
+                  modoDivisao === 'custo_total' ? 'Custo por pessoa' : 'Quanto pagou'
                 }
                 explicacao={
-                  modoDivisao === 'pagou'
-                    ? 'Quem desembolsou o quê nos gastos variáveis do mês. Se Gaia pagou o jantar do casal, aparece tudo no dela — independente de ser 50/50.'
-                    : modoDivisao === 'custo'
-                    ? 'O que cada um realmente deve nas despesas variáveis, já considerando a divisão combinada. Num gasto 50/50, cada um arca com metade — independente de quem passou o cartão.'
-                    : 'Soma o custo variável com os fixos mensais (aluguel, assinaturas, etc.), já rateados pela divisão de cada um. É o custo total real do mês para cada pessoa.'
+                  modoDivisao === 'custo_total'
+                    ? 'O que foi destinado para cada um, independente de quem pagou. Soma variável + recorrente, já aplicando as regras de divisão de cada gasto. Se tudo foi 50/50, o custo será igual para os dois.'
+                    : 'Quanto cada um desembolsou fisicamente no mês — variável e recorrente somados. Independe da divisão combinada: se Gaia pagou o jantar do casal, aparece tudo no dela.'
                 }
               />
             </div>
-            {/* Toggle 3 modos */}
+            {/* Toggle 2 modos */}
             <div className="flex rounded-lg overflow-hidden border text-xs shrink-0" style={{ borderColor: 'var(--border)' }}>
-              {(['pagou', 'custo', 'custo_total'] as const).map(modo => (
+              {(['custo_total', 'pagou'] as const).map(modo => (
                 <button
                   key={modo}
                   type="button"
@@ -179,16 +175,18 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {modo === 'pagou' ? 'Pagou' : modo === 'custo' ? 'Custo var.' : 'Com fixos'}
+                  {modo === 'custo_total' ? 'Custo por pessoa' : 'Quanto pagou'}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Modos "Quem pagou" e "Custo variável" */}
-          {modoDivisao !== 'custo_total' && (
+          {/* Aba "Quanto pagou" — desembolso físico (variável + recorrente) */}
+          {modoDivisao === 'pagou' && (
             <div className="rounded-xl px-4 py-4 space-y-3 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-              {(modoDivisao === 'pagou' ? data.divisao : data.divisaoCusto).map(d => (
+              {data.divisao.length === 0 ? (
+                <p className="text-sm text-center" style={{ color: 'var(--muted)' }}>Sem gastos neste mês.</p>
+              ) : data.divisao.map(d => (
                 <button
                   key={d.apelido}
                   onClick={() => setPessoaAberta(d)}
@@ -196,7 +194,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm" style={{ color: 'var(--muted)' }}>
-                      {modoDivisao === 'pagou' ? `${d.apelido} pagou` : `Deve pagar ${d.apelido}`}
+                      {d.apelido} pagou
                     </span>
                     <div className="text-right">
                       <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(d.total)}</span>
@@ -207,7 +205,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                   <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
                     <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${d.pct}%`, background: modoDivisao === 'pagou' ? 'var(--coral)' : 'var(--sage)' }}
+                      style={{ width: `${d.pct}%`, background: 'var(--coral)' }}
                     />
                   </div>
                 </button>
@@ -215,7 +213,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
             </div>
           )}
 
-          {/* Modo "Custo total" (variável + recorrente) */}
+          {/* Aba "Custo por pessoa" — custo real (variável + recorrente, splits aplicados) */}
           {modoDivisao === 'custo_total' && (
             <div className="rounded-xl px-4 py-4 space-y-3 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
               {data.custoRealCompleto.length === 0 ? (
@@ -230,7 +228,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-sm" style={{ color: 'var(--muted)' }}>
-                          Custo total {d.apelido}
+                          {d.apelido}
                         </span>
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(d.custo_total)}</span>

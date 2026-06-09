@@ -113,18 +113,29 @@ async function BalanceSection({ userId }: { userId: string | null }) {
     { data: users },
     { data: detalheRows },
     { data: imbalanceRows },
+    { data: custoRealRows },
   ] = await Promise.all([
     supabase.from('v_saldo_atual').select('devedor_id, credor_id, valor_centavos'),
     supabase.from('users').select('id, apelido'),
     // v_saldo_detalhado_mes: escopo mês atual, só gastos variáveis (origem='pwa'), + custo real
     supabase.from('v_saldo_detalhado_mes').select('apelido_a, apelido_b, pagou_a, pagou_b, credito_a, credito_b, acertos_net, custo_a, custo_b'),
     supabase.from('v_recurring_imbalance').select('user_id, apelido, saldo_bruto_centavos, saldo_liquido_centavos, total_pago_centavos, meses_count'),
+    // Custo recorrente deste mês por pessoa — para exibir desequilíbrio mensal projetado no banner
+    supabase.from('v_custo_real_mes').select('user_id, apelido, custo_recorrente'),
   ])
 
   const saldo      = (saldoRows as SaldoRow[] | null)?.[0] ?? null
   const userList   = (users as UserRow[] | null) ?? []
   const detalhe    = (detalheRows as DetalheRow[] | null)?.[0] ?? null
   const imbalance  = (imbalanceRows as RecurringImbalanceRow[] | null) ?? []
+
+  // Desequilíbrio mensal: diferença de custo_recorrente entre as duas pessoas este mês
+  const custoRealList = (custoRealRows as { user_id: string; apelido: string; custo_recorrente: number }[] | null) ?? []
+  const sortedByCustoRec = [...custoRealList].sort((a, b) => b.custo_recorrente - a.custo_recorrente)
+  const mensalImbalanceCentavos = sortedByCustoRec.length >= 2
+    ? sortedByCustoRec[0].custo_recorrente - sortedByCustoRec[1].custo_recorrente
+    : 0
+  const nomePagaMaisMensal = sortedByCustoRec[0]?.apelido ?? ''
 
   // ── Compute dívida líquida real (isonomia de dados) ──────────
   const credorRecorrente  = imbalance.find(r => r.saldo_liquido_centavos > 0)
@@ -196,6 +207,8 @@ async function BalanceSection({ userId }: { userId: string | null }) {
         dividaLiquidaCredor={credorLiquidoApelido}
         imbalanceCentavos={imbalanceCentavos}
         nomePagaMais={nomeCredorRec}
+        mensalImbalanceCentavos={mensalImbalanceCentavos}
+        nomePagaMaisMensal={nomePagaMaisMensal}
       />
     </>
   )
