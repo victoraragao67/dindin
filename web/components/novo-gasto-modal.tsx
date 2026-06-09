@@ -67,6 +67,13 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
   const [parcelas, setParcelas]         = useState(1)
   const [divisao, setDivisao]           = useState<Divisao>('50_50')
   const [splitPct, setSplitPct]         = useState(50)
+  // Modo de input de divisão customizada — por valor monetário (padrão) ou percentual
+  const [splitInputMode, setSplitInputMode] = useState<'valor' | 'pct'>('valor')
+  // Qual card está ativo (pagador ou outro)
+  const [splitValorRaw, setSplitValorRaw]   = useState<'pagador' | 'outro'>('pagador')
+  // Valores em centavos como string ('' = não digitado ainda → usa calculado de splitPct)
+  const [splitValorPagador, setSplitValorPagador] = useState('')
+  const [splitValorOutro, setSplitValorOutro]     = useState('')
   const [dataCompra, setDataCompra]     = useState(todayBRTStr())
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [descricao, setDescricao]       = useState('')
@@ -97,7 +104,13 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
         setPagador(editando.pagador_apelido)
         setDescricaoMain(editando.descricao)
         setDivisao(editando.divisao)
-        setSplitPct(editando.split_pagador_pct ?? 50)
+        const pctRec = editando.split_pagador_pct ?? 50
+        setSplitPct(pctRec)
+        if (editando.divisao === 'customizada') {
+          const val = editando.valor_centavos
+          setSplitValorPagador(String(Math.floor(val * pctRec / 100)))
+          setSplitValorOutro(String(val - Math.floor(val * pctRec / 100)))
+        }
         setDiaDoMes(editando.dia_do_mes)
       } else if (editandoGasto) {
         setRawDigits(String(editandoGasto.valor_total_centavos))
@@ -105,7 +118,13 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
         setPagador(editandoGasto.pagador_apelido)
         setParcelas(editandoGasto.parcelas)
         setDivisao(editandoGasto.divisao)
-        setSplitPct(editandoGasto.split_pagador_pct ?? 50)
+        const pctGasto = editandoGasto.split_pagador_pct ?? 50
+        setSplitPct(pctGasto)
+        if (editandoGasto.divisao === 'customizada') {
+          const val = editandoGasto.valor_total_centavos
+          setSplitValorPagador(String(Math.floor(val * pctGasto / 100)))
+          setSplitValorOutro(String(val - Math.floor(val * pctGasto / 100)))
+        }
         setDataCompra(editandoGasto.data_compra ?? todayBRTStr())
         setDescricao(editandoGasto.descricao ?? '')
         if (editandoGasto.parcelas > 1) {
@@ -123,6 +142,10 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
       setParcelas(1)
       setDivisao('50_50')
       setSplitPct(50)
+      setSplitInputMode('valor')
+      setSplitValorRaw('pagador')
+      setSplitValorPagador('')
+      setSplitValorOutro('')
       setDataCompra(todayBRTStr())
       setShowDatePicker(false)
       setDescricao('')
@@ -140,10 +163,42 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
     }
   }, [categorias, categoriaId])
 
+  // Reseta campos de split quando o valor total muda (evita valores inválidos)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (divisao === 'customizada') {
+      setSplitValorPagador('')
+      setSplitValorOutro('')
+      setSplitPct(50)
+    }
+  }, [centavos])
+
   function handleValueChange(e: React.ChangeEvent<HTMLInputElement>) {
     const digits = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
     setRawDigits(digits)
     setError('')
+  }
+
+  function handleSplitValorPagador(raw: string) {
+    const clean = raw.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
+    setSplitValorPagador(clean)
+    if (centavos > 0 && clean) {
+      const v = parseInt(clean, 10)
+      const outro = Math.max(0, centavos - v)
+      setSplitValorOutro(String(outro))
+      setSplitPct(Math.min(99, Math.max(1, Math.round((v / centavos) * 100))))
+    }
+  }
+
+  function handleSplitValorOutro(raw: string) {
+    const clean = raw.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
+    setSplitValorOutro(clean)
+    if (centavos > 0 && clean) {
+      const v = parseInt(clean, 10)
+      const pagadorVal = Math.max(0, centavos - v)
+      setSplitValorPagador(String(pagadorVal))
+      setSplitPct(Math.min(99, Math.max(1, Math.round((pagadorVal / centavos) * 100))))
+    }
   }
 
   async function handleSalvar() {
@@ -393,7 +448,14 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
               ] as [Divisao, string][]).map(([val, label]) => (
                 <button
                   key={val}
-                  onClick={() => setDivisao(val)}
+                  onClick={() => {
+                    setDivisao(val)
+                    if (val === 'customizada') {
+                      setSplitPct(50)
+                      setSplitValorPagador(centavos > 0 ? String(Math.floor(centavos / 2)) : '')
+                      setSplitValorOutro(centavos > 0 ? String(centavos - Math.floor(centavos / 2)) : '')
+                    }
+                  }}
                   className="py-2.5 rounded-xl text-sm font-medium transition-opacity active:opacity-70"
                   style={{
                     background: divisao === val ? 'var(--sage)' : 'var(--bg-2)',
@@ -407,31 +469,106 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
             </div>
             {divisao === 'customizada' && (
               <div className="mt-4 space-y-3">
-                <input
-                  type="range"
-                  min={1}
-                  max={99}
-                  value={splitPct}
-                  onChange={e => setSplitPct(Number(e.target.value))}
-                  className="w-full accent-[color:var(--sage)]"
-                />
+
+                {/* Barra de proporção visual */}
+                {centavos > 0 && (
+                  <div>
+                    <div className="h-2 rounded-full overflow-hidden flex" style={{ background: 'var(--bg-2)' }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-150"
+                        style={{ width: `${splitPct}%`, background: 'var(--sage)' }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--sage)' }}>
+                        {pagador} {splitPct}%
+                      </span>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>
+                        {outraApelido} {100 - splitPct}%
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dois cards clicáveis — um por pessoa */}
                 <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={splitPct}
-                    onChange={e => setSplitPct(Math.min(99, Math.max(1, Number(e.target.value))))}
-                    className="w-16 text-center rounded-lg py-1.5 text-sm focus:outline-none"
-                    style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', color: 'var(--ink)' }}
-                  />
-                  <span className="text-sm self-center" style={{ color: 'var(--muted)' }}>% para {pagador}</span>
+
+                  {/* Card do pagador */}
+                  <button
+                    onClick={() => {
+                      setSplitValorRaw('pagador')
+                      setTimeout(() => document.getElementById('split-valor-input')?.focus(), 30)
+                    }}
+                    className="flex-1 rounded-xl p-3 text-left transition-colors"
+                    style={{
+                      background:  splitValorRaw === 'pagador' ? 'var(--card)' : 'var(--bg-2)',
+                      border:      splitValorRaw === 'pagador' ? '1.5px solid var(--sage)' : '1.5px solid var(--border)',
+                    }}
+                  >
+                    <p className="text-xs font-semibold mb-1" style={{ color: 'var(--muted)' }}>{pagador}</p>
+                    <p className="text-xl font-bold leading-none" style={{ color: 'var(--ink)' }}>
+                      <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>R$</span>
+                      {splitValorPagador
+                        ? formatCurrency(parseInt(splitValorPagador, 10)).replace('R$ ', '').replace('R$ ', '').replace('R$', '')
+                        : centavos > 0
+                          ? formatCurrency(Math.floor(centavos * splitPct / 100)).replace('R$ ', '').replace('R$ ', '').replace('R$', '')
+                          : '—'}
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--sage)' }}>{splitPct}%</p>
+                  </button>
+
+                  {/* Card do outro */}
+                  <button
+                    onClick={() => {
+                      setSplitValorRaw('outro')
+                      setTimeout(() => document.getElementById('split-valor-input')?.focus(), 30)
+                    }}
+                    className="flex-1 rounded-xl p-3 text-left transition-colors"
+                    style={{
+                      background:  splitValorRaw === 'outro' ? 'var(--card)' : 'var(--bg-2)',
+                      border:      splitValorRaw === 'outro' ? '1.5px solid var(--sage)' : '1.5px solid var(--border)',
+                    }}
+                  >
+                    <p className="text-xs font-semibold mb-1" style={{ color: 'var(--muted)' }}>{outraApelido}</p>
+                    <p className="text-xl font-bold leading-none" style={{ color: 'var(--ink)' }}>
+                      <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>R$</span>
+                      {splitValorOutro
+                        ? formatCurrency(parseInt(splitValorOutro, 10)).replace('R$ ', '').replace('R$ ', '').replace('R$', '')
+                        : centavos > 0
+                          ? formatCurrency(Math.floor(centavos * (100 - splitPct) / 100)).replace('R$ ', '').replace('R$ ', '').replace('R$', '')
+                          : '—'}
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{100 - splitPct}%</p>
+                  </button>
+
                 </div>
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {pagador} paga {splitPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * splitPct / 100))})` : ''}
-                  {' · '}
-                  {outraApelido} paga {100 - splitPct}%{centavos > 0 ? ` (${formatCurrency(Math.floor(centavos * (100 - splitPct) / 100))})` : ''}
-                </p>
+
+                {/* Input oculto — recebe foco e abre teclado nativo */}
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="sr-only"
+                  id="split-valor-input"
+                  value={
+                    splitValorRaw === 'pagador'
+                      ? (splitValorPagador ? formatCurrency(parseInt(splitValorPagador, 10)) : '')
+                      : (splitValorOutro   ? formatCurrency(parseInt(splitValorOutro, 10))   : '')
+                  }
+                  onChange={e => {
+                    const digits = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
+                    if (splitValorRaw === 'pagador') handleSplitValorPagador(digits)
+                    else handleSplitValorOutro(digits)
+                  }}
+                  aria-label={`Valor de ${splitValorRaw === 'pagador' ? pagador : outraApelido}`}
+                />
+
+                {/* Hint */}
+                {centavos > 0 && (
+                  <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
+                    Total {formatCurrency(centavos)} · toque num campo e digite o valor
+                  </p>
+                )}
+
               </div>
             )}
           </div>
