@@ -207,8 +207,7 @@ export default function LoginPage() {
               </button>
 
               <p style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
-                Vamos enviar um código de 8 dígitos.{' '}
-                <span style={{ color: 'var(--coral)', fontWeight: 500 }}>Digite-o aqui — não clique no link.</span>
+                Vamos enviar um código de 8 dígitos para seu e-mail.
               </p>
             </form>
           )}
@@ -303,20 +302,22 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* ── Conheça mais ── */}
+        {/* ── Conheça mais + Suporte ── */}
         {showEmail && (
-          <a
-            href="/sobre"
-            style={{
-              marginTop: 20,
-              fontSize: 12,
-              color: 'var(--muted)',
-              textDecoration: 'none',
-              textAlign: 'center',
-            }}
-          >
-            Conheça mais sobre o Nosso DinDin →
-          </a>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 20 }}>
+            <a
+              href="/sobre"
+              style={{ fontSize: 12, color: 'var(--muted)', textDecoration: 'none', textAlign: 'center' }}
+            >
+              Conheça mais sobre o Nosso DinDin →
+            </a>
+            <a
+              href="mailto:contato@nossodindin.app"
+              style={{ fontSize: 12, color: 'var(--muted)', textDecoration: 'none', textAlign: 'center' }}
+            >
+              Precisa de ajuda? contato@nossodindin.app
+            </a>
+          </div>
         )}
       </div>
     </main>

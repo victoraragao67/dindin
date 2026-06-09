@@ -152,6 +152,29 @@ export default async function ConfigPage() {
             </Link>
           </div>
 
+          {/* Suporte */}
+          <div>
+            <p
+              className="text-xs font-semibold uppercase tracking-wide px-1 mb-2"
+              style={{ color: 'var(--muted)' }}
+            >
+              Suporte
+            </p>
+            <a
+              href="mailto:contato@nossodindin.app"
+              className="flex items-center justify-between rounded-xl px-4 py-4 border"
+              style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">✉️</span>
+                <div>
+                  <p className="text-sm" style={{ color: 'var(--ink)' }}>Falar com suporte</p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>contato@nossodindin.app</p>
+                </div>
+              </div>
+            </a>
+          </div>
+
           {/* Conta */}
           <div>
             <p
