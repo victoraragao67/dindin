@@ -65,28 +65,27 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
     return { ok: false, error: 'Você não pode se convidar.' }
   }
 
-  // Verifica se o email convidado existe no sistema
   const supabase = createClient()
+
+  // Verifica se o convidado já está em casal ativo/pending
+  // (só bloqueia se o usuário já existir — se não existir, segue normalmente)
   const { data: convidado } = await supabase
     .from('users')
     .select('id')
     .eq('email', email)
     .maybeSingle()
 
-  if (!convidado) {
-    return { ok: false, error: 'Nenhum usuário com este e-mail encontrado. O parceiro precisa ter feito login pelo menos uma vez.' }
-  }
+  if (convidado) {
+    const { data: membroExistente } = await supabase
+      .from('casal_membros')
+      .select('casal_id, casais!inner(status)')
+      .eq('user_id', convidado.id)
+      .in('casais.status', ['active', 'pending'])
+      .maybeSingle()
 
-  // Verifica se o convidado já está em casal ativo/pending
-  const { data: membroExistente } = await supabase
-    .from('casal_membros')
-    .select('casal_id, casais!inner(status)')
-    .eq('user_id', convidado.id)
-    .in('casais.status', ['active', 'pending'])
-    .maybeSingle()
-
-  if (membroExistente) {
-    return { ok: false, error: 'Este usuário já faz parte de outro casal.' }
+    if (membroExistente) {
+      return { ok: false, error: 'Este usuário já faz parte de outro casal.' }
+    }
   }
 
   // Cria o casal
@@ -136,6 +135,9 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
   if (errConvite) {
     return { ok: false, error: 'Erro ao criar convite.' }
   }
+
+  // Envia código de login para o parceiro (cria conta no Supabase se não existir)
+  await supabase.auth.signInWithOtp({ email })
 
   redirect('/onboarding/aguardando')
 }
