@@ -7,6 +7,54 @@ import { revalidatePath }    from 'next/cache'
 
 // ── Casais ────────────────────────────────────────────────────
 
+export async function deletarCasal(casalId: string) {
+  await requireAdmin()
+
+  const supabase = createAdminClient()
+
+  // Busca os user_ids dos membros antes de deletar
+  const { data: membros } = await supabase
+    .from('casal_membros')
+    .select('user_id')
+    .eq('casal_id', casalId)
+
+  const userIds = ((membros ?? []) as { user_id: string }[]).map(m => m.user_id)
+
+  // Busca expense IDs para deletar installments primeiro
+  const { data: expenses } = await supabase
+    .from('expenses')
+    .select('id')
+    .eq('casal_id', casalId)
+
+  const expenseIds = ((expenses ?? []) as { id: string }[]).map(e => e.id)
+
+  if (expenseIds.length > 0) {
+    await supabase.from('expense_installments').delete().in('expense_id', expenseIds)
+  }
+
+  await supabase.from('expenses').delete().eq('casal_id', casalId)
+  await supabase.from('transfers').delete().eq('casal_id', casalId)
+  await supabase.from('recurring_templates').delete().eq('casal_id', casalId)
+  await supabase.from('spending_goals').delete().eq('casal_id', casalId)
+  await supabase.from('casal_convites').delete().eq('casal_id', casalId)
+
+  if (userIds.length > 0) {
+    await supabase.from('push_subscriptions').delete().in('user_id', userIds)
+    await supabase.from('users').delete().in('id', userIds)
+  }
+
+  await supabase.from('casal_membros').delete().eq('casal_id', casalId)
+  await supabase.from('casais').delete().eq('id', casalId)
+
+  // Deleta das auth.users via admin API
+  for (const uid of userIds) {
+    await supabase.auth.admin.deleteUser(uid)
+  }
+
+  revalidatePath('/admin')
+  return { ok: true }
+}
+
 export async function bloquearCasal(casalId: string) {
   await requireAdmin()
 
