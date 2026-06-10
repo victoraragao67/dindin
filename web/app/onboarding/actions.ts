@@ -118,14 +118,14 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
     .select('id')
     .single()
 
-  if (errCasal || !casal) return { ok: false, error: 'Erro ao criar casal.' }
+  if (errCasal || !casal) return { ok: false, error: `Erro ao criar casal: ${errCasal?.message}` }
 
   // Vincula o criador como owner
   const { error: errMembro } = await supabase
     .from('casal_membros')
     .insert({ casal_id: casal.id, user_id: user.id, role: 'owner' })
 
-  if (errMembro) return { ok: false, error: 'Erro ao vincular membro.' }
+  if (errMembro) return { ok: false, error: `Erro ao vincular membro: ${errMembro.message}` }
 
   // Gera token único
   let token = ''
