@@ -56,8 +56,8 @@ export function HomeClient({ currentApelido, apelidos, hideBottomNav = false }: 
 
       {!hideBottomNav && <BottomNav />}
 
-      {/* FAB flutuante para adicionar gasto */}
-      <Fab onClick={() => setModalOpen(true)} />
+      {/* FAB flutuante para adicionar gasto — oculto enquanto modal está aberto */}
+      {!modalOpen && <Fab onClick={() => setModalOpen(true)} />}
     </>
   )
 }
