@@ -259,7 +259,7 @@ export default function LoginPage() {
                   value={otp}
                   onChange={(e) => {
                     setOtp(e.target.value.replace(/\D/g, ''))
-                    if (step === 'error') { setStep('otp'); setErrorMsg('') }
+                    if (errorMsg) setErrorMsg('')
                   }}
                   placeholder="00000000"
                   disabled={loading}
