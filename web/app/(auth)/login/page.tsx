@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [otp,      setOtp]      = useState('')
   const [step,     setStep]     = useState<Step>('email')
   const [errorMsg, setErrorMsg] = useState('')
+  const [codeSent, setCodeSent] = useState(true)
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault()
@@ -34,11 +35,13 @@ export default function LoginPage() {
 
     if (error) {
       console.error('[login] signInWithOtp error:', error.message, error)
-      setErrorMsg(`Falha ao enviar o código: ${error.message}`)
-      setStep('error')
+      // Avança para OTP mesmo assim — usuário pode ter recebido código via convite
+      setCodeSent(false)
+      setStep('otp')
       return
     }
 
+    setCodeSent(true)
     setStep('otp')
   }
 
@@ -73,8 +76,8 @@ export default function LoginPage() {
   }
 
   const loading   = step === 'loading_send' || step === 'loading_verify'
-  const showEmail = step === 'email' || step === 'loading_send' || (step === 'error' && !otp)
-  const showOtp   = step === 'otp'   || step === 'loading_verify' || (step === 'error' && !!otp)
+  const showEmail = step === 'email' || step === 'loading_send' || step === 'error'
+  const showOtp   = step === 'otp'   || step === 'loading_verify'
 
   return (
     <main style={{
@@ -217,15 +220,24 @@ export default function LoginPage() {
             <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }} noValidate>
 
               <div style={{
-                background: 'rgba(122,158,126,0.12)',
-                border: '1px solid rgba(122,158,126,0.3)',
+                background: codeSent ? 'rgba(122,158,126,0.12)' : 'rgba(200,160,40,0.12)',
+                border: `1px solid ${codeSent ? 'rgba(122,158,126,0.3)' : 'rgba(200,160,40,0.4)'}`,
                 borderRadius: 12, padding: '10px 14px',
                 display: 'flex', alignItems: 'center', gap: 10,
               }}>
-                <span style={{ fontSize: 18 }}>✉️</span>
+                <span style={{ fontSize: 18 }}>{codeSent ? '✉️' : '📬'}</span>
                 <div>
-                  <p style={{ fontSize: 12, color: '#3d6440', fontWeight: 600, marginBottom: 2 }}>Código enviado!</p>
-                  <p style={{ fontSize: 11, color: '#5a7a5e' }}>{email}</p>
+                  {codeSent ? (
+                    <>
+                      <p style={{ fontSize: 12, color: '#3d6440', fontWeight: 600, marginBottom: 2 }}>Código enviado!</p>
+                      <p style={{ fontSize: 11, color: '#5a7a5e' }}>{email}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: 12, color: '#7a5c00', fontWeight: 600, marginBottom: 2 }}>Insira o código do seu e-mail</p>
+                      <p style={{ fontSize: 11, color: '#8a6a00' }}>Use o código que você já recebeu (ex: convite)</p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -247,7 +259,7 @@ export default function LoginPage() {
                   value={otp}
                   onChange={(e) => {
                     setOtp(e.target.value.replace(/\D/g, ''))
-                    if (step === 'error') { setStep('otp'); setErrorMsg('') }
+                    if (errorMsg) setErrorMsg('')
                   }}
                   placeholder="00000000"
                   disabled={loading}
@@ -288,7 +300,7 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => { setStep('email'); setOtp(''); setErrorMsg('') }}
+                onClick={() => { setStep('email'); setOtp(''); setErrorMsg(''); setCodeSent(true) }}
                 style={{
                   background: 'none', border: 'none', fontSize: 12,
                   color: 'var(--muted)', width: '100%', cursor: 'pointer',
