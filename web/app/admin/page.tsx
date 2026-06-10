@@ -1,6 +1,7 @@
-import { requireAdmin }      from '@/lib/admin/check-admin'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { BloqueioButton }    from './bloquear-button'
+import { requireAdmin }        from '@/lib/admin/check-admin'
+import { createAdminClient }   from '@/lib/supabase/admin'
+import { BloqueioButton }      from './bloquear-button'
+import { DeletarCasalButton }  from './deletar-casal-button'
 
 type CasalMembro = {
   role: string
@@ -94,7 +95,7 @@ export default async function AdminPage() {
         {/* Cabeçalho */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1.5fr 2fr 1fr 1.2fr 90px',
+          gridTemplateColumns: '1.5fr 2fr 1fr 1.2fr 90px 80px',
           padding: '8px 14px',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           fontSize: 10,
@@ -107,7 +108,8 @@ export default async function AdminPage() {
           <span>Membros</span>
           <span>Status</span>
           <span>Última atividade</span>
-          <span>Ação</span>
+          <span>Bloquear</span>
+          <span>Deletar</span>
         </div>
 
         {/* Linhas */}
@@ -128,7 +130,7 @@ export default async function AdminPage() {
           return (
             <div key={casal.id} style={{
               display: 'grid',
-              gridTemplateColumns: '1.5fr 2fr 1fr 1.2fr 90px',
+              gridTemplateColumns: '1.5fr 2fr 1fr 1.2fr 90px 80px',
               padding: '10px 14px',
               borderBottom: '1px solid rgba(255,255,255,0.04)',
               alignItems: 'center',
@@ -184,10 +186,21 @@ export default async function AdminPage() {
                 {ultimoGasto}
               </div>
 
-              {/* Ação */}
+              {/* Bloquear */}
               <BloqueioButton
                 casalId={casal.id}
                 status={casal.status}
+              />
+
+              {/* Deletar */}
+              <DeletarCasalButton
+                casalId={casal.id}
+                label={membros
+                  .map(m => {
+                    const u = Array.isArray(m.users) ? (m.users as { apelido: string }[])[0] : m.users
+                    return u?.apelido ?? '?'
+                  })
+                  .join(' & ')}
               />
             </div>
           )
