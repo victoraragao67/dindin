@@ -64,6 +64,7 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
   }
 
   const supabase = createClient()
+  const supabaseAdmin = createAdminClient()
 
   // Trava A: máximo 3 convites pendentes por usuário
   const { count: convitesPendentes } = await supabase
@@ -111,8 +112,8 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
     }
   }
 
-  // Cria o casal
-  const { data: casal, error: errCasal } = await supabase
+  // Cria o casal e vincula o owner via admin client (sem policy INSERT em casais)
+  const { data: casal, error: errCasal } = await supabaseAdmin
     .from('casais')
     .insert({ nome: null, status: 'pending' })
     .select('id')
@@ -120,8 +121,7 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
 
   if (errCasal || !casal) return { ok: false, error: `Erro ao criar casal: ${errCasal?.message}` }
 
-  // Vincula o criador como owner
-  const { error: errMembro } = await supabase
+  const { error: errMembro } = await supabaseAdmin
     .from('casal_membros')
     .insert({ casal_id: casal.id, user_id: user.id, role: 'owner' })
 
