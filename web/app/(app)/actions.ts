@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getCasal } from '@/lib/supabase/get-casal'
 import { todayBRTStr } from '@/lib/date'
 import { sendPushToSubs } from '@/lib/push/send-server'
@@ -112,6 +113,10 @@ async function notifyParceiro(
   pagadorApelido: string,
   categoriaId: number,
 ) {
+  // Admin client para bypasaar RLS em push_subscriptions (a policy só permite
+  // que cada user leia as próprias subscriptions — precisamos ler as do parceiro)
+  const adminSupabase = createAdminClient()
+
   // Busca categoria e subscriptions do parceiro em paralelo
   const [catRes, subsRes] = await Promise.all([
     supabase
@@ -119,7 +124,7 @@ async function notifyParceiro(
       .select('nome, emoji')
       .eq('id', categoriaId)
       .single(),
-    supabase
+    adminSupabase
       .from('push_subscriptions')
       .select('endpoint, p256dh, auth')
       .eq('user_id', parceiroId)

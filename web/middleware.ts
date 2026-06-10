@@ -48,8 +48,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Já autenticado tentando acessar /login → /
-  if (user && pathname === '/login') {
+  // Já autenticado tentando acessar /login ou /sobre → /
+  if (user && (pathname === '/login' || pathname === '/sobre')) {
     const homeUrl = request.nextUrl.clone()
     homeUrl.pathname = '/'
     return NextResponse.redirect(homeUrl)
