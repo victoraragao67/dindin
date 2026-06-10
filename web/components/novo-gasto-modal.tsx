@@ -181,12 +181,14 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
 
   function handleSplitValorPagador(raw: string) {
     const clean = raw.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
-    if (centavos > 0 && clean) {
-      const v = Math.min(parseInt(clean, 10), centavos)
-      const outro = centavos - v
-      setSplitValorPagador(String(v))
+    if (!clean) { setSplitValorPagador(''); return }
+    if (centavos > 0) {
+      const typed = parseInt(clean, 10)
+      if (typed > centavos) return  // trava o dígito — não aceita acima do total
+      const outro = centavos - typed
+      setSplitValorPagador(String(typed))
       setSplitValorOutro(String(outro))
-      setSplitPct(v >= centavos ? 99 : Math.max(1, Math.round((v / centavos) * 100)))
+      setSplitPct(typed >= centavos ? 99 : Math.max(1, Math.round((typed / centavos) * 100)))
     } else {
       setSplitValorPagador(clean)
     }
@@ -194,10 +196,12 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
 
   function handleSplitValorOutro(raw: string) {
     const clean = raw.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
-    if (centavos > 0 && clean) {
-      const v = Math.min(parseInt(clean, 10), centavos)
-      const pagadorVal = centavos - v
-      setSplitValorOutro(String(v))
+    if (!clean) { setSplitValorOutro(''); return }
+    if (centavos > 0) {
+      const typed = parseInt(clean, 10)
+      if (typed > centavos) return  // trava o dígito — não aceita acima do total
+      const pagadorVal = centavos - typed
+      setSplitValorOutro(String(typed))
       setSplitValorPagador(String(pagadorVal))
       setSplitPct(pagadorVal <= 0 ? 1 : Math.min(99, Math.round((pagadorVal / centavos) * 100)))
     } else {
