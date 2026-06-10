@@ -3,6 +3,16 @@
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/money'
 import { InfoTooltip } from '@/components/info-tooltip'
+import { createClient } from '@/lib/supabase/client'
+
+type GastoItem = {
+  id: string
+  valor_centavos: number
+  data_competencia: string
+  descricao: string | null
+  categoria_nome: string
+  categoria_emoji: string
+}
 
 type SaldoRow = {
   devedor_id: string
@@ -64,6 +74,56 @@ export function HomeBalanceCard({
   dividaLiquida,
 }: Props) {
   const [showModal, setShowModal] = useState(false)
+  const [gastosApelido, setGastosApelido] = useState<string | null>(null)
+  const [gastosList, setGastosList] = useState<GastoItem[]>([])
+  const [gastosLoading, setGastosLoading] = useState(false)
+
+  function formatDia(dateStr: string): string {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    const y1 = new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+    if (dateStr === today) return 'Hoje'
+    if (dateStr === y1) return 'Ontem'
+    const [, m, d] = dateStr.split('-')
+    return `${d}/${m}`
+  }
+
+  async function abrirGastosPagador(apelido: string) {
+    const userId = users.find(u => u.apelido === apelido)?.id
+    if (!userId) return
+    setGastosApelido(apelido)
+    setGastosLoading(true)
+    setGastosList([])
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const y = now.getFullYear()
+    const m = now.getMonth() + 1
+    const start = `${y}-${String(m).padStart(2, '0')}-01`
+    const lastDay = new Date(y, m, 0).getDate()
+    const end = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('expense_installments')
+      .select('id, valor_centavos, data_competencia, expenses!inner(descricao, cancelado, origem, pagador_id, categoria:categories!expenses_categoria_id_fkey(nome, emoji))')
+      .eq('expenses.pagador_id', userId)
+      .gte('data_competencia', start)
+      .lte('data_competencia', end)
+      .eq('expenses.cancelado', false)
+      .eq('expenses.origem', 'pwa')
+      .order('data_competencia', { ascending: false })
+    const items = ((data ?? []) as any[]).map(row => {
+      const exp = row.expenses
+      const cat = Array.isArray(exp?.categoria) ? exp.categoria[0] : exp?.categoria
+      return {
+        id: row.id,
+        valor_centavos: row.valor_centavos,
+        data_competencia: row.data_competencia,
+        descricao: exp?.descricao ?? null,
+        categoria_nome: cat?.nome ?? '',
+        categoria_emoji: cat?.emoji ?? '💸',
+      }
+    })
+    setGastosList(items)
+    setGastosLoading(false)
+  }
 
   function getApelido(id: string) {
     return users.find(u => u.id === id)?.apelido ?? '?'
@@ -141,12 +201,13 @@ export function HomeBalanceCard({
           </div>
         )}
 
-        {/* Pills: quem pagou quanto */}
+        {/* Pills: quem pagou quanto — clicável para auditoria */}
         {detalhe && (
           <div className="flex gap-2">
-            <div
-              className="flex-1 rounded-2xl px-3 py-2 text-center"
-              style={{ background: 'var(--bg-2)' }}
+            <button
+              onClick={() => abrirGastosPagador(detalhe.apelido_a)}
+              className="flex-1 rounded-2xl px-3 py-2.5 text-center transition-opacity active:opacity-70"
+              style={{ background: 'var(--bg-2)', border: '1px solid var(--border)' }}
             >
               <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--muted)' }}>
                 {detalhe.apelido_a} pagou
@@ -154,10 +215,12 @@ export function HomeBalanceCard({
               <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
                 {formatCurrency(detalhe.pagou_a)}
               </p>
-            </div>
-            <div
-              className="flex-1 rounded-2xl px-3 py-2 text-center"
-              style={{ background: 'var(--bg-2)' }}
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>ver lista ›</p>
+            </button>
+            <button
+              onClick={() => abrirGastosPagador(detalhe.apelido_b)}
+              className="flex-1 rounded-2xl px-3 py-2.5 text-center transition-opacity active:opacity-70"
+              style={{ background: 'var(--bg-2)', border: '1px solid var(--border)' }}
             >
               <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--muted)' }}>
                 {detalhe.apelido_b} pagou
@@ -165,10 +228,123 @@ export function HomeBalanceCard({
               <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
                 {formatCurrency(detalhe.pagou_b)}
               </p>
-            </div>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>ver lista ›</p>
+            </button>
           </div>
         )}
       </div>
+
+      {/* ── Bottom sheet: auditoria de gastos por pessoa ── */}
+      {gastosApelido !== null && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/60"
+            onClick={() => setGastosApelido(null)}
+            aria-hidden="true"
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl max-h-[85dvh]"
+            style={{ background: 'var(--card)' }}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-4 py-4 border-b shrink-0"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <button
+                onClick={() => setGastosApelido(null)}
+                className="p-1 transition-opacity active:opacity-70 text-lg"
+                style={{ color: 'var(--muted)' }}
+              >✕</button>
+              <div className="text-center">
+                <p className="font-semibold text-base" style={{ color: 'var(--ink)' }}>
+                  Gastos de {gastosApelido}
+                </p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                  {new Date().toLocaleDateString('pt-BR', { month: 'long', timeZone: 'America/Sao_Paulo' })} · variáveis
+                </p>
+              </div>
+              <div className="w-7" />
+            </div>
+
+            {/* Lista */}
+            <div className="overflow-y-auto flex-1 px-4 py-2">
+              {gastosLoading ? (
+                <div className="space-y-4 animate-pulse py-4">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl shrink-0" style={{ background: 'var(--bg-2)' }} />
+                        <div className="space-y-1.5">
+                          <div className="h-3.5 w-28 rounded" style={{ background: 'var(--bg-2)' }} />
+                          <div className="h-3 w-16 rounded" style={{ background: 'var(--bg-2)' }} />
+                        </div>
+                      </div>
+                      <div className="h-4 w-16 rounded" style={{ background: 'var(--bg-2)' }} />
+                    </div>
+                  ))}
+                </div>
+              ) : gastosList.length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-4xl mb-3">🌿</p>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                    Nenhum gasto registrado este mês
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                  {gastosList.map(g => (
+                    <div key={g.id} className="flex items-center justify-between gap-3 py-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+                          style={{ background: 'var(--bg-2)' }}
+                        >
+                          {g.categoria_emoji}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>
+                            {g.descricao || g.categoria_nome}
+                          </p>
+                          {g.descricao && (
+                            <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>
+                              {g.categoria_nome}
+                            </p>
+                          )}
+                          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                            {formatDia(g.data_competencia)}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-sm font-semibold shrink-0" style={{ color: 'var(--ink)' }}>
+                        {formatCurrency(g.valor_centavos)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer: total */}
+            {!gastosLoading && gastosList.length > 0 && (
+              <div
+                className="px-4 py-3 border-t shrink-0"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                    {gastosList.length} item{gastosList.length !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-sm font-bold" style={{ color: 'var(--ink)' }}>
+                    {formatCurrency(gastosList.reduce((s, g) => s + g.valor_centavos, 0))}
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
+          </div>
+        </>
+      )}
 
       {/* Modal "Como chegamos nesse saldo?" */}
       {showModal && (

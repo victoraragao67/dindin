@@ -181,23 +181,27 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
 
   function handleSplitValorPagador(raw: string) {
     const clean = raw.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
-    setSplitValorPagador(clean)
     if (centavos > 0 && clean) {
-      const v = parseInt(clean, 10)
-      const outro = Math.max(0, centavos - v)
+      const v = Math.min(parseInt(clean, 10), centavos)
+      const outro = centavos - v
+      setSplitValorPagador(String(v))
       setSplitValorOutro(String(outro))
-      setSplitPct(Math.min(99, Math.max(1, Math.round((v / centavos) * 100))))
+      setSplitPct(v >= centavos ? 99 : Math.max(1, Math.round((v / centavos) * 100)))
+    } else {
+      setSplitValorPagador(clean)
     }
   }
 
   function handleSplitValorOutro(raw: string) {
     const clean = raw.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
-    setSplitValorOutro(clean)
     if (centavos > 0 && clean) {
-      const v = parseInt(clean, 10)
-      const pagadorVal = Math.max(0, centavos - v)
+      const v = Math.min(parseInt(clean, 10), centavos)
+      const pagadorVal = centavos - v
+      setSplitValorOutro(String(v))
       setSplitValorPagador(String(pagadorVal))
-      setSplitPct(Math.min(99, Math.max(1, Math.round((pagadorVal / centavos) * 100))))
+      setSplitPct(pagadorVal <= 0 ? 1 : Math.min(99, Math.round((pagadorVal / centavos) * 100)))
+    } else {
+      setSplitValorOutro(clean)
     }
   }
 
