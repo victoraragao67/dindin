@@ -16,14 +16,12 @@ export default async function AguardandoPage() {
     redirect('/onboarding')
   }
 
-  // Busca o convite ativo
+  // Busca o e-mail do convidado para exibir na tela
   const supabase = createClient()
   const { data: convite } = await supabase
     .from('casal_convites')
-    .select('token, email_convidado, expires_at')
+    .select('email_convidado')
     .eq('casal_id', casal.casalId)
-    .is('usado_em', null)
-    .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -31,9 +29,7 @@ export default async function AguardandoPage() {
   return (
     <AguardandoClient
       casalId={casal.casalId}
-      token={convite?.token ?? null}
       emailConvidado={convite?.email_convidado ?? null}
-      expiresAt={convite?.expires_at ?? null}
     />
   )
 }
