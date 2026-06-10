@@ -119,7 +119,7 @@ export async function SaldoHeader() {
     const crdApelido = hasImbalance ? dividaLiquidaCredor  : nomeCredorVar
     devedorApelido = devApelido
     credorApelido  = crdApelido
-    if (saldo?.devedor_id === user?.id || dividaLiquidaDevedor === getApelido(user?.id ?? '')) {
+    if (devApelido === getApelido(user?.id ?? '')) {
       mensagem = `⚡ Você deve ${formatCurrency(exibeValor)} para ${crdApelido}`
     } else {
       mensagem = `⚡ ${devApelido} te deve ${formatCurrency(exibeValor)}`
