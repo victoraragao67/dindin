@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ShareButton } from '@/components/share-button'
 
 export default function SobrePage() {
   const features = [
@@ -220,7 +221,7 @@ export default function SobrePage() {
         </div>
 
         {/* Métricas */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
           {[
             { value: 'R$ 0', label: 'custo por mês'       },
             { value: '3',    label: 'toques pra registrar' },
@@ -233,6 +234,90 @@ export default function SobrePage() {
               <p style={{ fontSize: 11, color: 'var(--muted)', margin: '3px 0 0' }}>{m.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Instalar o app */}
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '2px', color: 'var(--muted)', textTransform: 'uppercase', margin: '0 0 14px' }}>
+          Instale o app no celular
+        </p>
+        <div style={{
+          background: 'var(--card)', borderRadius: 14,
+          border: '1px solid var(--border)', overflow: 'hidden',
+          marginBottom: 28,
+        }}>
+          {/* iOS */}
+          <div style={{ padding: 16, borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: 'var(--bg-2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 15, flexShrink: 0,
+              }}>🍎</div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>iPhone (Safari)</p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[
+                <>Toque no ícone de compartilhar ⬆️ na barra do Safari</>,
+                <><strong style={{ color: 'var(--ink)' }}>&ldquo;Adicionar à Tela de Início&rdquo;</strong></>,
+                <>Toque em <strong style={{ color: 'var(--ink)' }}>&ldquo;Adicionar&rdquo;</strong> — pronto!</>,
+              ].map((step, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: 'var(--sage)', color: 'var(--ink)',
+                    fontSize: 11, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>{i + 1}</span>
+                  <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Android */}
+          <div style={{ padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: 'var(--bg-2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 15, flexShrink: 0,
+              }}>🤖</div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Android (Chrome)</p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[
+                <>Toque nos 3 pontos ⋮ no canto superior direito</>,
+                <><strong style={{ color: 'var(--ink)' }}>&ldquo;Adicionar à tela inicial&rdquo;</strong></>,
+                <>Confirme tocando em <strong style={{ color: 'var(--ink)' }}>&ldquo;Instalar&rdquo;</strong> — pronto!</>,
+              ].map((step, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: 'var(--sage)', color: 'var(--ink)',
+                    fontSize: 11, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>{i + 1}</span>
+                  <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Chamada de indicação */}
+        <div style={{
+          background: 'var(--ink)', borderRadius: 16,
+          padding: 20, marginBottom: 20, textAlign: 'center',
+        }}>
+          <p style={{ fontSize: 22, margin: '0 0 10px' }}>💚</p>
+          <p style={{ fontFamily: 'var(--font-fraunces), Georgia, serif', fontSize: 15, fontWeight: 700, color: 'var(--bg)', margin: '0 0 8px', letterSpacing: -0.3 }}>
+            Gostou? Chame seu casal.
+          </p>
+          <p style={{ fontSize: 13, color: 'rgba(245,240,232,0.55)', lineHeight: 1.6, margin: '0 0 16px' }}>
+            O app só faz sentido quando os dois usam. Mande esse link pro seu parceiro e comecem juntos.
+          </p>
+          <ShareButton />
         </div>
 
         {/* CTA final */}
