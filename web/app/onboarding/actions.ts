@@ -52,7 +52,6 @@ export async function salvarApelido(apelido: string): Promise<OnboardingResult> 
 export async function criarCasal(emailParceiro: string): Promise<OnboardingResult> {
   const email = emailParceiro.trim().toLowerCase()
 
-  // Validação básica de e-mail
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: 'Informe um e-mail válido.' }
   }
@@ -60,15 +59,39 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
   const user = await getUser()
   if (!user) return { ok: false, error: 'Usuário não autenticado.' }
 
-  // Não pode convidar a si mesmo
   if (user.email?.toLowerCase() === email) {
     return { ok: false, error: 'Você não pode se convidar.' }
   }
 
   const supabase = createClient()
 
-  // Verifica se o convidado já está em casal ativo/pending
-  // (só bloqueia se o usuário já existir — se não existir, segue normalmente)
+  // Trava A: máximo 3 convites pendentes por usuário
+  const { count: convitesPendentes } = await supabase
+    .from('casal_convites')
+    .select('id', { count: 'exact', head: true })
+    .eq('criado_por', user.id)
+    .is('usado_em', null)
+    .gt('expires_at', new Date().toISOString())
+
+  if ((convitesPendentes ?? 0) >= 3) {
+    return { ok: false, error: 'Você já tem 3 convites pendentes. Aguarde um ser aceito ou os convites expirarem.' }
+  }
+
+  // Trava B: cooldown de 10 min para o mesmo e-mail
+  const dezMinAtras = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+  const { data: conviteRecente } = await supabase
+    .from('casal_convites')
+    .select('id')
+    .eq('criado_por', user.id)
+    .eq('email_convidado', email)
+    .gt('created_at', dezMinAtras)
+    .maybeSingle()
+
+  if (conviteRecente) {
+    return { ok: false, error: 'Você já enviou um convite para este e-mail recentemente. Aguarde 10 minutos.' }
+  }
+
+  // Verifica se o convidado já está em casal ativo/pending (só se já tiver conta)
   const { data: convidado } = await supabase
     .from('users')
     .select('id')
@@ -95,20 +118,16 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
     .select('id')
     .single()
 
-  if (errCasal || !casal) {
-    return { ok: false, error: 'Erro ao criar casal.' }
-  }
+  if (errCasal || !casal) return { ok: false, error: 'Erro ao criar casal.' }
 
   // Vincula o criador como owner
   const { error: errMembro } = await supabase
     .from('casal_membros')
     .insert({ casal_id: casal.id, user_id: user.id, role: 'owner' })
 
-  if (errMembro) {
-    return { ok: false, error: 'Erro ao vincular membro.' }
-  }
+  if (errMembro) return { ok: false, error: 'Erro ao vincular membro.' }
 
-  // Gera token único (tenta até 3 vezes se colisão)
+  // Gera token único
   let token = ''
   for (let i = 0; i < 3; i++) {
     const t = gerarToken()
@@ -132,12 +151,19 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
       criado_por:      user.id,
     })
 
-  if (errConvite) {
-    return { ok: false, error: 'Erro ao criar convite.' }
-  }
+  if (errConvite) return { ok: false, error: 'Erro ao criar convite.' }
 
-  // Envia código de login para o parceiro (cria conta no Supabase se não existir)
-  await supabase.auth.signInWithOtp({ email })
+  // Envia e-mail personalizado com nome/email do remetente
+  const nomeRemetente = (user.user_metadata?.apelido as string | undefined) || user.email || 'Seu parceiro'
+  await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      data: {
+        nome_remetente:  nomeRemetente,
+        email_remetente: user.email ?? '',
+      },
+    },
+  })
 
   redirect('/onboarding/aguardando')
 }
