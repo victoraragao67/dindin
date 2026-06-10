@@ -5,9 +5,9 @@ import { entrarCasal } from '../actions'
 import Link from 'next/link'
 
 export default function EntrarCasalPage() {
-  const [token, setToken]   = useState('')
+  const [token,   setToken]   = useState('')
   const [loading, setLoading] = useState(false)
-  const [erro, setErro]       = useState('')
+  const [erro,    setErro]    = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -16,12 +16,11 @@ export default function EntrarCasalPage() {
 
     const result = await entrarCasal(token)
 
-    // Se ok=true, Server Action redireciona para /
-    // Se falhar sem redirecionar:
     if (!result.ok) {
       setErro(result.error)
       setLoading(false)
     }
+    // Se ok=true, Server Action redireciona para /
   }
 
   return (

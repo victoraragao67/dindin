@@ -66,6 +66,20 @@ export async function criarCasal(emailParceiro: string): Promise<OnboardingResul
   const supabase = createClient()
   const supabaseAdmin = createAdminClient()
 
+  // Trava 0: se já tem casal pending com convite válido → redireciona sem criar outro
+  const casalAtual = await getCasal()
+  if (casalAtual.casalId && casalAtual.status === 'pending') {
+    const { data: conviteAtivo } = await supabase
+      .from('casal_convites')
+      .select('id')
+      .eq('casal_id', casalAtual.casalId)
+      .is('usado_em', null)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle()
+
+    if (conviteAtivo) redirect('/onboarding/aguardando')
+  }
+
   // Trava A: máximo 3 convites pendentes por usuário
   const { count: convitesPendentes } = await supabase
     .from('casal_convites')
