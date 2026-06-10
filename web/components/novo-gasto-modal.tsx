@@ -498,77 +498,82 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
                   </div>
                 )}
 
-                {/* Dois cards clicáveis — um por pessoa */}
+                {/* Dois cards — label nativa abre teclado direto no mobile */}
                 <div className="flex gap-2">
 
                   {/* Card do pagador */}
-                  <button
-                    onClick={() => {
-                      setSplitValorRaw('pagador')
-                      setTimeout(() => document.getElementById('split-valor-input')?.focus(), 30)
-                    }}
-                    className="flex-1 rounded-xl p-3 text-left transition-colors"
+                  <label
+                    htmlFor="split-input-pagador"
+                    className="flex-1 rounded-xl p-3 block cursor-pointer transition-colors"
                     style={{
-                      background:  splitValorRaw === 'pagador' ? 'var(--card)' : 'var(--bg-2)',
-                      border:      splitValorRaw === 'pagador' ? '1.5px solid var(--sage)' : '1.5px solid var(--border)',
+                      background: splitValorRaw === 'pagador' ? 'var(--card)' : 'var(--bg-2)',
+                      border: splitValorRaw === 'pagador' ? '1.5px solid var(--sage)' : '1.5px solid var(--border)',
                     }}
                   >
                     <p className="text-xs font-semibold mb-1" style={{ color: 'var(--muted)' }}>{pagador}</p>
-                    <p className="text-xl font-bold leading-none" style={{ color: 'var(--ink)' }}>
+                    <div className="flex items-baseline gap-0.5">
                       <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>R$</span>
-                      {splitValorPagador
-                        ? formatCurrency(parseInt(splitValorPagador, 10)).replace('R$ ', '').replace('R$ ', '').replace('R$', '')
-                        : centavos > 0
-                          ? formatCurrency(Math.floor(centavos * splitPct / 100)).replace('R$ ', '').replace('R$ ', '').replace('R$', '')
-                          : '—'}
-                    </p>
+                      <input
+                        id="split-input-pagador"
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        className="bg-transparent text-xl font-bold focus:outline-none min-w-0 w-full"
+                        style={{ color: 'var(--ink)' }}
+                        value={splitValorPagador
+                          ? formatCurrency(parseInt(splitValorPagador, 10)).replace('R$ ', '').replace('R$', '')
+                          : ''}
+                        placeholder={centavos > 0
+                          ? formatCurrency(Math.floor(centavos * splitPct / 100)).replace('R$ ', '').replace('R$', '')
+                          : '0,00'}
+                        onChange={e => {
+                          const digits = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
+                          handleSplitValorPagador(digits)
+                        }}
+                        onFocus={e => { setSplitValorRaw('pagador'); e.target.select() }}
+                        readOnly={centavos === 0}
+                      />
+                    </div>
                     <p className="text-xs mt-1" style={{ color: 'var(--sage)' }}>{splitPct}%</p>
-                  </button>
+                  </label>
 
                   {/* Card do outro */}
-                  <button
-                    onClick={() => {
-                      setSplitValorRaw('outro')
-                      setTimeout(() => document.getElementById('split-valor-input')?.focus(), 30)
-                    }}
-                    className="flex-1 rounded-xl p-3 text-left transition-colors"
+                  <label
+                    htmlFor="split-input-outro"
+                    className="flex-1 rounded-xl p-3 block cursor-pointer transition-colors"
                     style={{
-                      background:  splitValorRaw === 'outro' ? 'var(--card)' : 'var(--bg-2)',
-                      border:      splitValorRaw === 'outro' ? '1.5px solid var(--sage)' : '1.5px solid var(--border)',
+                      background: splitValorRaw === 'outro' ? 'var(--card)' : 'var(--bg-2)',
+                      border: splitValorRaw === 'outro' ? '1.5px solid var(--sage)' : '1.5px solid var(--border)',
                     }}
                   >
                     <p className="text-xs font-semibold mb-1" style={{ color: 'var(--muted)' }}>{outraApelido}</p>
-                    <p className="text-xl font-bold leading-none" style={{ color: 'var(--ink)' }}>
+                    <div className="flex items-baseline gap-0.5">
                       <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>R$</span>
-                      {splitValorOutro
-                        ? formatCurrency(parseInt(splitValorOutro, 10)).replace('R$ ', '').replace('R$ ', '').replace('R$', '')
-                        : centavos > 0
-                          ? formatCurrency(Math.floor(centavos * (100 - splitPct) / 100)).replace('R$ ', '').replace('R$ ', '').replace('R$', '')
-                          : '—'}
-                    </p>
+                      <input
+                        id="split-input-outro"
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        className="bg-transparent text-xl font-bold focus:outline-none min-w-0 w-full"
+                        style={{ color: 'var(--ink)' }}
+                        value={splitValorOutro
+                          ? formatCurrency(parseInt(splitValorOutro, 10)).replace('R$ ', '').replace('R$', '')
+                          : ''}
+                        placeholder={centavos > 0
+                          ? formatCurrency(Math.floor(centavos * (100 - splitPct) / 100)).replace('R$ ', '').replace('R$', '')
+                          : '0,00'}
+                        onChange={e => {
+                          const digits = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
+                          handleSplitValorOutro(digits)
+                        }}
+                        onFocus={e => { setSplitValorRaw('outro'); e.target.select() }}
+                        readOnly={centavos === 0}
+                      />
+                    </div>
                     <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{100 - splitPct}%</p>
-                  </button>
+                  </label>
 
                 </div>
-
-                {/* Input oculto — recebe foco e abre teclado nativo */}
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="sr-only"
-                  id="split-valor-input"
-                  value={
-                    splitValorRaw === 'pagador'
-                      ? (splitValorPagador ? formatCurrency(parseInt(splitValorPagador, 10)) : '')
-                      : (splitValorOutro   ? formatCurrency(parseInt(splitValorOutro, 10))   : '')
-                  }
-                  onChange={e => {
-                    const digits = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '').slice(-7)
-                    if (splitValorRaw === 'pagador') handleSplitValorPagador(digits)
-                    else handleSplitValorOutro(digits)
-                  }}
-                  aria-label={`Valor de ${splitValorRaw === 'pagador' ? pagador : outraApelido}`}
-                />
 
                 {/* Hint */}
                 {centavos > 0 && (

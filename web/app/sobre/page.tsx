@@ -7,7 +7,7 @@ export default function SobrePage() {
       emoji: '➕',
       bg: 'color-mix(in srgb, var(--sage) 14%, transparent)',
       title: 'Registre em 3 toques',
-      desc: 'FAB → valor → categoria → salvar. Menos de 10 segundos.',
+      desc: 'Botão ➕ → valor → categoria → salvar. Menos de 10 segundos.',
     },
     {
       emoji: '⚖️',

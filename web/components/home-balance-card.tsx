@@ -238,13 +238,14 @@ export function HomeBalanceCard({
       {gastosApelido !== null && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/60"
+            className="fixed inset-0 bg-black/60"
+            style={{ zIndex: 60 }}
             onClick={() => setGastosApelido(null)}
             aria-hidden="true"
           />
           <div
-            className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl max-h-[85dvh]"
-            style={{ background: 'var(--card)' }}
+            className="fixed inset-x-0 bottom-0 flex flex-col rounded-t-2xl max-h-[85dvh]"
+            style={{ zIndex: 70, background: 'var(--card)' }}
           >
             {/* Header */}
             <div
