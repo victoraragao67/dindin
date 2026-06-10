@@ -1,52 +1,26 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { entrarCasal } from '../actions'
 import Link from 'next/link'
 
 export default function EntrarCasalPage() {
-  const searchParams = useSearchParams()
-  const tokenParam   = searchParams.get('token') ?? ''
-
-  const [token,   setToken]   = useState(tokenParam.toUpperCase().slice(0, 6))
+  const [token,   setToken]   = useState('')
   const [loading, setLoading] = useState(false)
   const [erro,    setErro]    = useState('')
 
-  // Auto-aceita quando token chega pela URL (convite via e-mail)
-  useEffect(() => {
-    if (tokenParam.length === 6 && !loading) {
-      void aceitar(tokenParam.toUpperCase())
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  async function aceitar(t: string) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
     setLoading(true)
     setErro('')
-    const result = await entrarCasal(t)
+
+    const result = await entrarCasal(token)
+
     if (!result.ok) {
       setErro(result.error)
       setLoading(false)
     }
     // Se ok=true, Server Action redireciona para /
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    await aceitar(token)
-  }
-
-  // Se veio da URL, mostra tela de carregamento enquanto auto-aceita
-  if (tokenParam.length === 6 && loading) {
-    return (
-      <div className="flex flex-col items-center justify-center flex-1 px-6 py-16 text-center gap-4">
-        <div className="text-4xl">🔗</div>
-        <p className="text-base font-medium" style={{ color: 'var(--ink, #111)' }}>
-          Entrando no casal…
-        </p>
-      </div>
-    )
   }
 
   return (

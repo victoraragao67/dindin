@@ -23,23 +23,6 @@ export default async function OnboardingPage() {
 
   const temApelido = Boolean(userData?.apelido)
 
-  // Se já tem apelido, verifica se há convite pendente para este e-mail
-  if (temApelido && user.email) {
-    const { data: convitePendente } = await supabase
-      .from('casal_convites')
-      .select('token')
-      .eq('email_convidado', user.email.toLowerCase())
-      .is('usado_em', null)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (convitePendente?.token) {
-      redirect(`/onboarding/entrar?token=${convitePendente.token}`)
-    }
-  }
-
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-6 py-16 text-center gap-8">
       {/* Logo */}
