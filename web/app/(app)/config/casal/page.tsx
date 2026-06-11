@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getCasal } from '@/lib/supabase/get-casal'
 import { createClient } from '@/lib/supabase/server'
 import { DissolveCasalButton } from './dissolve-button'
+import { NomeCasalForm }      from './nome-casal-form'
 
 export const metadata = { title: 'Meu Casal — Nosso DinDin' }
 
@@ -71,6 +72,19 @@ export default async function CasalPage() {
                 </div>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Nome do casal */}
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>
+            Nome do casal
+          </h2>
+          <div
+            className="rounded-xl border p-4"
+            style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+          >
+            <NomeCasalForm nomeAtual={casalData?.nome ?? null} />
           </div>
         </section>
 

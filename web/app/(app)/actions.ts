@@ -517,3 +517,22 @@ export async function rebalancearRecorrentes(
   return {}
 }
 
+// ── Casal ────────────────────────────────────────────────────
+
+export async function renomearCasal(nome: string): Promise<ActionResult> {
+  const nomeTrimmed = nome.trim().slice(0, 50)
+
+  const casal = await getCasal()
+  if (!casal.casalId || casal.status !== 'active') return { error: 'Nenhum casal ativo.' }
+
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('casais')
+    .update({ nome: nomeTrimmed || null })
+    .eq('id', casal.casalId)
+
+  if (error) return { error: 'Erro ao salvar. Tente novamente.' }
+
+  revalidatePath('/config/casal')
+  return {}
+}
