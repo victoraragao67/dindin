@@ -101,12 +101,18 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                   ? 'var(--sage)'
                   : metaPct > 90 ? 'var(--coral)' : metaPct > 70 ? '#f59e0b' : 'var(--sage)'
 
+                const semGasto = cat.total_centavos === 0
                 return (
                   <button
                     key={cat.categoria_id}
-                    onClick={() => setCatAberta(cat)}
+                    onClick={() => !semGasto && setCatAberta(cat)}
                     className="w-full rounded-xl px-4 py-3 space-y-1.5 text-left border transition-opacity active:opacity-70"
-                    style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+                    style={{
+                      background: 'var(--card)',
+                      borderColor: 'var(--border)',
+                      opacity: semGasto ? 0.45 : 1,
+                      cursor: semGasto ? 'default' : 'pointer',
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -122,9 +128,11 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                         ) : (
                           <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(cat.total_centavos)}</span>
                         )}
-                        <span className={`text-xs ml-2`} style={{ color: metaPct !== null && metaPct > 90 ? 'var(--coral)' : 'var(--muted)' }}>
-                          {metaPct !== null ? `${metaPct}%` : `${pct}%`}
-                        </span>
+                        {!semGasto && (
+                          <span className="text-xs ml-2" style={{ color: metaPct !== null && metaPct > 90 ? 'var(--coral)' : 'var(--muted)' }}>
+                            {metaPct !== null ? `${metaPct}%` : `${pct}%`}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>

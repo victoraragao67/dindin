@@ -519,7 +519,7 @@ export async function rebalancearRecorrentes(
 
 // ── Casal ────────────────────────────────────────────────────
 
-export async function renomearCasal(nome: string): Promise<ActionResult> {
+export async function renomearCasal(nome: string): Promise<{ error?: string }> {
   const nomeTrimmed = nome.trim().slice(0, 50)
 
   const casal = await getCasal()
