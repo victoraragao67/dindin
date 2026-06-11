@@ -121,6 +121,7 @@ export default async function ResumoPage({
 
   const [
     categoriasRes,
+    todasCategoriasRes,
     divisaoRes,
     topGastosRes,
     mensaisRes,
@@ -131,13 +132,20 @@ export default async function ResumoPage({
     parcelasAbertoRes,
     custoRealRes,
   ] = await Promise.all([
-    // Gastos por categoria no mês
+    // Gastos por categoria no mês (apenas as que tiveram gasto)
     supabase
       .from('v_gastos_por_categoria_mes')
       .select('categoria_id, categoria_nome, categoria_emoji, total_centavos')
       .gte('mes', start)
       .lte('mes', start)   // mes é o primeiro dia do mês
       .order('total_centavos', { ascending: false }),
+
+    // Todas as categorias ativas (para exibir as com R$ 0 também)
+    supabase
+      .from('categories')
+      .select('id, nome, emoji')
+      .eq('ativo', true)
+      .order('ordem'),
 
     // Divisão: quanto cada um pagou — variável + recorrente (todos os origins)
     // Aba "Quanto pagou" mostra o desembolso físico total de cada pessoa no mês.
@@ -207,8 +215,16 @@ export default async function ResumoPage({
       .select('user_id, apelido, custo_variavel, custo_recorrente, custo_total'),
   ])
 
-  const categorias = (categoriasRes.data ?? []) as CategoriaRow[]
-  const totalMes = categorias.reduce((s, c) => s + c.total_centavos, 0)
+  const categoriasComGasto = (categoriasRes.data ?? []) as CategoriaRow[]
+  const todasCategorias    = (todasCategoriasRes.data ?? []) as { id: number; nome: string; emoji: string }[]
+  const totalMes           = categoriasComGasto.reduce((s, c) => s + c.total_centavos, 0)
+
+  // Funde: categorias com gasto primeiro (ordenadas por valor), depois as sem gasto
+  const idsComGasto = new Set(categoriasComGasto.map(c => c.categoria_id))
+  const categoriasSemGasto: CategoriaRow[] = todasCategorias
+    .filter(c => !idsComGasto.has(c.id))
+    .map(c => ({ categoria_id: c.id, categoria_nome: c.nome, categoria_emoji: c.emoji, total_centavos: 0 }))
+  const categorias = [...categoriasComGasto, ...categoriasSemGasto]
 
   // Divisão por pagador — desembolso físico total (variável + recorrente)
   const users = usersRes.data ?? []
