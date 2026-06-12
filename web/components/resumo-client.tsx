@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/bottom-nav'
 import { formatCurrency } from '@/lib/money'
 import { InfoTooltip } from '@/components/info-tooltip'
-import type { ResumoData, CompraItem, ParcelaEmAberto, CustoRealRow } from '@/app/(app)/resumo/page'
+import type { ResumoData, CompraItem, ParcelaEmAberto, CustoRealRow, SerieCatMesRow } from '@/app/(app)/resumo/page'
 import { RitmoCard } from '@/components/ritmo-card'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -54,6 +54,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
   const [modoDivisao, setModoDivisao]         = useState<'custo_total' | 'pagou'>('custo_total')
   const [pessoaExpandida, setPessoaExpandida] = useState<string | null>(null)
   const [modoCategoria, setModoCategoria]     = useState<'variavel' | 'com_recorrentes'>('variavel')
+  const [catGrafico, setCatGrafico]           = useState<number | null>(null)  // null = Total
 
   function navMes(mes: string) {
     router.push(`/resumo?mes=${mes}`)
@@ -451,52 +452,112 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
         )}
 
         {/* ── Bloco: Últimos 6 meses ── */}
-        {data.gastosMensais.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Últimos 6 meses</h2>
-            <div className="rounded-xl px-2 py-4 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart
-                  data={data.gastosMensais.map(r => ({
-                    mes:     mesLabel(r.mes),
-                    mesStr:  r.mes,
-                    valor:   r.total_centavos / 100,
-                  }))}
-                  margin={{ top: 16, right: 8, left: 8, bottom: 0 }}
-                  onClick={(e: any) => {
-                    const mesStr = e?.activePayload?.[0]?.payload?.mesStr
-                    if (mesStr) router.push(`/resumo?mes=${mesStr}`)
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <XAxis
-                    dataKey="mes"
-                    tick={{ fill: '#8A8078', fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis hide />
-                  <Tooltip
-                    formatter={(v) => {
-                      const n = Number(v)
-                      return [`R$ ${n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`, 'Total']
+        {data.serieCategoriaMes.length > 0 && (() => {
+          // Meses únicos ordenados
+          const meses = Array.from(new Set(data.serieCategoriaMes.map(r => r.mes))).sort()
+
+          // Categorias que tiveram gasto no período (para os pills)
+          const categoriasMap = new Map<number, SerieCatMesRow>()
+          for (const r of data.serieCategoriaMes) {
+            if (!categoriasMap.has(r.categoria_id)) categoriasMap.set(r.categoria_id, r)
+          }
+          const categoriasPills = Array.from(categoriasMap.values())
+            .sort((a, b) => a.categoria_nome.localeCompare(b.categoria_nome))
+
+          // Dados do gráfico para a seleção atual
+          const chartData = meses.map(mes => {
+            const valor = catGrafico === null
+              ? data.serieCategoriaMes.filter(r => r.mes === mes).reduce((s, r) => s + r.total_centavos, 0)
+              : (data.serieCategoriaMes.find(r => r.mes === mes && r.categoria_id === catGrafico)?.total_centavos ?? 0)
+            return { mes: mesLabel(mes), mesStr: mes, valor: valor / 100 }
+          })
+
+          // Rótulo de variação: último mês vs média dos anteriores
+          const valores = chartData.map(r => r.valor)
+          const ultimo  = valores[valores.length - 1] ?? 0
+          const previos = valores.slice(0, -1).filter(v => v > 0)
+          const media   = previos.length > 0 ? previos.reduce((s, v) => s + v, 0) / previos.length : null
+          const variacao = media && media > 0 ? (ultimo - media) / media : null
+
+          const tooltipLabel = catGrafico === null
+            ? 'Total'
+            : (categoriasMap.get(catGrafico)?.categoria_nome ?? '')
+
+          return (
+            <section className="space-y-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Últimos 6 meses</h2>
+
+              {/* Pills de categoria */}
+              <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                {(['total' as const, ...categoriasPills]).map(item => {
+                  const isTotal   = item === 'total'
+                  const id        = isTotal ? null : item.categoria_id
+                  const ativo     = catGrafico === id
+                  return (
+                    <button
+                      key={isTotal ? 'total' : item.categoria_id}
+                      onClick={() => setCatGrafico(id)}
+                      className="shrink-0 text-xs font-medium px-3 py-1 rounded-full border transition-colors"
+                      style={{
+                        background:   ativo ? 'var(--ink)' : 'var(--card)',
+                        color:        ativo ? 'var(--bg)'  : 'var(--muted)',
+                        borderColor:  ativo ? 'var(--ink)' : 'var(--border)',
+                      }}
+                    >
+                      {isTotal ? 'Total' : `${item.categoria_emoji} ${item.categoria_nome}`}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Variação vs média */}
+              {variacao !== null && (
+                <p className="text-xs font-semibold" style={{ color: variacao > 0 ? 'var(--coral)' : 'var(--sage)' }}>
+                  {variacao > 0 ? '↑' : '↓'} {Math.round(Math.abs(variacao) * 100)}% vs média
+                </p>
+              )}
+
+              {/* Gráfico */}
+              <div className="rounded-xl px-2 py-4 border" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 16, right: 8, left: 8, bottom: 0 }}
+                    onClick={(e: any) => {
+                      const ms = e?.activePayload?.[0]?.payload?.mesStr
+                      if (ms) router.push(`/resumo?mes=${ms}`)
                     }}
-                    contentStyle={{ background: '#FFFDF7', border: '1px solid #E2DAD0', borderRadius: 8, color: '#1A1612', fontSize: 12 }}
-                    cursor={{ fill: 'rgba(0,0,0,0.08)' }}
-                  />
-                  <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                    {data.gastosMensais.map((r, i) => (
-                      <Cell
-                        key={i}
-                        fill={r.mes === mesAtual ? '#7A9E7E' : '#E2DAD0'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-        )}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <XAxis
+                      dataKey="mes"
+                      tick={{ fill: '#8A8078', fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis hide />
+                    <Tooltip
+                      formatter={(v) => {
+                        const n = Number(v)
+                        return [`R$ ${n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`, tooltipLabel]
+                      }}
+                      contentStyle={{ background: '#FFFDF7', border: '1px solid #E2DAD0', borderRadius: 8, color: '#1A1612', fontSize: 12 }}
+                      cursor={{ fill: 'rgba(0,0,0,0.08)' }}
+                    />
+                    <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                      {chartData.map((r, i) => (
+                        <Cell
+                          key={i}
+                          fill={r.mesStr === mesAtual ? '#7A9E7E' : '#E2DAD0'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+          )
+        })()}
 
       </div>
 

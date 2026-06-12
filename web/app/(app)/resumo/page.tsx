@@ -17,9 +17,12 @@ type CategoriaRow = {
   total_centavos: number
 }
 
-type GastoMensalRow = {
-  mes:            string
-  total_centavos: number
+export type SerieCatMesRow = {
+  mes:             string
+  categoria_id:    number
+  categoria_nome:  string
+  categoria_emoji: string
+  total_centavos:  number
 }
 
 type TopGasto = {
@@ -87,7 +90,7 @@ export type ResumoData = {
   metasPorCategoria:      Record<number, number>
   recorrentePorCategoria: Record<number, number>
   topGastos:              TopGasto[]
-  gastosMensais:        GastoMensalRow[]
+  serieCategoriaMes:    SerieCatMesRow[]
   compras:              CompraItem[]
   parcelasEmAberto:     ParcelaEmAberto[]
   preditiva:            PreditivaCategoria[]
@@ -134,13 +137,14 @@ export default async function ResumoPage({
   const supabase = createClient()
 
   const hist3Start = mesAtrasStr(mesStr, 3)
+  const hist6Start = mesAtrasStr(mesStr, 5)
 
   const [
     categoriasRes,
     todasCategoriasRes,
     divisaoRes,
     topGastosRes,
-    mensaisRes,
+    serieCatRes,
     usersRes,
     recorrentesRes,
     metasRes,
@@ -183,12 +187,13 @@ export default async function ResumoPage({
       .order('valor_total_centavos', { ascending: false })
       .limit(5),
 
-    // Últimos 6 meses
+    // Série histórica por categoria — últimos 6 meses (variável + recorrente)
     supabase
-      .from('v_gastos_mensais')
-      .select('mes, total_centavos')
-      .order('mes', { ascending: true })
-      .limit(6),
+      .from('v_gastos_categoria_mes_total')
+      .select('mes, categoria_id, categoria_nome, categoria_emoji, total_centavos')
+      .gte('mes', hist6Start)
+      .lte('mes', start)
+      .order('mes', { ascending: true }),
 
     // Usuários para resolver apelidos da divisão
     supabase.from('users').select('id, apelido'),
@@ -280,9 +285,12 @@ export default async function ResumoPage({
     pagador_apelido:      Array.isArray(e.pagador)   ? e.pagador[0]?.apelido : e.pagador?.apelido ?? '',
   }))
 
-  const gastosMensais: GastoMensalRow[] = ((mensaisRes.data ?? []) as any[]).map(r => ({
-    mes:            r.mes,
-    total_centavos: r.total_centavos,
+  const serieCategoriaMes: SerieCatMesRow[] = ((serieCatRes.data ?? []) as any[]).map(r => ({
+    mes:             r.mes,
+    categoria_id:    r.categoria_id,
+    categoria_nome:  r.categoria_nome,
+    categoria_emoji: r.categoria_emoji,
+    total_centavos:  r.total_centavos,
   }))
 
   // Metas por categoria
@@ -423,7 +431,7 @@ export default async function ResumoPage({
     metasPorCategoria,
     recorrentePorCategoria,
     topGastos,
-    gastosMensais,
+    serieCategoriaMes,
     compras,
     parcelasEmAberto,
     preditiva,
