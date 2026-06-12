@@ -1,33 +1,39 @@
 export type PreditivaStatus = 'estourou' | 'vai_estourar' | 'no_limite' | 'ok' | 'sem_meta'
 
 export type PreditivaCategoria = {
-  categoriaId:    number
-  nome:           string
-  emoji:          string
-  gastoAcumulado: number
-  meta:           number | null
-  projecao:       number
-  status:         PreditivaStatus
-  ritmoVsMedia:   number | null
+  categoriaId:         number
+  nome:                string
+  emoji:               string
+  gastoVariavel:       number   // variável já lançado no mês
+  recorrentePrevisto:  number   // recorrente previsto (fixo, não projetado)
+  gastoAcumulado:      number   // = gastoVariavel + recorrentePrevisto
+  meta:                number | null
+  projecao:            number   // = projeção do variável + recorrentePrevisto
+  status:              PreditivaStatus
+  ritmoVsMedia:        number | null
 }
 
 export function calcularPreditiva(input: {
   diaAtual:   number
   diasNoMes:  number
   categorias: Array<{
-    categoriaId:    number
-    nome:           string
-    emoji:          string
-    gastoAcumulado: number
-    meta:           number | null
-    historico:      number[]
+    categoriaId:        number
+    nome:               string
+    emoji:              string
+    gastoVariavel:      number
+    recorrentePrevisto: number
+    meta:               number | null
+    historico:          number[]
   }>
 }): PreditivaCategoria[] {
   const { diaAtual, diasNoMes, categorias } = input
   const diaSeguro = Math.max(diaAtual, 1)
 
   return categorias.map(cat => {
-    const projecao = Math.round((cat.gastoAcumulado / diaSeguro) * diasNoMes)
+    // Só o variável é projetado linearmente; o recorrente entra cheio (fixo e conhecido)
+    const projecaoVariavel = Math.round((cat.gastoVariavel / diaSeguro) * diasNoMes)
+    const projecao         = projecaoVariavel + cat.recorrentePrevisto
+    const gastoAcumulado   = cat.gastoVariavel + cat.recorrentePrevisto
 
     const mediaHistorica = cat.historico.length > 0
       ? Math.round(cat.historico.reduce((s, v) => s + v, 0) / cat.historico.length)
@@ -41,10 +47,9 @@ export function calcularPreditiva(input: {
 
     if (cat.meta === null || cat.meta === 0) {
       status = 'sem_meta'
-    } else if (cat.gastoAcumulado >= cat.meta) {
+    } else if (gastoAcumulado >= cat.meta) {
       status = 'estourou'
     } else if (diaAtual < 5) {
-      // Anti-noise: projection unreliable in first 4 days
       status = 'ok'
     } else if (projecao > cat.meta * 1.05) {
       status = 'vai_estourar'
@@ -55,11 +60,13 @@ export function calcularPreditiva(input: {
     }
 
     return {
-      categoriaId:    cat.categoriaId,
-      nome:           cat.nome,
-      emoji:          cat.emoji,
-      gastoAcumulado: cat.gastoAcumulado,
-      meta:           cat.meta,
+      categoriaId:        cat.categoriaId,
+      nome:               cat.nome,
+      emoji:              cat.emoji,
+      gastoVariavel:      cat.gastoVariavel,
+      recorrentePrevisto: cat.recorrentePrevisto,
+      gastoAcumulado,
+      meta:               cat.meta,
       projecao,
       status,
       ritmoVsMedia,

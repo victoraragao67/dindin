@@ -64,28 +64,36 @@ export async function dispararAlertaSeCruzou(
   const mesStr  = `${ano}-${String(mes).padStart(2, '0')}-01`
   const admin   = createAdminClient()
 
-  // Busca gastos acumulados da categoria no mês corrente
-  const { data: gastosData } = await admin
-    .from('v_gastos_por_categoria_mes')
-    .select('total_centavos')
-    .eq('casal_id', casalId)
-    .eq('categoria_id', categoriaId)
-    .eq('mes', mesStr)
-    .maybeSingle()
-
-  const gastoAcumulado = (gastosData as { total_centavos: number } | null)?.total_centavos ?? 0
-
-  // Busca meta da categoria no mês corrente
-  const { data: metaData } = await admin
-    .from('spending_goals')
-    .select('valor_centavos, categories!inner(nome, emoji)')
-    .eq('casal_id', casalId)
-    .eq('categoria_id', categoriaId)
-    .eq('mes', mes)
-    .eq('ano', ano)
-    .maybeSingle()
+  // Busca gastos variáveis acumulados + recorrente previsto da categoria no mês corrente
+  const [{ data: gastosData }, { data: recorrentesData }, { data: metaData }] = await Promise.all([
+    admin
+      .from('v_gastos_por_categoria_mes')
+      .select('total_centavos')
+      .eq('casal_id', casalId)
+      .eq('categoria_id', categoriaId)
+      .eq('mes', mesStr)
+      .maybeSingle(),
+    admin
+      .from('recurring_templates')
+      .select('valor_centavos')
+      .eq('casal_id', casalId)
+      .eq('categoria_id', categoriaId)
+      .eq('ativo', true),
+    admin
+      .from('spending_goals')
+      .select('valor_centavos, categories!inner(nome, emoji)')
+      .eq('casal_id', casalId)
+      .eq('categoria_id', categoriaId)
+      .eq('mes', mes)
+      .eq('ano', ano)
+      .maybeSingle(),
+  ])
 
   if (!metaData) return  // sem meta → sem alerta
+
+  const gastoVariavel      = (gastosData as { total_centavos: number } | null)?.total_centavos ?? 0
+  const recorrentePrevisto = ((recorrentesData ?? []) as { valor_centavos: number }[])
+    .reduce((s, r) => s + r.valor_centavos, 0)
 
   const metaRaw = metaData as unknown as {
     valor_centavos: number
@@ -100,7 +108,7 @@ export async function dispararAlertaSeCruzou(
   // Calcula status atual
   const [pred] = calcularPreditiva({
     diaAtual, diasNoMes,
-    categorias: [{ categoriaId, nome, emoji, gastoAcumulado, meta, historico: [] }],
+    categorias: [{ categoriaId, nome, emoji, gastoVariavel, recorrentePrevisto, meta, historico: [] }],
   })
 
   const nivel = pred.status === 'estourou'     ? 'estourou'
@@ -124,7 +132,7 @@ export async function dispararAlertaSeCruzou(
 
   // Monta texto e busca subscriptions do casal
   const diasRestantes = diasNoMes - diaAtual
-  const body = montarTexto(nivel, emoji, nome, pred.projecao, meta, gastoAcumulado, diasRestantes)
+  const body = montarTexto(nivel, emoji, nome, pred.projecao, meta, pred.gastoAcumulado, diasRestantes)
 
   const { data: membros } = await admin
     .from('casal_membros')

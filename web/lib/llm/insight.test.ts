@@ -48,10 +48,11 @@ vi.mock('../supabase/admin', () => ({
           upsert: mockUpsert,
         }
       }
-      if (table === 'push_subscriptions')  return makeMockChain(subsReturn)
-      if (table === 'spending_goals')      return makeMockChain(goalReturn)
+      if (table === 'push_subscriptions')      return makeMockChain(subsReturn)
+      if (table === 'spending_goals')          return makeMockChain(goalReturn)
       if (table === 'v_gastos_por_categoria_mes') return makeMockChain(gastoReturn)
-      if (table === 'casal_membros')       return makeMockChain(membrosReturn)
+      if (table === 'recurring_templates')     return makeMockChain({ data: [] })
+      if (table === 'casal_membros')           return makeMockChain(membrosReturn)
       if (table === 'category_alerts_sent') {
         return {
           ...makeMockChain(alertReturn),
@@ -72,7 +73,8 @@ vi.mock('../push/send-server', () => ({ sendPushToSubs: (...args: unknown[]) => 
 const PREDITIVA = [
   {
     categoriaId: 1, nome: 'Restaurante', emoji: '🍔',
-    gastoAcumulado: 40000, meta: 50000, projecao: 60000,
+    gastoVariavel: 40000, recorrentePrevisto: 0, gastoAcumulado: 40000,
+    meta: 50000, projecao: 60000,
     status: 'vai_estourar' as const, ritmoVsMedia: null,
   },
 ]
