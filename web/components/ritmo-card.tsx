@@ -3,6 +3,13 @@
 import { useState } from 'react'
 import type { PreditivaCategoria } from '@/lib/preditiva'
 import { formatCurrency } from '@/lib/money'
+import { InfoTooltip } from '@/components/info-tooltip'
+
+const EXPLICACAO_COM_HIST =
+  'Olhamos o que vocês já gastaram neste mês, o ritmo até hoje e a média dos últimos meses. Se esse padrão continuar, é onde a categoria fecha. O melhor: não é destino — segurando o ritmo agora, a projeção cai junto.'
+
+const EXPLICACAO_SEM_HIST =
+  'Ainda estou aprendendo o ritmo de vocês. Por enquanto comparo com a meta que vocês definiram; nos próximos meses, com o histórico, fica bem mais preciso.'
 
 const COR: Record<string, string> = {
   estourou:     'var(--coral)',
@@ -17,11 +24,12 @@ const LABEL: Record<string, string> = {
 }
 
 type Props = {
-  preditiva:     PreditivaCategoria[]
-  insightResumo: string | null
+  preditiva:      PreditivaCategoria[]
+  insightResumo:  string | null
+  temHistorico?:  boolean
 }
 
-export function RitmoCard({ preditiva, insightResumo }: Props) {
+export function RitmoCard({ preditiva, insightResumo, temHistorico = true }: Props) {
   const [expandido, setExpandido] = useState(false)
 
   const criticas = preditiva.filter(
@@ -35,9 +43,18 @@ export function RitmoCard({ preditiva, insightResumo }: Props) {
 
   return (
     <section className="space-y-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-        Ritmo do mês
-      </h2>
+      <div className="flex items-center gap-1.5">
+        <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+          Ritmo do mês
+        </h2>
+        <InfoTooltip
+          titulo="Como calculamos a projeção"
+          explicacao={temHistorico ? EXPLICACAO_COM_HIST : EXPLICACAO_SEM_HIST}
+        />
+      </div>
+      <p className="text-xs" style={{ color: 'var(--muted)', marginTop: -4 }}>
+        Projeções com base nos últimos meses + seu ritmo deste mês.
+      </p>
 
       {/* Texto do LLM / fallback */}
       {insightResumo && (
@@ -98,7 +115,7 @@ export function RitmoCard({ preditiva, insightResumo }: Props) {
             {/* Linha 3: projeção / delta */}
             <div className="flex justify-between mb-2">
               <span className="text-xs font-semibold" style={{ color: cor }}>
-                Projeção: {formatCurrency(projecao)}
+                Projeção no ritmo atual: {formatCurrency(projecao)}
               </span>
               {excesso > 0 && (
                 <span className="text-xs font-semibold" style={{ color: cor }}>

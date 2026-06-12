@@ -89,7 +89,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
 
         {/* ── Bloco: Ritmo do mês (preditiva) ── */}
         {data.preditiva.length > 0 && (
-          <RitmoCard preditiva={data.preditiva} insightResumo={data.insightResumo} />
+          <RitmoCard preditiva={data.preditiva} insightResumo={data.insightResumo} temHistorico={data.temHistorico} />
         )}
 
         {/* ── Bloco: Por categoria — só exibe em meses sem preditiva (meses passados) ── */}
