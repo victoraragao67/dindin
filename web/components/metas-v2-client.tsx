@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/money'
 import { salvarMeta, removerMeta, copiarMetasMesAnterior } from '@/app/(app)/actions'
 import type { PreditivaCategoria } from '@/lib/preditiva'
+import { InfoTooltip } from '@/components/info-tooltip'
+
+const EXPLICACAO_COM_HIST =
+  'Olhamos o que vocês já gastaram neste mês, o ritmo até hoje e a média dos últimos meses. Se esse padrão continuar, é onde a categoria fecha. O melhor: não é destino — segurando o ritmo agora, a projeção cai junto.'
+
+const EXPLICACAO_SEM_HIST =
+  'Ainda estou aprendendo o ritmo de vocês. Por enquanto comparo com a meta que vocês definiram; nos próximos meses, com o histórico, fica bem mais preciso.'
 
 const PREDITIVA_COR: Record<string, string> = {
   estourou:     'var(--coral)',
@@ -33,6 +40,7 @@ type Props = {
   mes:               number
   ano:               number
   preditivaPorCat?:  Record<number, PreditivaCategoria>
+  temHistorico?:     boolean
 }
 
 export function MetasV2Client({
@@ -44,6 +52,7 @@ export function MetasV2Client({
   mes,
   ano,
   preditivaPorCat,
+  temHistorico = true,
 }: Props) {
   const router = useRouter()
   const [editando, setEditando]     = useState<number | null>(null)
@@ -197,6 +206,13 @@ export function MetasV2Client({
         </div>
       </div>
 
+      {/* Microcopy de origem — só quando há preditiva (mês corrente) */}
+      {preditivaPorCat && resolved.length > 0 && (
+        <p style={{ fontSize: 10, color: 'var(--muted)', margin: '0 14px 4px', lineHeight: 1.5 }}>
+          Projeções com base nos últimos meses + seu ritmo deste mês.
+        </p>
+      )}
+
       {/* ── Cards de meta por categoria ────────────────────── */}
       {resolved.map(item => {
         const { categoria, gasto, recorrente, meta } = item
@@ -340,20 +356,29 @@ export function MetasV2Client({
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 {usePred ? (() => {
                   const cor = PREDITIVA_COR[pred.status] ?? 'var(--muted)'
+                  const mostraProjecao = pred.status === 'vai_estourar' || pred.status === 'no_limite'
                   const label = pred.status === 'estourou'
                     ? `⚠ ${formatCurrency(Math.abs(delta))} acima da meta`
-                    : pred.status === 'vai_estourar' || pred.status === 'no_limite'
-                      ? `↗ no ritmo, fecha em ${formatCurrency(pred.projecao ?? 0)}`
+                    : mostraProjecao
+                      ? `↗ no ritmo atual: ${formatCurrency(pred.projecao ?? 0)}`
                       : `✓ ${formatCurrency(delta)} dentro da meta`
                   return (
-                    <span style={{
-                      fontSize: 10, fontWeight: 600,
-                      padding: '3px 9px', borderRadius: 100, display: 'inline-block',
-                      background: `color-mix(in srgb, ${cor} 12%, transparent)`,
-                      color: cor,
-                    }}>
-                      {label}
-                    </span>
+                    <>
+                      <span style={{
+                        fontSize: 10, fontWeight: 600,
+                        padding: '3px 9px', borderRadius: 100, display: 'inline-block',
+                        background: `color-mix(in srgb, ${cor} 12%, transparent)`,
+                        color: cor,
+                      }}>
+                        {label}
+                      </span>
+                      {mostraProjecao && (
+                        <InfoTooltip
+                          titulo="Como calculamos a projeção"
+                          explicacao={temHistorico ? EXPLICACAO_COM_HIST : EXPLICACAO_SEM_HIST}
+                        />
+                      )}
+                    </>
                   )
                 })() : (
                   <span style={{

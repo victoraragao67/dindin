@@ -95,6 +95,7 @@ export type ResumoData = {
   parcelasEmAberto:     ParcelaEmAberto[]
   preditiva:            PreditivaCategoria[]
   insightResumo:        string | null
+  temHistorico:         boolean
 }
 
 /* ── Helpers ────────────────────────────────────────────────── */
@@ -381,6 +382,7 @@ export default async function ResumoPage({
   // ── Preditiva (só para o mês corrente) ───────────────────────
   let preditiva: PreditivaCategoria[] = []
   let insightResumo: string | null    = null
+  let temHistorico                    = false
 
   if (isMesAtual) {
     const hoje      = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
@@ -393,6 +395,7 @@ export default async function ResumoPage({
       if (!histVariavelMap[row.categoria_id]) histVariavelMap[row.categoria_id] = []
       histVariavelMap[row.categoria_id].push(row.total_centavos)
     }
+    temHistorico = Object.values(histVariavelMap).some(arr => arr.length > 0)
 
     // histTotal: total (var+rec) dos últimos 3 meses — derivado de serieCategoriaMes já carregado
     const histTotalMap: Record<number, number[]> = {}
@@ -446,6 +449,7 @@ export default async function ResumoPage({
     parcelasEmAberto,
     preditiva,
     insightResumo,
+    temHistorico,
   }
 
   return (

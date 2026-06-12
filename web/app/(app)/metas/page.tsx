@@ -150,6 +150,7 @@ export default async function MetasPage({
 
   // ── Preditiva (só para o mês corrente) ──────────────────────
   const preditivaPorCat: Record<number, PreditivaCategoria> = {}
+  let temHistorico = false
   if (isCurrentMonth) {
     const hoje      = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
     const diaAtual  = hoje.getDate()
@@ -160,6 +161,7 @@ export default async function MetasPage({
       if (!histVariavelMap[row.categoria_id]) histVariavelMap[row.categoria_id] = []
       histVariavelMap[row.categoria_id].push(row.total_centavos)
     }
+    temHistorico = Object.values(histVariavelMap).some(arr => arr.length > 0)
 
     const histTotalMap: Record<number, number[]> = {}
     for (const row of (histTotalRes.data ?? []) as { categoria_id: number; total_centavos: number }[]) {
@@ -264,6 +266,7 @@ export default async function MetasPage({
             mes={mes}
             ano={ano}
             preditivaPorCat={isCurrentMonth ? preditivaPorCat : undefined}
+            temHistorico={isCurrentMonth ? temHistorico : undefined}
           />
         )}
       </div>
