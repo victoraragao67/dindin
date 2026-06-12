@@ -78,10 +78,15 @@ export function PushToggle({ pushAtivo: initialAtivo }: Props) {
         <div>
           <p className="text-sm font-medium" style={{ color: 'var(--ink)' }}>Notificações</p>
           <ul className="mt-1 space-y-0.5">
-            <li className="text-xs" style={{ color: 'var(--muted)' }}>🌙 Lembrete às 22h se não registrou gastos</li>
-            <li className="text-xs" style={{ color: 'var(--muted)' }}>🔁 Aviso quando recorrentes vencem</li>
+            <li className="text-xs" style={{ color: 'var(--muted)' }}>🔮 Alerta antes de estourar a meta (na hora)</li>
+            <li className="text-xs" style={{ color: 'var(--muted)' }}>🌙 Lembrete leve às 22h, só se você esqueceu</li>
             <li className="text-xs" style={{ color: 'var(--muted)' }}>💸 Gastos do parceiro em tempo real</li>
           </ul>
+          {!ativo && !msg && (
+            <p className="text-xs mt-2" style={{ color: 'var(--sage)' }}>
+              Ative para receber alertas antes de estourar.
+            </p>
+          )}
           {msg && <p className="text-xs mt-1" style={{ color: 'var(--sage)' }}>{msg}</p>}
         </div>
       </div>
