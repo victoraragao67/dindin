@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendPushToSubs } from '@/lib/push/send-server'
+import { getTemplate } from '@/lib/copy/get-template'
 
 /**
  * POST /api/push/subscribe
@@ -60,6 +62,19 @@ export async function POST(request: NextRequest) {
     console.error('[push/subscribe]', error.message)
     return Response.json({ error: 'Erro ao salvar subscription' }, { status: 500 })
   }
+
+  // Boas-vindas (fire-and-forget — não bloqueia a resposta)
+  void (async () => {
+    try {
+      const body = await getTemplate('boas_vindas')
+      if (!body) return
+      await sendPushToSubs([{ endpoint, p256dh, auth }], {
+        title: '💚 Nosso DinDin',
+        body,
+        url: '/',
+      })
+    } catch { /* ignora falhas de push */ }
+  })()
 
   return Response.json({ ok: true })
 }

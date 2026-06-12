@@ -1,6 +1,7 @@
 import { createAdminClient } from '../supabase/admin'
 import { gerarInsight } from './gemini'
 import { montarPromptInsight, gerarFallbackTemplate } from './insight-prompt'
+import { getTemplate } from '../copy/get-template'
 import type { PreditivaCategoria } from '../preditiva'
 
 function hojeBRT(): string {
@@ -29,7 +30,11 @@ export async function getInsightDoDia(
 
   // 2. Gera redação (LLM → fallback; nunca propaga erro para a UI)
   const diasRestantes = diasNoMes - diaAtual
-  const prompt = montarPromptInsight({ apelidos, dia: diaAtual, diasNoMes, categorias: preditiva })
+  const tomInstructions = await getTemplate('ritmo.tom_llm').catch(() => '')
+  const prompt = montarPromptInsight({
+    apelidos, dia: diaAtual, diasNoMes, categorias: preditiva,
+    tomInstructions: tomInstructions || undefined,
+  })
   let llm: { resumo: string } | null = null
   try { llm = await gerarInsight(prompt) } catch { llm = null }
   const resumo = (llm?.resumo ?? gerarFallbackTemplate(preditiva, diasRestantes)).slice(0, 280)

@@ -4,12 +4,17 @@ function fmt(centavos: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(centavos / 100)
 }
 
+const DEFAULT_TOM =
+  'Escreva em português do Brasil com tom LEVE e DESCONTRAÍDO — como um parceiro que cobra brincando, cutuca de leve com humor, sem peso, sem culpa, sem sermão. Nunca soe como cobrança séria ou julgamento. Pode usar uma piadinha curta e, no máximo, 1 emoji. Foque na 1 ou 2 categorias mais críticas. Pode cruzar categorias se fizer sentido. Se nenhuma categoria estiver crítica, manda um elogio leve e curto.'
+
 export function montarPromptInsight(input: {
-  apelidos:   [string, string]
-  dia:        number
-  diasNoMes:  number
-  categorias: PreditivaCategoria[]
+  apelidos:          [string, string]
+  dia:               number
+  diasNoMes:         number
+  categorias:        PreditivaCategoria[]
+  tomInstructions?:  string  // se omitido, usa DEFAULT_TOM
 }): string {
+  const tom = input.tomInstructions || DEFAULT_TOM
   const linhas = input.categorias
     .filter(c => c.status !== 'sem_meta')
     .map(c =>
@@ -25,11 +30,9 @@ Hoje é dia ${input.dia} de um mês de ${input.diasNoMes} dias.
 DADOS JÁ CALCULADOS (use exatamente estes valores; NUNCA invente ou recalcule número):
 ${linhas || '(sem categorias com meta definida este mês)'}
 
-Escreva em português do Brasil com tom LEVE e DESCONTRAÍDO — como um parceiro que cobra brincando, cutuca de leve com humor, sem peso, sem culpa, sem sermão. Nunca soe como cobrança séria ou julgamento. Pode usar uma piadinha curta e, no máximo, 1 emoji.
-Foque na 1 ou 2 categorias mais críticas. Pode cruzar categorias se fizer sentido.
+${tom}
 Use exatamente os números fornecidos; nunca invente ou recalcule valor.
-Responda APENAS em JSON: {"resumo": "<2-3 frases para a tela de resumo>"}.
-Se nenhuma categoria estiver crítica, manda um elogio leve e curto.`
+Responda APENAS em JSON: {"resumo": "<2-3 frases para a tela de resumo>"}.`
 }
 
 /** Fallback determinístico quando o LLM falha. */

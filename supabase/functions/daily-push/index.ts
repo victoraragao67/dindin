@@ -20,37 +20,43 @@ type PushSub = {
   auth:     string
 }
 
-// ── Baldes de mensagens ──────────────────────────────────────────
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
-}
-
-const BALDES = {
-  sumico: [
+// ── Fallback (usado quando o banco não responde) ─────────────────
+const DEFAULT_BALDES: Record<string, string[]> = {
+  'falta_uso.7d': [
     '7 dias sem registrar nada 👀 Sua conta vai estourar e depois não vem dizer que não avisei, hein 😏',
     'Tá namorando o esquecimento? Uma semana sem lançar. Bora antes que vire bagunça 🙃',
     'O DinDin sumiu do radar ou foi você? Bora retomar antes de perder o fio 🧵',
   ],
-  fechamento: [
+  'falta_uso.14d': [
+    '2 semanas sem registrar… tudo bem? Um lançamento rápido já ajuda a manter o controle 🙏',
+    'Quinze dias sem abrir o app. O dinheiro não para, mas a gente pode parar de perder o rastro 📊',
+    'Ei, sumiço de 2 semanas. Não precisa registrar tudo — começa pelo de hoje 💪',
+  ],
+  'falta_uso.21d': [
+    'Três semanas por aí… que tal uma reconstrução rápida? O DinDin não julga, só ajuda 💚',
+    'Olha, 21 dias. Que tal começar de novo hoje? Esquece o passado, registra o presente 🌱',
+    'Último empurrão: bora retomar de onde parou? Três toques e o gasto entra 🚀',
+  ],
+  'diario.fechamento': [
     'Reta final do mês! Bora fechar tudo registrado pra não ter surpresa? 🏁',
     'Últimos dias do mês — bora não deixar nada pra trás antes do acerto?',
     'Faltam poucos dias pro fechamento. Tem gasto esquecido aí?',
   ],
-  recomeco: [
+  'diario.recomeco': [
     'Semana nova! Bora começar registrando certinho? 💪',
     'Segunda-feira, cabeça nova. Mantém o DinDin atualizado essa semana?',
     'Novo começo de semana. Que tal começar com os lançamentos em dia?',
   ],
-  fimDeSemana: [
+  'diario.fim_de_semana': [
     'Sextou! Os rolês de hoje já entraram no DinDin? 👀',
     'Sábado é fácil o dinheiro sumir sem ninguém ver. Registrou?',
     'Final de semana chegou — e os gastos também. Não esquece de anotar 😉',
   ],
-  balanco: [
+  'diario.balanco': [
     'Domingo de fechar a conta: a semana toda entrou no app?',
     'Último dia da semana — confere lá se está tudo registrado antes de dormir.',
   ],
-  neutro: [
+  'diario.neutro': [
     'Psiu… cadê os gastos de hoje? 👀',
     'Dia sem gastos ou alguém esqueceu de anotar? 😏',
     'Bora lançar os perrengues de hoje antes de dormir?',
@@ -59,13 +65,49 @@ const BALDES = {
   ],
 }
 
-function selecionarLembrete(diasSemRegistrar: number, diaSemana: number, diasRestantes: number): string {
-  if (diasSemRegistrar >= 7)               return pick(BALDES.sumico)
-  if (diasRestantes   <= 3)                return pick(BALDES.fechamento)
-  if (diaSemana       === 1)               return pick(BALDES.recomeco)
-  if (diaSemana === 5 || diaSemana === 6)  return pick(BALDES.fimDeSemana)
-  if (diaSemana       === 0)               return pick(BALDES.balanco)
-  return pick(BALDES.neutro)
+function pick(arr: string[]): string {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+async function carregarBaldes(
+  supabase: ReturnType<typeof createClient>
+): Promise<Record<string, string[]>> {
+  const chaves = Object.keys(DEFAULT_BALDES)
+  try {
+    const { data } = await supabase
+      .from('message_templates')
+      .select('chave, variacoes')
+      .in('chave', chaves)
+      .eq('ativo', true)
+    const result: Record<string, string[]> = {}
+    for (const row of (data ?? []) as { chave: string; variacoes: string[] }[]) {
+      if (row.variacoes?.length > 0) result[row.chave] = row.variacoes
+    }
+    return result
+  } catch {
+    return {}
+  }
+}
+
+function selecionarLembrete(
+  diasSemRegistrar: number,
+  diaSemana: number,
+  diasRestantes: number,
+  baldes: Record<string, string[]>,
+): string {
+  const get = (chave: string) => {
+    const arr = baldes[chave] ?? DEFAULT_BALDES[chave] ?? ['Não esqueça de registrar seus gastos!']
+    return pick(arr)
+  }
+
+  if (diasSemRegistrar >= 21) return get('falta_uso.21d')
+  if (diasSemRegistrar >= 14) return get('falta_uso.14d')
+  if (diasSemRegistrar >= 7)  return get('falta_uso.7d')
+  if (diasRestantes   <= 3)   return get('diario.fechamento')
+  if (diaSemana       === 1)  return get('diario.recomeco')
+  if (diaSemana === 5 || diaSemana === 6) return get('diario.fim_de_semana')
+  if (diaSemana       === 0)  return get('diario.balanco')
+  return get('diario.neutro')
 }
 
 Deno.serve(async (_req: Request) => {
@@ -80,6 +122,10 @@ Deno.serve(async (_req: Request) => {
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
+
+  // ── Carrega templates (fallback silencioso) ───────────────────
+  const baldes = await carregarBaldes(supabase)
+  console.log('[daily-push] templates carregados do banco:', Object.keys(baldes).length, 'chaves')
 
   // ── Data atual em BRT (UTC-3) ─────────────────────────────────
   const agora = new Date()
@@ -164,7 +210,7 @@ Deno.serve(async (_req: Request) => {
       continue
     }
 
-    const body     = selecionarLembrete(diasSemRegistrar, diaSemana, diasRestantes)
+    const body     = selecionarLembrete(diasSemRegistrar, diaSemana, diasRestantes, baldes)
     const userSubs = byUser.get(userId)!
 
     for (const sub of userSubs) {

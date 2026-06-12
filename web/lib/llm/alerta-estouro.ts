@@ -1,6 +1,7 @@
 import { createAdminClient } from '../supabase/admin'
 import { sendPushToSubs } from '../push/send-server'
 import { calcularPreditiva } from '../preditiva'
+import { getTemplateRaw } from '../copy/get-template'
 
 function hojeBRT() {
   const s = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
@@ -15,17 +16,6 @@ function horaHojeBRT(): number {
   )
 }
 
-const ALERTA_VAI_ESTOURAR = [
-  '{emoji} Eita, {cat} tá voando 😅 No ritmo fecha em {projecao}, uns {diff} acima da meta. Bora maneirar?',
-  '{emoji} Psiu… {cat} acelerou. Projeção do mês: {projecao} ({diff} acima). Segura essa? 👀',
-  '{emoji} {cat} tá empolgada esse mês, hein. Do jeito que vai, {projecao} — {diff} além da meta.',
-]
-const ALERTA_ESTOUROU = [
-  '{emoji} Ó… {cat} passou da meta de {meta} (já em {gasto}). Faltam {dias} dias — bora compensar no resto? 😬',
-  '{emoji} {cat} estourou a meta, mas relaxa: ainda dá pra equilibrar o mês. Tá em {gasto} de {meta}.',
-  '{emoji} A meta de {cat} foi de base 🙈 {gasto} de {meta}. Resto do mês a gente segura?',
-]
-
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
 }
@@ -34,22 +24,6 @@ function fmt(centavos: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(centavos / 100)
 }
 
-function montarTexto(
-  nivel: 'vai_estourar' | 'estourou',
-  emoji: string, cat: string,
-  projecao: number, meta: number, gasto: number, diasRestantes: number,
-): string {
-  const diff = projecao - meta
-  const template = pick(nivel === 'vai_estourar' ? ALERTA_VAI_ESTOURAR : ALERTA_ESTOUROU)
-  return template
-    .replace('{emoji}', emoji)
-    .replace('{cat}',   cat)
-    .replace('{projecao}', fmt(projecao))
-    .replace('{diff}',     fmt(diff))
-    .replace('{meta}',     fmt(meta))
-    .replace('{gasto}',    fmt(gasto))
-    .replace('{dias}',     String(diasRestantes))
-}
 
 export async function dispararAlertaSeCruzou(
   casalId:     string,
@@ -133,7 +107,17 @@ export async function dispararAlertaSeCruzou(
 
   // Monta texto e busca subscriptions do casal
   const diasRestantes = diasNoMes - diaAtual
-  const body = montarTexto(nivel, emoji, nome, pred.projecao!, meta, pred.gastoAcumulado, diasRestantes)
+  const chaveTemplate = nivel === 'vai_estourar' ? 'risco.vai_estourar' : 'risco.estourou'
+  const templates = await getTemplateRaw(chaveTemplate)
+  const template  = pick(templates)
+  const body = template
+    .replace('{emoji}',    emoji)
+    .replace('{cat}',      nome)
+    .replace('{projecao}', fmt(pred.projecao!))
+    .replace('{diff}',     fmt(pred.projecao! - meta))
+    .replace('{meta}',     fmt(meta))
+    .replace('{gasto}',    fmt(pred.gastoAcumulado))
+    .replace('{dias}',     String(diasRestantes))
 
   const { data: membros } = await admin
     .from('casal_membros')
