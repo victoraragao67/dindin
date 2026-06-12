@@ -158,12 +158,13 @@ export default async function MetasPage({
       categorias: categorias
         .filter(cat => metasPorCat[cat.id] > 0)
         .map(cat => ({
-          categoriaId:    cat.id,
-          nome:           cat.nome,
-          emoji:          cat.emoji,
-          gastoAcumulado: gastoPorCat[cat.id] ?? 0,
-          meta:           metasPorCat[cat.id] ?? null,
-          historico:      historicoMap[cat.id] ?? [],
+          categoriaId:        cat.id,
+          nome:               cat.nome,
+          emoji:              cat.emoji,
+          gastoVariavel:      gastoPorCat[cat.id] ?? 0,
+          recorrentePrevisto: recorrentePorCat[cat.id] ?? 0,
+          meta:               metasPorCat[cat.id] ?? null,
+          historico:          historicoMap[cat.id] ?? [],
         })),
     })
     for (const p of predList) preditivaPorCat[p.categoriaId] = p

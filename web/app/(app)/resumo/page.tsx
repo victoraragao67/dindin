@@ -393,12 +393,13 @@ export default async function ResumoPage({
       diaAtual,
       diasNoMes,
       categorias: todasCategorias.map(cat => ({
-        categoriaId:    cat.id,
-        nome:           cat.nome,
-        emoji:          cat.emoji,
-        gastoAcumulado: gastoPorCat[cat.id] ?? 0,
-        meta:           metasPorCategoria[cat.id] ?? null,
-        historico:      historicoMap[cat.id] ?? [],
+        categoriaId:        cat.id,
+        nome:               cat.nome,
+        emoji:              cat.emoji,
+        gastoVariavel:      gastoPorCat[cat.id] ?? 0,
+        recorrentePrevisto: recorrentePorCategoria[cat.id] ?? 0,
+        meta:               metasPorCategoria[cat.id] ?? null,
+        historico:          historicoMap[cat.id] ?? [],
       })),
     })
 
