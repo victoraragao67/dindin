@@ -57,7 +57,8 @@ export function RitmoCard({ preditiva, insightResumo }: Props) {
         const label    = LABEL[c.status] ?? c.status
         const meta     = c.meta ?? 0
         const pct      = meta > 0 ? Math.min((c.gastoAcumulado / meta) * 100, 100) : 100
-        const excesso  = c.projecao - meta
+        const projecao = c.projecao ?? c.gastoAcumulado
+        const excesso  = projecao - meta
 
         return (
           <div
@@ -97,7 +98,7 @@ export function RitmoCard({ preditiva, insightResumo }: Props) {
             {/* Linha 3: projeção / delta */}
             <div className="flex justify-between mb-2">
               <span className="text-xs font-semibold" style={{ color: cor }}>
-                Projeção: {formatCurrency(c.projecao)}
+                Projeção: {formatCurrency(projecao)}
               </span>
               {excesso > 0 && (
                 <span className="text-xs font-semibold" style={{ color: cor }}>

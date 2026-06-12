@@ -14,7 +14,7 @@ export function montarPromptInsight(input: {
     .filter(c => c.status !== 'sem_meta')
     .map(c =>
       `- ${c.nome}: gasto ${fmt(c.gastoAcumulado)}, meta ${fmt(c.meta ?? 0)}, ` +
-      `projeção fechamento ${fmt(c.projecao)}, status ${c.status}` +
+      `projeção fechamento ${c.projecao != null ? fmt(c.projecao) : 'indefinida'}, status ${c.status}` +
       (c.ritmoVsMedia != null ? `, ritmo ${(c.ritmoVsMedia * 100).toFixed(0)}% vs média` : '')
     )
     .join('\n')
@@ -44,7 +44,8 @@ export function gerarFallbackTemplate(
   if (criticas.length === 0) {
     const ok = categorias.filter(c => c.status === 'ok' && c.meta)
     if (ok.length > 0) {
-      return `${ok[0].emoji} Tudo no ritmo certo — ${ok[0].nome} projeta ${fmt(ok[0].projecao)} de uma meta de ${fmt(ok[0].meta!)}.`
+      const projecaoTxt = ok[0].projecao != null ? `projeta ${fmt(ok[0].projecao)}` : 'tá no ritmo'
+      return `${ok[0].emoji} Tudo no ritmo certo — ${ok[0].nome} ${projecaoTxt} de uma meta de ${fmt(ok[0].meta!)}.`
     }
     return 'Acompanhe o ritmo de cada categoria neste mês.'
   }
@@ -53,8 +54,9 @@ export function gerarFallbackTemplate(
     if (c.status === 'estourou') {
       return `${c.emoji} ${c.nome} estourou a meta de ${fmt(c.meta ?? 0)} (já em ${fmt(c.gastoAcumulado)}). Faltam ${diasRestantes} dias.`
     }
-    const diff = c.projecao - (c.meta ?? 0)
+    const projecao = c.projecao ?? 0
+    const diff = projecao - (c.meta ?? 0)
     const pctMeta = c.meta ? Math.round((c.gastoAcumulado / c.meta) * 100) : 0
-    return `${c.emoji} ${c.nome}: já ${pctMeta}% da meta. No ritmo atual fecha em ${fmt(c.projecao)}, ${fmt(diff)} acima.`
+    return `${c.emoji} ${c.nome}: já ${pctMeta}% da meta. No ritmo atual fecha em ${fmt(projecao)}, ${fmt(diff)} acima.`
   }).join(' ')
 }

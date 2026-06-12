@@ -387,11 +387,20 @@ export default async function ResumoPage({
     const diaAtual  = hoje.getDate()
     const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
 
-    // Monta histórico por categoria
-    const historicoMap: Record<number, number[]> = {}
+    // histVariavel: gasto variável (pwa-only) dos últimos 3 meses — âncora do blend
+    const histVariavelMap: Record<number, number[]> = {}
     for (const row of (historicoRes.data ?? []) as { categoria_id: number; total_centavos: number }[]) {
-      if (!historicoMap[row.categoria_id]) historicoMap[row.categoria_id] = []
-      historicoMap[row.categoria_id].push(row.total_centavos)
+      if (!histVariavelMap[row.categoria_id]) histVariavelMap[row.categoria_id] = []
+      histVariavelMap[row.categoria_id].push(row.total_centavos)
+    }
+
+    // histTotal: total (var+rec) dos últimos 3 meses — derivado de serieCategoriaMes já carregado
+    const histTotalMap: Record<number, number[]> = {}
+    for (const r of serieCategoriaMes) {
+      if (r.mes >= hist3Start && r.mes < start) {
+        if (!histTotalMap[r.categoria_id]) histTotalMap[r.categoria_id] = []
+        histTotalMap[r.categoria_id].push(r.total_centavos)
+      }
     }
 
     const gastoPorCat: Record<number, number> = {}
@@ -407,7 +416,8 @@ export default async function ResumoPage({
         gastoVariavel:      gastoPorCat[cat.id] ?? 0,
         recorrentePrevisto: recorrentePorCategoria[cat.id] ?? 0,
         meta:               metasPorCategoria[cat.id] ?? null,
-        historico:          historicoMap[cat.id] ?? [],
+        histVariavel:       histVariavelMap[cat.id] ?? [],
+        histTotal:          histTotalMap[cat.id] ?? [],
       })),
     })
 

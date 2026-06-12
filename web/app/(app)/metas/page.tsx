@@ -51,7 +51,7 @@ export default async function MetasPage({
   }
   const hist3Start = mesAtrasStr(3)
 
-  const [categoriasRes, metasRes, variaveisRes, recorrentesRes, metasAntRes, historicoRes] = await Promise.all([
+  const [categoriasRes, metasRes, variaveisRes, recorrentesRes, metasAntRes, historicoRes, histTotalRes] = await Promise.all([
     // 1. Todas as categorias
     supabase
       .from('categories')
@@ -85,10 +85,19 @@ export default async function MetasPage({
       .eq('ano', prevMes.ano)
       .limit(1),
 
-    // 6. Histórico dos últimos 3 meses (para preditiva — só consultado se mês atual)
+    // 6. Histórico variável dos últimos 3 meses (pwa-only — âncora do blend)
     isCurrentMonth
       ? supabase
           .from('v_gastos_por_categoria_mes')
+          .select('categoria_id, total_centavos')
+          .gte('mes', hist3Start)
+          .lt('mes', mesStr)
+      : Promise.resolve({ data: [] }),
+
+    // 7. Histórico total (var+rec) dos últimos 3 meses — ritmoVsMedia
+    isCurrentMonth
+      ? supabase
+          .from('v_gastos_categoria_mes_total')
           .select('categoria_id, total_centavos')
           .gte('mes', hist3Start)
           .lt('mes', mesStr)
@@ -146,10 +155,16 @@ export default async function MetasPage({
     const diaAtual  = hoje.getDate()
     const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
 
-    const historicoMap: Record<number, number[]> = {}
+    const histVariavelMap: Record<number, number[]> = {}
     for (const row of (historicoRes.data ?? []) as { categoria_id: number; total_centavos: number }[]) {
-      if (!historicoMap[row.categoria_id]) historicoMap[row.categoria_id] = []
-      historicoMap[row.categoria_id].push(row.total_centavos)
+      if (!histVariavelMap[row.categoria_id]) histVariavelMap[row.categoria_id] = []
+      histVariavelMap[row.categoria_id].push(row.total_centavos)
+    }
+
+    const histTotalMap: Record<number, number[]> = {}
+    for (const row of (histTotalRes.data ?? []) as { categoria_id: number; total_centavos: number }[]) {
+      if (!histTotalMap[row.categoria_id]) histTotalMap[row.categoria_id] = []
+      histTotalMap[row.categoria_id].push(row.total_centavos)
     }
 
     const predList = calcularPreditiva({
@@ -164,7 +179,8 @@ export default async function MetasPage({
           gastoVariavel:      gastoPorCat[cat.id] ?? 0,
           recorrentePrevisto: recorrentePorCat[cat.id] ?? 0,
           meta:               metasPorCat[cat.id] ?? null,
-          historico:          historicoMap[cat.id] ?? [],
+          histVariavel:       histVariavelMap[cat.id] ?? [],
+          histTotal:          histTotalMap[cat.id] ?? [],
         })),
     })
     for (const p of predList) preditivaPorCat[p.categoriaId] = p
