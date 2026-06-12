@@ -84,7 +84,6 @@ export type ResumoData = {
   divisao:              DivisaoItem[]   // quanto cada um pagou fisicamente (variável + recorrente)
   custoRealCompleto:    CustoRealRow[]  // custo real por pessoa (variável + recorrente, splits aplicados)
   recorrentes:          RecorrenteItem[]
-  metasPorCategoria:    Record<number, number>
   topGastos:            TopGasto[]
   gastosMensais:        GastoMensalRow[]
   compras:              CompraItem[]
@@ -411,7 +410,6 @@ export default async function ResumoPage({
     divisao,
     custoRealCompleto,
     recorrentes,
-    metasPorCategoria,
     topGastos,
     gastosMensais,
     compras,
