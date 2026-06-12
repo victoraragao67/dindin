@@ -35,6 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <a href="/admin"             style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Casais</a>
           <a href="/admin/usuarios"    style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Usuários</a>
           <a href="/admin/categorias"  style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Categorias</a>
+          <a href="/admin/mensagens"   style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none' }}>Mensagens</a>
           <a href="/"                  style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>← App</a>
         </nav>
       </div>
