@@ -85,7 +85,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
           </button>
         </div>
 
-        {/* ── Bloco: Por categoria ── */}
+        {/* ── Bloco: Por categoria (composição do mês — % do total, sem tracking de meta) ── */}
         <section className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Por categoria</h2>
           {data.categorias.length === 0 ? (
@@ -96,12 +96,6 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                 const pct = data.totalMes > 0
                   ? Math.round((cat.total_centavos / data.totalMes) * 100)
                   : 0
-                const meta = data.metasPorCategoria?.[cat.categoria_id]
-                const metaPct = meta ? Math.round((cat.total_centavos / meta) * 100) : null
-                const barColor = metaPct === null
-                  ? 'var(--sage)'
-                  : metaPct > 90 ? 'var(--coral)' : metaPct > 70 ? '#f59e0b' : 'var(--sage)'
-
                 const semGasto = cat.total_centavos === 0
                 return (
                   <button
@@ -121,17 +115,12 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                         <span className="text-sm capitalize" style={{ color: 'var(--ink)' }}>{cat.categoria_nome}</span>
                       </div>
                       <div className="text-right">
-                        {meta ? (
-                          <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
-                            {formatCurrency(cat.total_centavos)}
-                            <span className="text-xs ml-1" style={{ color: 'var(--muted)' }}>/ {formatCurrency(meta)}</span>
-                          </span>
-                        ) : (
-                          <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(cat.total_centavos)}</span>
-                        )}
+                        <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
+                          {formatCurrency(cat.total_centavos)}
+                        </span>
                         {!semGasto && (
-                          <span className="text-xs ml-2" style={{ color: metaPct !== null && metaPct > 90 ? 'var(--coral)' : 'var(--muted)' }}>
-                            {metaPct !== null ? `${metaPct}%` : `${pct}%`}
+                          <span className="text-xs ml-2" style={{ color: 'var(--muted)' }}>
+                            {pct}%
                           </span>
                         )}
                       </div>
@@ -139,7 +128,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
                       <div
                         className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(metaPct ?? pct, 100)}%`, background: barColor }}
+                        style={{ width: `${pct}%`, background: 'var(--sage)' }}
                       />
                     </div>
                   </button>

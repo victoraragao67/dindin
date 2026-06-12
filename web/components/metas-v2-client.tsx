@@ -200,20 +200,21 @@ export function MetasV2Client({
       {/* ── Cards de meta por categoria ────────────────────── */}
       {resolved.map(item => {
         const { categoria, gasto, recorrente, meta } = item
-        const total    = gasto + recorrente
-        const pct      = meta > 0 ? Math.min((total / meta) * 100, 100) : 0
-        const realPct  = meta > 0 ? (total / meta) * 100 : 0
-        const status   = realPct > 100 ? 'estourou' : realPct > 80 ? 'atencao' : 'ok'
-        const barColor = status === 'estourou' ? 'var(--coral)' : status === 'atencao' ? '#C4803A' : 'var(--sage)'
-        const delta    = meta - total
-        const deltaLabel = delta >= 0
-          ? `✓ ${formatCurrency(delta)} dentro da meta`
-          : `⚠ ${formatCurrency(Math.abs(delta))} acima da meta`
-        const deltaColor = delta >= 0
-          ? (status === 'atencao' ? '#8B5A1F' : '#3d6b40')
-          : '#a8432a'
-        const isEdit   = editando === categoria.id
-        const pred     = preditivaPorCat?.[categoria.id]
+        const total   = gasto + recorrente
+        const pct     = meta > 0 ? Math.min((total / meta) * 100, 100) : 0
+        const realPct = meta > 0 ? (total / meta) * 100 : 0
+        const delta   = meta - total
+        const isEdit  = editando === categoria.id
+        const pred    = preditivaPorCat?.[categoria.id]
+
+        // Cor e status — preditiva (prospectivo) tem prioridade; fallback em realPct
+        const usePred    = pred && pred.status !== 'sem_meta'
+        const barColor   = usePred
+          ? (PREDITIVA_COR[pred.status] ?? 'var(--sage)')
+          : realPct > 100 ? 'var(--coral)' : realPct > 80 ? '#C4803A' : 'var(--sage)'
+        const statusLabel = usePred
+          ? ({ estourou: 'Estourou', vai_estourar: 'Vai estourar', no_limite: 'No limite', ok: 'ok' } as Record<string, string>)[pred.status] ?? 'ok'
+          : realPct > 100 ? 'Estourou' : realPct > 80 ? 'Atenção' : 'ok'
 
         return (
           <div key={categoria.id} style={{ margin: '0 14px 8px' }}>
@@ -261,7 +262,7 @@ export function MetasV2Client({
                   {formatCurrency(total)}
                 </span>
                 <span style={{ fontSize: 10, fontWeight: 700, color: barColor }}>
-                  {Math.round(realPct)}% · {status === 'estourou' ? 'Estourou' : status === 'atencao' ? 'Atenção' : 'ok'}
+                  {Math.round(realPct)}% · {statusLabel}
                 </span>
               </div>
 
@@ -335,30 +336,35 @@ export function MetasV2Client({
                 </div>
               </div>
 
-              {/* Tag de status em reais */}
+              {/* Tag de status — fonte única: preditiva quando disponível */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 600,
-                  padding: '3px 9px', borderRadius: 100, display: 'inline-block',
-                  background: delta >= 0
-                    ? status === 'atencao'
-                      ? 'rgba(196,128,58,.12)'
-                      : 'rgba(122,158,126,.12)'
-                    : 'rgba(212,115,90,.12)',
-                  color: deltaColor,
-                }}>
-                  {deltaLabel}
-                </span>
-
-                {/* Chip de projeção (preditiva) */}
-                {pred && pred.status !== 'sem_meta' && (
+                {usePred ? (() => {
+                  const cor = PREDITIVA_COR[pred.status] ?? 'var(--muted)'
+                  const label = pred.status === 'estourou'
+                    ? `⚠ ${formatCurrency(Math.abs(delta))} acima da meta`
+                    : pred.status === 'vai_estourar' || pred.status === 'no_limite'
+                      ? `↗ no ritmo, fecha em ${formatCurrency(pred.projecao)}`
+                      : `✓ ${formatCurrency(delta)} dentro da meta`
+                  return (
+                    <span style={{
+                      fontSize: 10, fontWeight: 600,
+                      padding: '3px 9px', borderRadius: 100, display: 'inline-block',
+                      background: `color-mix(in srgb, ${cor} 12%, transparent)`,
+                      color: cor,
+                    }}>
+                      {label}
+                    </span>
+                  )
+                })() : (
                   <span style={{
                     fontSize: 10, fontWeight: 600,
                     padding: '3px 9px', borderRadius: 100, display: 'inline-block',
-                    background: `color-mix(in srgb, ${PREDITIVA_COR[pred.status] ?? 'var(--muted)'} 12%, transparent)`,
-                    color: PREDITIVA_COR[pred.status] ?? 'var(--muted)',
+                    background: delta >= 0 ? 'rgba(122,158,126,.12)' : 'rgba(212,115,90,.12)',
+                    color: delta >= 0 ? '#3d6b40' : '#a8432a',
                   }}>
-                    ↗ {formatCurrency(pred.projecao)} projetado
+                    {delta >= 0
+                      ? `✓ ${formatCurrency(delta)} dentro da meta`
+                      : `⚠ ${formatCurrency(Math.abs(delta))} acima da meta`}
                   </span>
                 )}
               </div>
