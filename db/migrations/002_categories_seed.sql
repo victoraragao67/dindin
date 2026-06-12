@@ -19,5 +19,5 @@ INSERT INTO public.categories (nome, emoji, aliases, ordem) VALUES
 -- IDs são placeholders; serão substituídos em F1-04 quando
 -- os usuários fizerem login via magic link (auth.users.id = public.users.id).
 INSERT INTO public.users (nome, apelido, email) VALUES
-  ('Victor',   'Vitim', 'victor.aragao@umode.com.br'),
+  ('Victor',   'Vitim', 'victoraragao67@gmail.com'),
   ('Letícia',  'Gaia',  'leticiar.gaia@gmail.com');

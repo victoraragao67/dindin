@@ -176,7 +176,6 @@ describe('dispararAlertaSeCruzou', () => {
     mockInsert.mockResolvedValue({ error: null })
 
     // Fix date to day 15 (inside quiet hours window for test)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn(Date.prototype, 'toLocaleDateString').mockImplementation(function(
       this: Date, ...args: any[]
     ) {

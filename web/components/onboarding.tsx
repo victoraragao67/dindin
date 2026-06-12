@@ -311,10 +311,10 @@ function StepNotifications({
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <p style={{ fontSize: 14, color: 'var(--ink)', margin: 0, lineHeight: 1.6 }}>
-          Todo dia às <strong>22h</strong>, te lembramos de registrar os gastos do dia.
+          O app monitora o ritmo dos seus gastos e avisa <strong>na hora</strong> quando uma categoria está a caminho de estourar a meta — antes de acontecer.
         </p>
         <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
-          É só 1 notificação por dia — e só se você não tiver registrado nada ainda.
+          Às 22h, um lembrete leve caso você ainda não tenha registrado nada no dia.
         </p>
       </div>
 

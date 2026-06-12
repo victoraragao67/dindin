@@ -84,9 +84,9 @@ export type ResumoData = {
   divisao:              DivisaoItem[]   // quanto cada um pagou fisicamente (variável + recorrente)
   custoRealCompleto:    CustoRealRow[]  // custo real por pessoa (variável + recorrente, splits aplicados)
   recorrentes:          RecorrenteItem[]
-  metasPorCategoria:       Record<number, number>
-  recorrentePorCategoria:  Record<number, number>
-  topGastos:               TopGasto[]
+  metasPorCategoria:      Record<number, number>
+  recorrentePorCategoria: Record<number, number>
+  topGastos:              TopGasto[]
   gastosMensais:        GastoMensalRow[]
   compras:              CompraItem[]
   parcelasEmAberto:     ParcelaEmAberto[]
