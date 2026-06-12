@@ -53,6 +53,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
   const [pessoaAberta, setPessoaAberta]       = useState<DivisaoItem | null>(null)
   const [modoDivisao, setModoDivisao]         = useState<'custo_total' | 'pagou'>('custo_total')
   const [pessoaExpandida, setPessoaExpandida] = useState<string | null>(null)
+  const [modoCategoria, setModoCategoria]     = useState<'variavel' | 'com_recorrentes'>('variavel')
 
   function navMes(mes: string) {
     router.push(`/resumo?mes=${mes}`)
@@ -85,63 +86,108 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
           </button>
         </div>
 
-        {/* ── Bloco: Por categoria (composição do mês — % do total, sem tracking de meta) ── */}
-        <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Por categoria</h2>
-          {data.categorias.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>Nenhum gasto neste mês.</p>
-          ) : (
-            <div className="space-y-2">
-              {data.categorias.map(cat => {
-                const pct = data.totalMes > 0
-                  ? Math.round((cat.total_centavos / data.totalMes) * 100)
-                  : 0
-                const semGasto = cat.total_centavos === 0
-                return (
-                  <button
-                    key={cat.categoria_id}
-                    onClick={() => !semGasto && setCatAberta(cat)}
-                    className="w-full rounded-xl px-4 py-3 space-y-1.5 text-left border transition-opacity active:opacity-70"
-                    style={{
-                      background: 'var(--card)',
-                      borderColor: 'var(--border)',
-                      opacity: semGasto ? 0.45 : 1,
-                      cursor: semGasto ? 'default' : 'pointer',
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">{cat.categoria_emoji}</span>
-                        <span className="text-sm capitalize" style={{ color: 'var(--ink)' }}>{cat.categoria_nome}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
-                          {formatCurrency(cat.total_centavos)}
-                        </span>
-                        {!semGasto && (
-                          <span className="text-xs ml-2" style={{ color: 'var(--muted)' }}>
-                            {pct}%
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, background: 'var(--sage)' }}
-                      />
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </section>
-
         {/* ── Bloco: Ritmo do mês (preditiva) ── */}
         {data.preditiva.length > 0 && (
           <RitmoCard preditiva={data.preditiva} insightResumo={data.insightResumo} />
         )}
+
+        {/* ── Bloco: Por categoria ── */}
+        {(() => {
+          const totalRecorrentes = Object.values(data.recorrentePorCategoria ?? {}).reduce((s, v) => s + v, 0)
+          const totalBase = modoCategoria === 'com_recorrentes'
+            ? data.totalMes + totalRecorrentes
+            : data.totalMes
+
+          const catsFiltradas = data.categorias.filter(cat => {
+            const totalCat = modoCategoria === 'com_recorrentes'
+              ? cat.total_centavos + (data.recorrentePorCategoria?.[cat.categoria_id] ?? 0)
+              : cat.total_centavos
+            return totalCat > 0
+          })
+
+          return (
+            <section className="space-y-3">
+              {/* Header com toggle */}
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wide shrink-0" style={{ color: 'var(--muted)' }}>Por categoria</h2>
+                <div className="flex rounded-lg overflow-hidden border text-xs shrink-0" style={{ borderColor: 'var(--border)' }}>
+                  {(['variavel', 'com_recorrentes'] as const).map(modo => (
+                    <button
+                      key={modo}
+                      type="button"
+                      onClick={() => setModoCategoria(modo)}
+                      style={{
+                        padding:    '4px 8px',
+                        background: modoCategoria === modo ? 'var(--ink)' : 'var(--bg-2)',
+                        color:      modoCategoria === modo ? 'var(--bg)' : 'var(--muted)',
+                        fontWeight: modoCategoria === modo ? 600 : 400,
+                        border:     'none',
+                        cursor:     'pointer',
+                        transition: 'background 0.15s',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {modo === 'variavel' ? 'Variável' : 'Com recorrentes'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {catsFiltradas.length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>Nenhum gasto neste mês.</p>
+              ) : (
+                <div className="space-y-2">
+                  {catsFiltradas.map(cat => {
+                    const totalCat = modoCategoria === 'com_recorrentes'
+                      ? cat.total_centavos + (data.recorrentePorCategoria?.[cat.categoria_id] ?? 0)
+                      : cat.total_centavos
+                    const pct     = totalBase > 0 ? Math.round((totalCat / totalBase) * 100) : 0
+                    const meta    = data.metasPorCategoria?.[cat.categoria_id]
+                    const metaPct = meta ? Math.round((totalCat / meta) * 100) : null
+                    const barColor = metaPct === null
+                      ? 'var(--sage)'
+                      : metaPct > 90 ? 'var(--coral)' : metaPct > 70 ? '#f59e0b' : 'var(--sage)'
+
+                    return (
+                      <button
+                        key={cat.categoria_id}
+                        onClick={() => setCatAberta(cat)}
+                        className="w-full rounded-xl px-4 py-3 space-y-1.5 text-left border transition-opacity active:opacity-70"
+                        style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{cat.categoria_emoji}</span>
+                            <span className="text-sm capitalize" style={{ color: 'var(--ink)' }}>{cat.categoria_nome}</span>
+                          </div>
+                          <div className="text-right">
+                            {meta ? (
+                              <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
+                                {formatCurrency(totalCat)}
+                                <span className="text-xs ml-1" style={{ color: 'var(--muted)' }}>/ {formatCurrency(meta)}</span>
+                              </span>
+                            ) : (
+                              <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(totalCat)}</span>
+                            )}
+                            <span className="text-xs ml-2" style={{ color: metaPct !== null && metaPct > 90 ? 'var(--coral)' : 'var(--muted)' }}>
+                              {metaPct !== null ? `${metaPct}%` : `${pct}%`}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-2)' }}>
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(metaPct ?? pct, 100)}%`, background: barColor }}
+                          />
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )
+        })()}
 
         {/* ── Bloco: Divisão ── */}
         <section className="space-y-3">
