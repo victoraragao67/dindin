@@ -1,8 +1,12 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
+import { getCasal } from '@/lib/supabase/get-casal'
 import { SaldoHeader, SaldoHeaderSkeleton } from '@/components/saldo-header'
 import { ResumoClient } from '@/components/resumo-client'
 import { formatCurrency } from '@/lib/money'
+import { calcularPreditiva } from '@/lib/preditiva'
+import type { PreditivaCategoria } from '@/lib/preditiva'
+import { getInsightDoDia } from '@/lib/llm/insight-do-dia'
 
 /* ── Tipos ─────────────────────────────────────────────────── */
 
@@ -85,6 +89,8 @@ export type ResumoData = {
   gastosMensais:        GastoMensalRow[]
   compras:              CompraItem[]
   parcelasEmAberto:     ParcelaEmAberto[]
+  preditiva:            PreditivaCategoria[]
+  insightResumo:        string | null
 }
 
 /* ── Helpers ────────────────────────────────────────────────── */
@@ -107,6 +113,12 @@ function currentMesStr(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7) + '-01'
 }
 
+function mesAtrasStr(mesStr: string, n: number): string {
+  const [y, m] = mesStr.split('-').map(Number)
+  const d = new Date(y, m - 1 - n, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
+
 /* ── Page ───────────────────────────────────────────────────── */
 
 export default async function ResumoPage({
@@ -114,10 +126,13 @@ export default async function ResumoPage({
 }: {
   searchParams: { mes?: string }
 }) {
-  const mesStr = searchParams.mes ?? currentMesStr()
+  const mesStr    = searchParams.mes ?? currentMesStr()
   const { start, end } = mesRange(mesStr)
+  const isMesAtual = mesStr === currentMesStr()
 
   const supabase = createClient()
+
+  const hist3Start = mesAtrasStr(mesStr, 3)
 
   const [
     categoriasRes,
@@ -131,6 +146,7 @@ export default async function ResumoPage({
     comprasRes,
     parcelasAbertoRes,
     custoRealRes,
+    historicoRes,
   ] = await Promise.all([
     // Gastos por categoria no mês (apenas as que tiveram gasto)
     supabase
@@ -213,6 +229,13 @@ export default async function ResumoPage({
     supabase
       .from('v_custo_real_mes')
       .select('user_id, apelido, custo_variavel, custo_recorrente, custo_total'),
+
+    // Histórico dos últimos 3 meses por categoria (para preditiva)
+    supabase
+      .from('v_gastos_por_categoria_mes')
+      .select('categoria_id, total_centavos, mes')
+      .gte('mes', hist3Start)
+      .lt('mes', start),
   ])
 
   const categoriasComGasto = (categoriasRes.data ?? []) as CategoriaRow[]
@@ -339,6 +362,48 @@ export default async function ResumoPage({
     }))
     .sort((a, b) => b.custo_total - a.custo_total)
 
+  // ── Preditiva (só para o mês corrente) ───────────────────────
+  let preditiva: PreditivaCategoria[] = []
+  let insightResumo: string | null    = null
+
+  if (isMesAtual) {
+    const hoje      = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const diaAtual  = hoje.getDate()
+    const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
+
+    // Monta histórico por categoria
+    const historicoMap: Record<number, number[]> = {}
+    for (const row of (historicoRes.data ?? []) as { categoria_id: number; total_centavos: number }[]) {
+      if (!historicoMap[row.categoria_id]) historicoMap[row.categoria_id] = []
+      historicoMap[row.categoria_id].push(row.total_centavos)
+    }
+
+    const gastoPorCat: Record<number, number> = {}
+    for (const c of categoriasComGasto) gastoPorCat[c.categoria_id] = c.total_centavos
+
+    preditiva = calcularPreditiva({
+      diaAtual,
+      diasNoMes,
+      categorias: todasCategorias.map(cat => ({
+        categoriaId:    cat.id,
+        nome:           cat.nome,
+        emoji:          cat.emoji,
+        gastoAcumulado: gastoPorCat[cat.id] ?? 0,
+        meta:           metasPorCategoria[cat.id] ?? null,
+        historico:      historicoMap[cat.id] ?? [],
+      })),
+    })
+
+    // Insight do dia (LLM com fallback — nunca trava a página)
+    const casal   = await getCasal()
+    const apelidos = (users as { id: string; apelido: string }[]).map(u => u.apelido) as [string, string]
+    if (casal.casalId) {
+      insightResumo = await getInsightDoDia(casal.casalId, preditiva, apelidos, diaAtual, diasNoMes)
+        .then(r => r.resumo)
+        .catch(() => null)
+    }
+  }
+
   const resumoData: ResumoData = {
     mesLabel:          mesParaLabel(mesStr),
     totalMes,
@@ -351,6 +416,8 @@ export default async function ResumoPage({
     gastosMensais,
     compras,
     parcelasEmAberto,
+    preditiva,
+    insightResumo,
   }
 
   return (

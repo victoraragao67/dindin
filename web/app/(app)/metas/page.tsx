@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/bottom-nav'
 import { MetasV2Client } from '@/components/metas-v2-client'
 import { MetasEmptyActions } from '@/components/metas-empty-actions'
+import { calcularPreditiva } from '@/lib/preditiva'
+import type { PreditivaCategoria } from '@/lib/preditiva'
 
 export const metadata = { title: 'Metas · Nosso DinDin' }
 
@@ -36,12 +38,20 @@ export default async function MetasPage({
   const mes = Number(searchParams.mes ?? mesPadrao)
   const ano = Number(searchParams.ano ?? anoPadrao)
 
-  const mesStr   = `${ano}-${String(mes).padStart(2, '0')}-01`
-  const supabase = createClient()
+  const mesStr        = `${ano}-${String(mes).padStart(2, '0')}-01`
+  const supabase      = createClient()
+  const prevMes       = prevMesAno(mes, ano)
+  const { mes: mesAtual, ano: anoAtual } = currentMesAno()
+  const isCurrentMonth = mes === mesAtual && ano === anoAtual
 
-  const prevMes = prevMesAno(mes, ano)
+  // Histórico dos últimos 3 meses (para preditiva)
+  function mesAtrasStr(n: number): string {
+    const d = new Date(ano, mes - 1 - n, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+  }
+  const hist3Start = mesAtrasStr(3)
 
-  const [categoriasRes, metasRes, variaveisRes, recorrentesRes, metasAntRes] = await Promise.all([
+  const [categoriasRes, metasRes, variaveisRes, recorrentesRes, metasAntRes, historicoRes] = await Promise.all([
     // 1. Todas as categorias
     supabase
       .from('categories')
@@ -74,6 +84,15 @@ export default async function MetasPage({
       .eq('mes', prevMes.mes)
       .eq('ano', prevMes.ano)
       .limit(1),
+
+    // 6. Histórico dos últimos 3 meses (para preditiva — só consultado se mês atual)
+    isCurrentMonth
+      ? supabase
+          .from('v_gastos_por_categoria_mes')
+          .select('categoria_id, total_centavos')
+          .gte('mes', hist3Start)
+          .lt('mes', mesStr)
+      : Promise.resolve({ data: [] }),
   ])
 
   // ── Lookup maps ──────────────────────────────────────────────
@@ -120,11 +139,39 @@ export default async function MetasPage({
   const totalComprometido = itens.reduce((s, i) => s + i.gasto + i.recorrente, 0)
   const sobraGeral        = totalMetas - comMeta.reduce((s, i) => s + i.gasto + i.recorrente, 0)
 
+  // ── Preditiva (só para o mês corrente) ──────────────────────
+  const preditivaPorCat: Record<number, PreditivaCategoria> = {}
+  if (isCurrentMonth) {
+    const hoje      = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const diaAtual  = hoje.getDate()
+    const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
+
+    const historicoMap: Record<number, number[]> = {}
+    for (const row of (historicoRes.data ?? []) as { categoria_id: number; total_centavos: number }[]) {
+      if (!historicoMap[row.categoria_id]) historicoMap[row.categoria_id] = []
+      historicoMap[row.categoria_id].push(row.total_centavos)
+    }
+
+    const predList = calcularPreditiva({
+      diaAtual,
+      diasNoMes,
+      categorias: categorias
+        .filter(cat => metasPorCat[cat.id] > 0)
+        .map(cat => ({
+          categoriaId:    cat.id,
+          nome:           cat.nome,
+          emoji:          cat.emoji,
+          gastoAcumulado: gastoPorCat[cat.id] ?? 0,
+          meta:           metasPorCat[cat.id] ?? null,
+          historico:      historicoMap[cat.id] ?? [],
+        })),
+    })
+    for (const p of predList) preditivaPorCat[p.categoriaId] = p
+  }
+
   // ── Navegação de meses ───────────────────────────────────────
   const prev = prevMesAno(mes, ano)
   const next = nextMesAno(mes, ano)
-  const { mes: mesAtual, ano: anoAtual } = currentMesAno()
-  const isCurrentMonth = mes === mesAtual && ano === anoAtual
 
   return (
     <>
@@ -199,6 +246,7 @@ export default async function MetasPage({
             sobraGeral={sobraGeral}
             mes={mes}
             ano={ano}
+            preditivaPorCat={isCurrentMonth ? preditivaPorCat : undefined}
           />
         )}
       </div>
