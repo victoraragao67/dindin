@@ -27,6 +27,12 @@ export default function SobrePage() {
       title: 'Acerto via PIX',
       desc: 'No fim do mês, o saldo mostra o valor exato do acerto. Um PIX e a conta zera.',
     },
+    {
+      emoji: '🔮',
+      bg: 'color-mix(in srgb, var(--sage) 14%, transparent)',
+      title: 'IA que avisa antes de estourar',
+      desc: 'O app projeta o ritmo do mês e manda um alerta quando uma categoria está a caminho de estourar a meta — antes de acontecer.',
+    },
   ]
 
   const compareRows = [
@@ -34,6 +40,7 @@ export default function SobrePage() {
     ['R$ 280 em 3x = 1 lançamento de R$ 280',  '3x de R$ 93,33, mês a mês'],
     ['Lança aluguel manualmente todo mês',       'Automático. Cadastrou uma vez.'],
     ['Anúncios na versão grátis',                'Zero anúncio. Gratuito pra sempre.'],
+    ['Só registra o que já passou',              'Projeta o mês e avisa antes de estourar'],
   ]
 
   const categories = [
