@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getCasal } from '@/lib/supabase/get-casal'
 import { todayBRTStr } from '@/lib/date'
 import { sendPushToSubs } from '@/lib/push/send-server'
+import { dispararAlertaSeCruzou } from '@/lib/llm/alerta-estouro'
 
 // ── Schemas ───────────────────────────────────────────────────
 
@@ -100,6 +101,13 @@ export async function criarGasto(input: NovoGastoInput): Promise<ActionResult> {
   if (parceiroId) {
     notifyParceiro(supabase, parceiroId, pagador_apelido, categoria_id).catch(
       err => console.error('[criarGasto] notifyParceiro falhou:', err)
+    )
+  }
+
+  // Alerta de estouro se a categoria cruzou um limiar (fire-and-forget)
+  if (casal.casalId) {
+    dispararAlertaSeCruzou(casal.casalId, categoria_id).catch(
+      err => console.error('[criarGasto] dispararAlertaSeCruzou falhou:', err)
     )
   }
 

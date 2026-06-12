@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/bottom-nav'
 import { formatCurrency } from '@/lib/money'
 import { InfoTooltip } from '@/components/info-tooltip'
 import type { ResumoData, CompraItem, ParcelaEmAberto, CustoRealRow } from '@/app/(app)/resumo/page'
+import { RitmoCard } from '@/components/ritmo-card'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
@@ -147,6 +148,11 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
             </div>
           )}
         </section>
+
+        {/* ── Bloco: Ritmo do mês (preditiva) ── */}
+        {data.preditiva.length > 0 && (
+          <RitmoCard preditiva={data.preditiva} insightResumo={data.insightResumo} />
+        )}
 
         {/* ── Bloco: Divisão ── */}
         <section className="space-y-3">

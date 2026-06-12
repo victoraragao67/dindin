@@ -101,6 +101,15 @@ Deno.serve(async (_req: Request) => {
     // Nenhum gasto hoje → envia push para cada subscription do usuário
     const userSubs = byUser.get(userId)!
 
+    const LEMBRETES = [
+      'Psiu… cadê os gastos de hoje? 👀',
+      'Dia sem gastos ou alguém esqueceu de anotar? 😏',
+      'Bora lançar os perrengues de hoje antes de dormir?',
+      'O DinDin tá de olho 👀 Registrou os gastos de hoje?',
+      'Tudo quieto por aqui… foi day off da carteira ou esquecimento?',
+    ]
+    const body = LEMBRETES[Math.floor(Math.random() * LEMBRETES.length)]
+
     for (const sub of userSubs) {
       try {
         await webpush.sendNotification(
@@ -110,7 +119,7 @@ Deno.serve(async (_req: Request) => {
           },
           JSON.stringify({
             title: '💚 Nosso DinDin',
-            body:  'Nenhum gasto registrado hoje. Tudo certo?',
+            body,
             url:   '/?modal=novo-gasto',
           })
         )
