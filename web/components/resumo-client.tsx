@@ -92,8 +92,8 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
           <RitmoCard preditiva={data.preditiva} insightResumo={data.insightResumo} />
         )}
 
-        {/* ── Bloco: Por categoria ── */}
-        {(() => {
+        {/* ── Bloco: Por categoria — só exibe em meses sem preditiva (meses passados) ── */}
+        {data.preditiva.length === 0 && (() => {
           const totalRecorrentes = Object.values(data.recorrentePorCategoria ?? {}).reduce((s, v) => s + v, 0)
           const totalBase = modoCategoria === 'com_recorrentes'
             ? data.totalMes + totalRecorrentes
