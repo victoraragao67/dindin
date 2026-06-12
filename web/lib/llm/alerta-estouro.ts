@@ -108,7 +108,7 @@ export async function dispararAlertaSeCruzou(
   // Calcula status atual
   const [pred] = calcularPreditiva({
     diaAtual, diasNoMes,
-    categorias: [{ categoriaId, nome, emoji, gastoVariavel, recorrentePrevisto, meta, historico: [] }],
+    categorias: [{ categoriaId, nome, emoji, gastoVariavel, recorrentePrevisto, meta, histVariavel: [], histTotal: [] }],
   })
 
   const nivel = pred.status === 'estourou'     ? 'estourou'
@@ -116,6 +116,7 @@ export async function dispararAlertaSeCruzou(
               : null
 
   if (!nivel) return
+  if (pred.projecao === null) return  // cold start sem âncora — não há projeção para o texto
 
   // Dedup: verifica se este nível já foi enviado este mês
   const { data: jaEnviado } = await admin
@@ -132,7 +133,7 @@ export async function dispararAlertaSeCruzou(
 
   // Monta texto e busca subscriptions do casal
   const diasRestantes = diasNoMes - diaAtual
-  const body = montarTexto(nivel, emoji, nome, pred.projecao, meta, pred.gastoAcumulado, diasRestantes)
+  const body = montarTexto(nivel, emoji, nome, pred.projecao!, meta, pred.gastoAcumulado, diasRestantes)
 
   const { data: membros } = await admin
     .from('casal_membros')

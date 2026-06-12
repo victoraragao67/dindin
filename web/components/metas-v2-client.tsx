@@ -343,7 +343,7 @@ export function MetasV2Client({
                   const label = pred.status === 'estourou'
                     ? `⚠ ${formatCurrency(Math.abs(delta))} acima da meta`
                     : pred.status === 'vai_estourar' || pred.status === 'no_limite'
-                      ? `↗ no ritmo, fecha em ${formatCurrency(pred.projecao)}`
+                      ? `↗ no ritmo, fecha em ${formatCurrency(pred.projecao ?? 0)}`
                       : `✓ ${formatCurrency(delta)} dentro da meta`
                   return (
                     <span style={{
