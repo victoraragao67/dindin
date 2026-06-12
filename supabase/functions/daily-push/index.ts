@@ -203,9 +203,11 @@ Deno.serve(async (_req: Request) => {
       ? Math.round((new Date(hoje).getTime() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24))
       : 999
 
-    // Backoff sumiço: >= 7 dias sem registrar, só envia nos dias ímpares
-    if (diasSemRegistrar >= 7 && diasSemRegistrar % 2 === 0) {
-      console.log(`[daily-push] usuário ${userId} em sumiço (${diasSemRegistrar}d) — backoff par, pulado`)
+    // Cadência estrita: envia apenas nos dias 1,2,3,4,7,14,21 de silêncio; dorme após 21.
+    const DIAS_ENVIO = new Set([1, 2, 3, 4, 7, 14, 21])
+    const diasCheck  = Math.min(diasSemRegistrar, 999)  // 999 = nunca registrou → > 21 → dorme
+    if (diasCheck > 21 || !DIAS_ENVIO.has(diasCheck)) {
+      console.log(`[daily-push] usuário ${userId} em silêncio (${diasSemRegistrar}d) — pulado`)
       pulados++
       continue
     }
