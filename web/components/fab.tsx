@@ -13,7 +13,7 @@ export function Fab({ onClick }: Props) {
         position: 'fixed',
         bottom: 'calc(72px + env(safe-area-inset-bottom) + 16px)',
         right: '1.5rem',
-        zIndex: 50,
+        zIndex: 30,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

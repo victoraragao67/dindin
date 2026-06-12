@@ -325,9 +325,31 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
 
           {/* Categorias */}
           <div>
-            <p className="text-xs font-medium mb-3" style={{ color: 'var(--muted)' }}>CATEGORIA</p>
+            <div className="flex items-center gap-2 mb-3">
+              <p className="text-xs font-medium" style={{ color: 'var(--muted)' }}>CATEGORIA</p>
+              {categoriaId !== null && !loadingCats && (() => {
+                const cat = categorias.find(c => c.id === categoriaId)
+                return cat ? (
+                  <span className="text-xs font-semibold" style={{ color: 'var(--sage)' }}>
+                    {cat.nome}
+                  </span>
+                ) : null
+              })()}
+            </div>
             {loadingCats ? (
-              <div className="text-xs py-2" style={{ color: 'var(--muted)' }}>Carregando...</div>
+              <div className="grid grid-cols-5 gap-2">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl py-3"
+                    style={{ background: 'var(--bg-2)', height: 52 }}
+                  />
+                ))}
+              </div>
+            ) : categorias.length === 0 ? (
+              <div className="text-xs py-2" style={{ color: 'var(--muted)' }}>
+                Nenhuma categoria disponível.
+              </div>
             ) : (
               <>
                 <div className="grid grid-cols-5 gap-2">

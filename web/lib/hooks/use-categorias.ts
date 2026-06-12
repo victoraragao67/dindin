@@ -32,13 +32,14 @@ export function useCategorias() {
       .select('id, nome, emoji, ordem')
       .eq('ativo', true)
       .order('ordem', { ascending: true })
-      .then(({ data }: { data: Categoria[] | null }) => {
-        if (data) {
+      .then(({ data, error }: { data: Categoria[] | null; error: { message: string } | null }) => {
+        if (data && !error) {
           _cache = data as Categoria[]
           setCategorias(_cache)
         }
         setLoading(false)
       })
+      .catch(() => setLoading(false))
   }, [])
 
   return { categorias, loading }
