@@ -84,8 +84,9 @@ export type ResumoData = {
   divisao:              DivisaoItem[]   // quanto cada um pagou fisicamente (variável + recorrente)
   custoRealCompleto:    CustoRealRow[]  // custo real por pessoa (variável + recorrente, splits aplicados)
   recorrentes:          RecorrenteItem[]
-  metasPorCategoria:    Record<number, number>
-  topGastos:            TopGasto[]
+  metasPorCategoria:       Record<number, number>
+  recorrentePorCategoria:  Record<number, number>
+  topGastos:               TopGasto[]
   gastosMensais:        GastoMensalRow[]
   compras:              CompraItem[]
   parcelasEmAberto:     ParcelaEmAberto[]
@@ -195,7 +196,7 @@ export default async function ResumoPage({
     // Recorrentes ativos para exibir compromissos fixos por pessoa
     supabase
       .from('recurring_templates')
-      .select('pagador_id, descricao, valor_centavos, categoria:categories(emoji)')
+      .select('pagador_id, descricao, valor_centavos, categoria_id, categoria:categories(emoji)')
       .eq('ativo', true)
       .order('valor_centavos', { ascending: false }),
 
@@ -300,6 +301,13 @@ export default async function ResumoPage({
       categoria_emoji: Array.isArray(r.categoria) ? r.categoria[0]?.emoji : r.categoria?.emoji ?? '📦',
     }
   })
+
+  // Recorrentes por categoria (para toggle "Com recorrentes" no Resumo)
+  const recorrentePorCategoria: Record<number, number> = {}
+  for (const r of (recorrentesRes.data ?? []) as any[]) {
+    const catId = r.categoria_id as number
+    if (catId) recorrentePorCategoria[catId] = (recorrentePorCategoria[catId] ?? 0) + (r.valor_centavos as number)
+  }
 
   // Compras individuais — normaliza join aninhado
   const compras: CompraItem[] = ((comprasRes.data ?? []) as any[]).flatMap(row => {
@@ -412,6 +420,7 @@ export default async function ResumoPage({
     custoRealCompleto,
     recorrentes,
     metasPorCategoria,
+    recorrentePorCategoria,
     topGastos,
     gastosMensais,
     compras,

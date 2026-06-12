@@ -215,6 +215,12 @@ export function MetasV2Client({
         const isEdit   = editando === categoria.id
         const pred     = preditivaPorCat?.[categoria.id]
 
+        const usePred          = pred !== undefined && pred.status !== 'sem_meta'
+        const displayBarColor  = usePred ? (PREDITIVA_COR[pred!.status] ?? barColor) : barColor
+        const displayStatusLabel = usePred
+          ? ({ estourou: 'Estourou', vai_estourar: 'Vai estourar', no_limite: 'No limite', ok: 'ok' } as Record<string, string>)[pred!.status] ?? 'ok'
+          : status === 'estourou' ? 'Estourou' : status === 'atencao' ? 'Atenção' : 'ok'
+
         return (
           <div key={categoria.id} style={{ margin: '0 14px 8px' }}>
             <div style={{
@@ -260,8 +266,8 @@ export function MetasV2Client({
                 }}>
                   {formatCurrency(total)}
                 </span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: barColor }}>
-                  {Math.round(realPct)}% · {status === 'estourou' ? 'Estourou' : status === 'atencao' ? 'Atenção' : 'ok'}
+                <span style={{ fontSize: 10, fontWeight: 700, color: displayBarColor }}>
+                  {Math.round(realPct)}% · {displayStatusLabel}
                 </span>
               </div>
 
@@ -272,7 +278,7 @@ export function MetasV2Client({
               }}>
                 <div style={{
                   height: '100%', width: `${pct}%`,
-                  background: barColor, borderRadius: 100,
+                  background: displayBarColor, borderRadius: 100,
                   transition: 'width 0.6s ease',
                 }} />
               </div>
@@ -290,7 +296,7 @@ export function MetasV2Client({
                   <span style={{ fontSize: 10, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span style={{
                       width: 6, height: 6, borderRadius: '50%',
-                      background: barColor,
+                      background: displayBarColor,
                       display: 'inline-block', flexShrink: 0,
                     }} />
                     Variável (gastos do mês)
@@ -335,30 +341,40 @@ export function MetasV2Client({
                 </div>
               </div>
 
-              {/* Tag de status em reais */}
+              {/* Chip de status unificado — preditiva tem prioridade */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 600,
-                  padding: '3px 9px', borderRadius: 100, display: 'inline-block',
-                  background: delta >= 0
-                    ? status === 'atencao'
-                      ? 'rgba(196,128,58,.12)'
-                      : 'rgba(122,158,126,.12)'
-                    : 'rgba(212,115,90,.12)',
-                  color: deltaColor,
-                }}>
-                  {deltaLabel}
-                </span>
-
-                {/* Chip de projeção (preditiva) */}
-                {pred && pred.status !== 'sem_meta' && (
+                {usePred ? (() => {
+                  const cor = PREDITIVA_COR[pred!.status] ?? 'var(--muted)'
+                  const bg  = `color-mix(in srgb, ${cor} 12%, transparent)`
+                  if (pred!.status === 'estourou') {
+                    return (
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 100, display: 'inline-block', background: bg, color: cor }}>
+                        ⚠ {formatCurrency(Math.abs(delta))} acima da meta
+                      </span>
+                    )
+                  }
+                  if (pred!.status === 'vai_estourar' || pred!.status === 'no_limite') {
+                    return (
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 100, display: 'inline-block', background: bg, color: cor }}>
+                        ↗ no ritmo, fecha em {formatCurrency(pred!.projecao)}
+                      </span>
+                    )
+                  }
+                  return (
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 9px', borderRadius: 100, display: 'inline-block', background: bg, color: cor }}>
+                      ✓ {formatCurrency(delta)} dentro da meta
+                    </span>
+                  )
+                })() : (
                   <span style={{
                     fontSize: 10, fontWeight: 600,
                     padding: '3px 9px', borderRadius: 100, display: 'inline-block',
-                    background: `color-mix(in srgb, ${PREDITIVA_COR[pred.status] ?? 'var(--muted)'} 12%, transparent)`,
-                    color: PREDITIVA_COR[pred.status] ?? 'var(--muted)',
+                    background: delta >= 0
+                      ? status === 'atencao' ? 'rgba(196,128,58,.12)' : 'rgba(122,158,126,.12)'
+                      : 'rgba(212,115,90,.12)',
+                    color: deltaColor,
                   }}>
-                    ↗ {formatCurrency(pred.projecao)} projetado
+                    {deltaLabel}
                   </span>
                 )}
               </div>
