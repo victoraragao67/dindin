@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { NovoGastoModal } from '@/components/novo-gasto-modal'
+import type { Categoria } from '@/components/novo-gasto-modal'
 import { Toast } from '@/components/toast'
 import { Onboarding } from '@/components/onboarding'
 import { BottomNav } from '@/components/bottom-nav'
@@ -12,9 +13,10 @@ type Props = {
   currentApelido: string
   apelidos?: [string, string]
   hideBottomNav?: boolean
+  categorias?: Categoria[]
 }
 
-export function HomeClient({ currentApelido, apelidos, hideBottomNav = false }: Props) {
+export function HomeClient({ currentApelido, apelidos, hideBottomNav = false, categorias }: Props) {
   const router = useRouter()
   const [modalOpen, setModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -50,6 +52,7 @@ export function HomeClient({ currentApelido, apelidos, hideBottomNav = false }: 
         currentApelido={currentApelido}
         apelidos={apelidos ?? [currentApelido, currentApelido]}
         onSuccess={handleSuccess}
+        categorias={categorias}
       />
 
       {toast && <Toast message={toast} onDismiss={dismissToast} />}
