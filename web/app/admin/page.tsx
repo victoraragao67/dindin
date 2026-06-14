@@ -1,7 +1,8 @@
-import { requireAdmin }        from '@/lib/admin/check-admin'
-import { createAdminClient }   from '@/lib/supabase/admin'
-import { BloqueioButton }      from './bloquear-button'
-import { DeletarCasalButton }  from './deletar-casal-button'
+import { requireAdmin }           from '@/lib/admin/check-admin'
+import { createAdminClient }      from '@/lib/supabase/admin'
+import { BloqueioButton }         from './bloquear-button'
+import { DeletarCasalButton }     from './deletar-casal-button'
+import { NotificacaoHoraSelect }  from './notificacao-hora-select'
 
 type CasalMembro = {
   role: string
@@ -15,6 +16,7 @@ type Casal = {
   status: string
   created_at: string
   inativado_em: string | null
+  notificacao_hora: number
   casal_membros: CasalMembro[]
 }
 
@@ -31,6 +33,7 @@ export default async function AdminPage() {
       status,
       created_at,
       inativado_em,
+      notificacao_hora,
       casal_membros (
         role,
         joined_at,
@@ -95,7 +98,7 @@ export default async function AdminPage() {
         {/* Cabeçalho */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1.5fr 2fr 1fr 1.2fr 90px 80px',
+          gridTemplateColumns: '1.5fr 2fr 1fr 1.2fr 70px 90px 80px',
           padding: '8px 14px',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           fontSize: 10,
@@ -108,6 +111,7 @@ export default async function AdminPage() {
           <span>Membros</span>
           <span>Status</span>
           <span>Última atividade</span>
+          <span>Push</span>
           <span>Bloquear</span>
           <span>Deletar</span>
         </div>
@@ -130,7 +134,7 @@ export default async function AdminPage() {
           return (
             <div key={casal.id} style={{
               display: 'grid',
-              gridTemplateColumns: '1.5fr 2fr 1fr 1.2fr 90px 80px',
+              gridTemplateColumns: '1.5fr 2fr 1fr 1.2fr 70px 90px 80px',
               padding: '10px 14px',
               borderBottom: '1px solid rgba(255,255,255,0.04)',
               alignItems: 'center',
@@ -185,6 +189,12 @@ export default async function AdminPage() {
               <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
                 {ultimoGasto}
               </div>
+
+              {/* Horário push */}
+              <NotificacaoHoraSelect
+                casalId={casal.id}
+                horaAtual={casal.notificacao_hora ?? 20}
+              />
 
               {/* Bloquear */}
               <BloqueioButton

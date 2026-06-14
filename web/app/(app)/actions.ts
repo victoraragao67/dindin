@@ -3,11 +3,8 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { getCasal } from '@/lib/supabase/get-casal'
 import { todayBRTStr } from '@/lib/date'
-import { sendPushToSubs } from '@/lib/push/send-server'
-import { dispararAlertaSeCruzou } from '@/lib/llm/alerta-estouro'
 
 // ── Schemas ───────────────────────────────────────────────────
 
@@ -95,61 +92,9 @@ export async function criarGasto(input: NovoGastoInput): Promise<ActionResult> {
   }
 
   revalidatePath('/')
-
-  // Notifica o parceiro (fire-and-forget — não bloqueia a resposta)
-  const parceiroId = casal.parceiro?.id
-  if (parceiroId) {
-    notifyParceiro(supabase, parceiroId, pagador_apelido, categoria_id).catch(
-      err => console.error('[criarGasto] notifyParceiro falhou:', err)
-    )
-  }
-
-  // Alerta de estouro se a categoria cruzou um limiar (fire-and-forget)
-  if (casal.casalId) {
-    dispararAlertaSeCruzou(casal.casalId, categoria_id).catch(
-      err => console.error('[criarGasto] dispararAlertaSeCruzou falhou:', err)
-    )
-  }
-
   return { data: { id: data.id } }
 }
 
-/** Envia push ao parceiro: "[Apelido] registrou em 🍔 Alimentação" */
-async function notifyParceiro(
-  supabase: ReturnType<typeof createClient>,
-  parceiroId: string,
-  pagadorApelido: string,
-  categoriaId: number,
-) {
-  // Admin client para bypasaar RLS em push_subscriptions (a policy só permite
-  // que cada user leia as próprias subscriptions — precisamos ler as do parceiro)
-  const adminSupabase = createAdminClient()
-
-  // Busca categoria e subscriptions do parceiro em paralelo
-  const [catRes, subsRes] = await Promise.all([
-    supabase
-      .from('categories')
-      .select('nome, emoji')
-      .eq('id', categoriaId)
-      .single(),
-    adminSupabase
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .eq('user_id', parceiroId)
-      .eq('ativo', true),
-  ])
-
-  const cat  = catRes.data  as { nome: string; emoji: string } | null
-  const subs = subsRes.data as { endpoint: string; p256dh: string; auth: string }[] | null
-
-  if (!cat || !subs || subs.length === 0) return
-
-  await sendPushToSubs(subs, {
-    title: '💸 Novo gasto registrado',
-    body:  `${pagadorApelido} registrou em ${cat.emoji} ${cat.nome}`,
-    url:   '/gastos',
-  })
-}
 
 export async function atualizarGasto(id: string, input: NovoGastoInput): Promise<ActionResult> {
   const parsed = NovoGastoSchema.safeParse(input)
