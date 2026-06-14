@@ -46,6 +46,14 @@ export default async function RecorrentesPage() {
       return { mes, mesLabel, pagamentos, totalMes: pagamentos.reduce((s, p) => s + p.total, 0) }
     })
 
+  const { data: categoriasData } = await supabase
+    .from('categories')
+    .select('id, nome, emoji, ordem')
+    .eq('ativo', true)
+    .order('ordem', { ascending: true })
+
+  const categorias = (categoriasData ?? []) as { id: number; nome: string; emoji: string; ordem: number }[]
+
   const { data: templates } = await supabase
     .from('recurring_templates')
     .select(`
@@ -116,7 +124,7 @@ export default async function RecorrentesPage() {
             <PrevisibilidadeRecorrentes />
           </Suspense>
 
-          <ListaRecorrentes templates={normalized} currentApelido={currentApelido} apelidos={apelidos} />
+          <ListaRecorrentes templates={normalized} currentApelido={currentApelido} apelidos={apelidos} categorias={categorias} />
 
           {historico.length > 0 && (
             <HistoricoRecorrentes historico={historico} />

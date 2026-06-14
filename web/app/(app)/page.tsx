@@ -450,9 +450,15 @@ function RecorrentesSectionSkeleton() {
 /* ── Page ───────────────────────────────────────────────────── */
 
 export default async function HomePage() {
-  const [user, casal] = await Promise.all([getUser(), getCasal()])
+  const supabase = createClient()
+  const [user, casal, categoriasRes] = await Promise.all([
+    getUser(),
+    getCasal(),
+    supabase.from('categories').select('id, nome, emoji, ordem').eq('ativo', true).order('ordem', { ascending: true }),
+  ])
   const currentApelido = casal.meuApelido ?? ''
   const apelidos = casal.apelidos ?? [currentApelido, currentApelido] as [string, string]
+  const categorias = (categoriasRes.data ?? []) as { id: number; nome: string; emoji: string; ordem: number }[]
 
   return (
     <>
@@ -493,6 +499,7 @@ export default async function HomePage() {
         currentApelido={currentApelido}
         apelidos={apelidos}
         hideBottomNav
+        categorias={categorias}
       />
     </>
   )

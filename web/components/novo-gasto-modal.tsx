@@ -8,6 +8,8 @@ import type { NovoGastoInput, RecorrenteInput } from '@/app/(app)/actions'
 import { useCategorias } from '@/lib/hooks/use-categorias'
 import type { Categoria } from '@/lib/hooks/use-categorias'
 
+export type { Categoria }
+
 type Divisao = '50_50' | 'so_pagador' | 'so_outro' | 'customizada'
 
 export type RecorrenteInitial = RecorrenteInput & { id: string }
@@ -23,6 +25,8 @@ type Props = {
   modo?: 'gasto' | 'recorrente'
   editando?: RecorrenteInitial    // edição de recorrente
   editandoGasto?: GastoInitial    // edição de gasto
+  /** Categorias pré-carregadas do servidor — evita fetch client-side */
+  categorias?: Categoria[]
 }
 
 function dateMinus(days: number): string {
@@ -42,7 +46,7 @@ function labelForDate(dateStr: string): string {
   return `${d}/${m}/${y}`
 }
 
-export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSuccess, modo = 'gasto', editando, editandoGasto }: Props) {
+export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSuccess, modo = 'gasto', editando, editandoGasto, categorias: categoriasProp }: Props) {
   const inputRef  = useRef<HTMLInputElement>(null)
   const dateRef   = useRef<HTMLInputElement>(null)
   const isRecorrente = modo === 'recorrente'
@@ -51,7 +55,7 @@ export function NovoGastoModal({ open, onClose, currentApelido, apelidos, onSucc
     : editandoGasto ? 'Editar gasto' : 'Novo gasto'
 
   // ── Categorias dinâmicas ────────────────────────────────────
-  const { categorias, loading: loadingCats } = useCategorias()
+  const { categorias, loading: loadingCats } = useCategorias(categoriasProp)
 
   // ── Campos básicos ──────────────────────────────────────────
   const [rawDigits, setRawDigits]     = useState('')

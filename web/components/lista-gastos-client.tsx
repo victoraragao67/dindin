@@ -7,7 +7,7 @@ import { formatDate, currentMonthLabel } from '@/lib/date'
 import { GastoActionsSheet } from './gasto-actions-sheet'
 import { NovoGastoModal } from './novo-gasto-modal'
 import type { GastoSelecionado } from './gasto-actions-sheet'
-import type { GastoInitial } from './novo-gasto-modal'
+import type { GastoInitial, Categoria } from './novo-gasto-modal'
 
 type Installment = {
   id: string
@@ -33,9 +33,10 @@ type Props = {
   installments: Installment[]
   currentApelido?: string
   apelidos?: [string, string]
+  categorias?: Categoria[]
 }
 
-export function ListaGastosClient({ installments, currentApelido = '', apelidos }: Props) {
+export function ListaGastosClient({ installments, currentApelido = '', apelidos, categorias }: Props) {
   const router = useRouter()
   const [gastoSelecionado, setGastoSelecionado] = useState<GastoSelecionado | null>(null)
   const [editandoGasto, setEditandoGasto] = useState<GastoInitial | null>(null)
@@ -237,6 +238,7 @@ export function ListaGastosClient({ installments, currentApelido = '', apelidos 
         apelidos={apelidos ?? [currentApelido, currentApelido]}
         onSuccess={handleSucesso}
         editandoGasto={editandoGasto ?? undefined}
+        categorias={categorias}
       />
     </>
   )

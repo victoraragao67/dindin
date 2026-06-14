@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/money'
 import { toggleRecorrente, removerRecorrente } from '@/app/(app)/actions'
-import { NovoGastoModal, type RecorrenteInitial } from '@/components/novo-gasto-modal'
+import { NovoGastoModal, type RecorrenteInitial, type Categoria } from '@/components/novo-gasto-modal'
 import { Toast } from '@/components/toast'
 
 const CATEGORIES: Record<number, { nome: string; emoji: string }> = {
@@ -36,9 +36,10 @@ type Props = {
   templates: Template[]
   currentApelido: string
   apelidos?: [string, string]
+  categorias?: Categoria[]
 }
 
-export function ListaRecorrentes({ templates, currentApelido, apelidos }: Props) {
+export function ListaRecorrentes({ templates, currentApelido, apelidos, categorias }: Props) {
   const router = useRouter()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmRemoverId, setConfirmRemoverId] = useState<string | null>(null)
@@ -229,6 +230,7 @@ export function ListaRecorrentes({ templates, currentApelido, apelidos }: Props)
         onSuccess={handleSuccess}
         modo="recorrente"
         editando={editando}
+        categorias={categorias}
       />
 
       {toast && <Toast message={toast} onDismiss={dismissToast} />}

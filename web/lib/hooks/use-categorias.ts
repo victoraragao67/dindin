@@ -14,7 +14,13 @@ export type Categoria = {
 // Evita re-fetch a cada abertura do modal na mesma sessão.
 let _cache: Categoria[] | null = null
 
-export function useCategorias() {
+export function useCategorias(initialCategorias?: Categoria[]) {
+  // Pre-warm the cache with server-provided categories (SSR props)
+  // so no client-side fetch is needed when the server already sent them
+  if (initialCategorias && initialCategorias.length > 0 && _cache === null) {
+    _cache = initialCategorias
+  }
+
   const [categorias, setCategorias] = useState<Categoria[]>(_cache ?? [])
   const [loading,    setLoading]    = useState(_cache === null)
 

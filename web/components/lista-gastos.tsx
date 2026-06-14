@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { currentMonthRange } from '@/lib/date'
 import { ListaGastosClient } from './lista-gastos-client'
+import type { Categoria } from './novo-gasto-modal'
 
 type Installment = {
   id: string
@@ -22,7 +23,7 @@ type Installment = {
   }
 }
 
-export async function ListaGastos({ currentApelido = '', apelidos }: { currentApelido?: string; apelidos?: [string, string] } = {}) {
+export async function ListaGastos({ currentApelido = '', apelidos, categorias }: { currentApelido?: string; apelidos?: [string, string]; categorias?: Categoria[] } = {}) {
   const supabase = createClient()
   const { start, end } = currentMonthRange()
 
@@ -58,7 +59,7 @@ export async function ListaGastos({ currentApelido = '', apelidos }: { currentAp
 
   const installments = (data as unknown as Installment[]) ?? []
 
-  return <ListaGastosClient installments={installments} currentApelido={currentApelido} apelidos={apelidos} />
+  return <ListaGastosClient installments={installments} currentApelido={currentApelido} apelidos={apelidos} categorias={categorias} />
 }
 
 export function ListaGastosSkeleton() {
