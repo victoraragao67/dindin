@@ -88,6 +88,20 @@ export async function reativarCasal(casalId: string) {
   revalidatePath('/admin')
 }
 
+export async function atualizarNotificacaoHora(casalId: string, hora: number) {
+  await requireAdmin()
+  if (hora < 0 || hora > 23 || !Number.isInteger(hora)) throw new Error('Hora inválida (0-23).')
+
+  const supabase = createAdminClient()
+  const { error } = await supabase
+    .from('casais')
+    .update({ notificacao_hora: hora })
+    .eq('id', casalId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin')
+}
+
 // ── Categorias ────────────────────────────────────────────────
 
 const CategoriaSchema = z.object({

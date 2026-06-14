@@ -1,85 +1,87 @@
 /**
- * Edge Function: daily-push
+ * Edge Function: daily-push (v2 — notificação unificada)
  *
- * Roda às 22:00 BRT (01:00 UTC) todos os dias.
- * Para cada usuário com push subscription ativa que NÃO registrou
- * nenhum gasto hoje, envia um lembrete inteligente — variado por
- * quantos dias a pessoa está sem registrar, dia da semana e fase do mês.
+ * Roda de hora em hora (0 * * * *).
+ * A cada execução filtra os casais cujo notificacao_hora == hora BRT atual.
  *
- * Backoff sumiço: se diasSemRegistrar >= 7 e o número for par, pula
- * para não saturar o usuário.
+ * Para cada usuário com push ativo (1 push/dia — idempotente):
+ *   1. temRisco       = alguma categoria do casal em risco (vai_estourar/estourou)
+ *                       não alertada nos últimos 7 dias
+ *   2. faltaRegistro  = usuário não registrou hoje E está na escada 1/2/3/4/7/14/21
+ *
+ *   risco + falta → mensagem COMBINADA (LLM)
+ *   só risco      → mensagem de RISCO (LLM)
+ *   só falta      → mensagem de FALTA DE USO (LLM)
+ *   nenhum        → não envia
+ *
+ * LLM: Gemini 2.5 Flash-Lite (free tier). Fallback determinístico se falhar.
+ * Anti-repetição: ultimo_lembrete salvo por subscription.
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import webpush from 'npm:web-push'
 
+// ── Tipos ───────────────────────────────────────────────────
+
 type PushSub = {
-  user_id: string
-  endpoint: string
-  p256dh:   string
-  auth:     string
+  id:             string
+  user_id:        string
+  endpoint:       string
+  p256dh:         string
+  auth:           string
+  ultimo_lembrete: string | null
+  notificado_em:  string | null
 }
 
-// ── Fallback (usado quando o banco não responde) ─────────────────
-const DEFAULT_BALDES: Record<string, string[]> = {
-  'falta_uso.7d': [
-    '7 dias sem registrar nada 👀 Sua conta vai estourar e depois não vem dizer que não avisei, hein 😏',
-    'Tá namorando o esquecimento? Uma semana sem lançar. Bora antes que vire bagunça 🙃',
-    'O DinDin sumiu do radar ou foi você? Bora retomar antes de perder o fio 🧵',
-  ],
-  'falta_uso.14d': [
-    '2 semanas sem registrar… tudo bem? Um lançamento rápido já ajuda a manter o controle 🙏',
-    'Quinze dias sem abrir o app. O dinheiro não para, mas a gente pode parar de perder o rastro 📊',
-    'Ei, sumiço de 2 semanas. Não precisa registrar tudo — começa pelo de hoje 💪',
-  ],
-  'falta_uso.21d': [
-    'Três semanas por aí… que tal uma reconstrução rápida? O DinDin não julga, só ajuda 💚',
-    'Olha, 21 dias. Que tal começar de novo hoje? Esquece o passado, registra o presente 🌱',
-    'Último empurrão: bora retomar de onde parou? Três toques e o gasto entra 🚀',
-  ],
-  'diario.fechamento': [
-    'Reta final do mês! Bora fechar tudo registrado pra não ter surpresa? 🏁',
-    'Últimos dias do mês — bora não deixar nada pra trás antes do acerto?',
-    'Faltam poucos dias pro fechamento. Tem gasto esquecido aí?',
-  ],
-  'diario.recomeco': [
-    'Semana nova! Bora começar registrando certinho? 💪',
-    'Segunda-feira, cabeça nova. Mantém o DinDin atualizado essa semana?',
-    'Novo começo de semana. Que tal começar com os lançamentos em dia?',
-  ],
-  'diario.fim_de_semana': [
-    'Sextou! Os rolês de hoje já entraram no DinDin? 👀',
-    'Sábado é fácil o dinheiro sumir sem ninguém ver. Registrou?',
-    'Final de semana chegou — e os gastos também. Não esquece de anotar 😉',
-  ],
-  'diario.balanco': [
-    'Domingo de fechar a conta: a semana toda entrou no app?',
-    'Último dia da semana — confere lá se está tudo registrado antes de dormir.',
-  ],
-  'diario.neutro': [
-    'Psiu… cadê os gastos de hoje? 👀',
-    'Dia sem gastos ou alguém esqueceu de anotar? 😏',
-    'Bora lançar os perrengues de hoje antes de dormir?',
-    'O DinDin tá de olho 👀 Registrou os gastos de hoje?',
-    'Tudo quieto por aqui… foi day off da carteira ou esquecimento?',
-  ],
+type PreditivaRow = {
+  casal_id:     string
+  categoria_id: number
+  status:       string
+  projecao:     number | null
+  meta:         number | null
+  gasto_acumulado: number
 }
+
+type Baldes = Record<string, string[]>
+
+// ── Helpers ──────────────────────────────────────────────────
 
 function pick(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
-async function carregarBaldes(
-  supabase: ReturnType<typeof createClient>
-): Promise<Record<string, string[]>> {
-  const chaves = Object.keys(DEFAULT_BALDES)
+function fmt(centavos: number): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(centavos / 100)
+}
+
+function brtHoje(): { ano: number; mes: number; dia: number; hora: number; hojeStr: string; diaSemana: number; diasNoMes: number; diasRestantes: number } {
+  const ts     = new Date()
+  const brt    = new Date(ts.getTime() - 3 * 60 * 60 * 1000)
+  const ano    = brt.getUTCFullYear()
+  const mes    = brt.getUTCMonth() + 1
+  const dia    = brt.getUTCDate()
+  const hora   = brt.getUTCHours()
+  const hojeStr = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+  const diasNoMes     = new Date(Date.UTC(ano, mes, 0)).getUTCDate()
+  const diasRestantes = diasNoMes - dia
+  const diaSemana     = brt.getUTCDay() // 0=dom
+  return { ano, mes, dia, hora, hojeStr, diaSemana, diasNoMes, diasRestantes }
+}
+
+async function carregarBaldes(supabase: ReturnType<typeof createClient>): Promise<Baldes> {
   try {
     const { data } = await supabase
       .from('message_templates')
       .select('chave, variacoes')
-      .in('chave', chaves)
+      .in('chave', [
+        'falta_uso.7d', 'falta_uso.14d', 'falta_uso.21d',
+        'diario.neutro', 'diario.recomeco', 'diario.fim_de_semana',
+        'diario.balanco', 'diario.fechamento',
+        'risco.vai_estourar', 'risco.estourou',
+        'risco.tom_llm', 'falta_uso.tom_llm', 'risco_falta.tom_llm',
+      ])
       .eq('ativo', true)
-    const result: Record<string, string[]> = {}
+    const result: Baldes = {}
     for (const row of (data ?? []) as { chave: string; variacoes: string[] }[]) {
       if (row.variacoes?.length > 0) result[row.chave] = row.variacoes
     }
@@ -89,176 +91,378 @@ async function carregarBaldes(
   }
 }
 
-function selecionarLembrete(
-  diasSemRegistrar: number,
+// ── LLM (Gemini 2.5 Flash-Lite) ───────────────────────────────
+
+const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
+
+async function gerarTextoLLM(prompt: string, ultimoLembrete: string | null): Promise<string | null> {
+  if (!GEMINI_KEY) return null
+  try {
+    const fullPrompt = ultimoLembrete
+      ? `${prompt}\n\nNão repita (ou seja muito parecido com): "${ultimoLembrete}"`
+      : prompt
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: fullPrompt }] }],
+          generationConfig: { maxOutputTokens: 80, temperature: 0.9 },
+        }),
+        signal: AbortSignal.timeout(8000),
+      }
+    )
+    if (!res.ok) return null
+    const json = await res.json()
+    const text = json?.candidates?.[0]?.content?.parts?.[0]?.text as string | undefined
+    return text?.trim() || null
+  } catch {
+    return null
+  }
+}
+
+// ── Geração de texto por tipo ──────────────────────────────────
+
+const DIAS_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
+
+async function textoFaltaUso(
+  diasSem: number,
   diaSemana: number,
   diasRestantes: number,
-  baldes: Record<string, string[]>,
-): string {
-  const get = (chave: string) => {
-    const arr = baldes[chave] ?? DEFAULT_BALDES[chave] ?? ['Não esqueça de registrar seus gastos!']
-    return pick(arr)
-  }
+  baldes: Baldes,
+  ultimoLembrete: string | null,
+): Promise<string> {
+  const nomeDia = DIAS_SEMANA[diaSemana]
+  const tomKey  = diasSem >= 14 ? 'falta_uso.tom_llm' : 'falta_uso.tom_llm'
+  const tom     = baldes[tomKey]?.[0] ?? ''
+  const contexto = `Hoje é ${nomeDia}. O usuário está há ${diasSem} dia${diasSem > 1 ? 's' : ''} sem registrar gastos no app. Faltam ${diasRestantes} dias para o fim do mês.`
 
-  if (diasSemRegistrar >= 21) return get('falta_uso.21d')
-  if (diasSemRegistrar >= 14) return get('falta_uso.14d')
-  if (diasSemRegistrar >= 7)  return get('falta_uso.7d')
-  if (diasRestantes   <= 3)   return get('diario.fechamento')
-  if (diaSemana       === 1)  return get('diario.recomeco')
+  const llm = await gerarTextoLLM(`${tom}\n\nContexto: ${contexto}`, ultimoLembrete)
+  if (llm) return llm
+
+  // Fallback determinístico
+  const get = (k: string) => pick(baldes[k] ?? DEFAULT_BALDES[k] ?? ['Não esqueça de registrar seus gastos!'])
+  if (diasSem >= 21) return get('falta_uso.21d')
+  if (diasSem >= 14) return get('falta_uso.14d')
+  if (diasSem >= 7)  return get('falta_uso.7d')
+  if (diasRestantes  <= 3)  return get('diario.fechamento')
+  if (diaSemana === 1)      return get('diario.recomeco')
   if (diaSemana === 5 || diaSemana === 6) return get('diario.fim_de_semana')
-  if (diaSemana       === 0)  return get('diario.balanco')
+  if (diaSemana === 0)      return get('diario.balanco')
   return get('diario.neutro')
 }
 
+async function textoRisco(
+  row: PreditivaRow,
+  diaSemana: number,
+  baldes: Baldes,
+  ultimoLembrete: string | null,
+): Promise<string> {
+  const nomeDia   = DIAS_SEMANA[diaSemana]
+  const tom       = baldes['risco.tom_llm']?.[0] ?? ''
+  const diff      = row.projecao != null && row.meta != null ? row.projecao - row.meta : null
+  const contexto  = [
+    `Hoje é ${nomeDia}.`,
+    `Categoria: categoria_id=${row.categoria_id}.`,
+    row.status === 'estourou'
+      ? `A meta de ${fmt(row.meta ?? 0)} já foi estourada (gasto acumulado: ${fmt(row.gasto_acumulado)}).`
+      : `Projeção: ${fmt(row.projecao ?? 0)} vs meta ${fmt(row.meta ?? 0)}${diff != null ? ` (${fmt(diff)} acima)` : ''}.`,
+  ].join(' ')
+
+  const llm = await gerarTextoLLM(`${tom}\n\nContexto: ${contexto}`, ultimoLembrete)
+  if (llm) return llm
+
+  // Fallback
+  if (row.status === 'estourou') {
+    const tpl = pick(baldes['risco.estourou'] ?? DEFAULT_BALDES_RISCO.estourou)
+    return tpl
+      .replace('{emoji}', '⚠️')
+      .replace('{cat}',   `cat#${row.categoria_id}`)
+      .replace('{meta}',  fmt(row.meta ?? 0))
+      .replace('{gasto}', fmt(row.gasto_acumulado))
+      .replace('{dias}',  '?')
+  }
+  const tpl = pick(baldes['risco.vai_estourar'] ?? DEFAULT_BALDES_RISCO.vai_estourar)
+  return tpl
+    .replace('{emoji}',    '⚠️')
+    .replace('{cat}',      `cat#${row.categoria_id}`)
+    .replace('{projecao}', fmt(row.projecao ?? 0))
+    .replace('{diff}',     fmt(diff ?? 0))
+    .replace('{meta}',     fmt(row.meta ?? 0))
+}
+
+async function textoRiscoFalta(
+  row: PreditivaRow,
+  diasSem: number,
+  diaSemana: number,
+  baldes: Baldes,
+  ultimoLembrete: string | null,
+): Promise<string> {
+  const nomeDia  = DIAS_SEMANA[diaSemana]
+  const tom      = baldes['risco_falta.tom_llm']?.[0] ?? ''
+  const diff     = row.projecao != null && row.meta != null ? row.projecao - row.meta : null
+  const contexto = [
+    `Hoje é ${nomeDia}. O usuário está há ${diasSem} dia${diasSem > 1 ? 's' : ''} sem registrar gastos.`,
+    row.status === 'estourou'
+      ? `Além disso, a meta de ${fmt(row.meta ?? 0)} já foi estourada (gasto acumulado: ${fmt(row.gasto_acumulado)}).`
+      : `Além disso, a projeção de ${fmt(row.projecao ?? 0)} está ${fmt(diff ?? 0)} acima da meta de ${fmt(row.meta ?? 0)}.`,
+  ].join(' ')
+
+  const llm = await gerarTextoLLM(`${tom}\n\nContexto: ${contexto}`, ultimoLembrete)
+  if (llm) return llm
+
+  // Fallback combinado
+  return await textoRisco(row, diaSemana, baldes, null)
+}
+
+// ── Fallbacks fixos ───────────────────────────────────────────
+
+const DEFAULT_BALDES: Record<string, string[]> = {
+  'falta_uso.7d':  ['7 dias sem registrar nada 👀 Bora antes que vire bagunça?'],
+  'falta_uso.14d': ['2 semanas sem registrar… começa pelo de hoje 💪'],
+  'falta_uso.21d': ['Último empurrão: bora retomar? Três toques e o gasto entra 🚀'],
+  'diario.fechamento': ['Reta final do mês! Bora fechar tudo registrado? 🏁'],
+  'diario.recomeco':   ['Semana nova! Bora começar registrando certinho? 💪'],
+  'diario.fim_de_semana': ['Sextou! Os rolês de hoje já entraram no DinDin? 👀'],
+  'diario.balanco':    ['Domingo de fechar a conta: a semana toda entrou no app?'],
+  'diario.neutro':     ['Psiu… cadê os gastos de hoje? 👀'],
+}
+
+const DEFAULT_BALDES_RISCO = {
+  vai_estourar: ['{emoji} Psiu… {cat} acelerou. Projeção: {projecao} ({diff} acima da meta).'],
+  estourou:     ['{emoji} {cat} passou da meta de {meta} (já em {gasto}). Bora compensar?'],
+}
+
+// ── Envio ─────────────────────────────────────────────────────
+
+async function enviarPush(
+  subs: { endpoint: string; p256dh: string; auth: string }[],
+  body: string,
+  url: string,
+  supabase: ReturnType<typeof createClient>,
+) {
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        JSON.stringify({ title: '💚 Nosso DinDin', body, url }),
+      )
+    } catch (err: unknown) {
+      const status = (err as { statusCode?: number }).statusCode
+      if (status === 410) {
+        await supabase.from('push_subscriptions').update({ ativo: false }).eq('endpoint', sub.endpoint)
+        console.log(`[daily-push] subscription revogada (410): ${sub.endpoint}`)
+      } else {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`[daily-push] erro ao enviar push:`, msg)
+      }
+    }
+  }
+}
+
+// ── Handler principal ─────────────────────────────────────────
+
 Deno.serve(async (_req: Request) => {
-  // ── VAPID (lazy — não pode ser top-level em Edge Functions) ──
   webpush.setVapidDetails(
     Deno.env.get('VAPID_SUBJECT')!,
     Deno.env.get('NEXT_PUBLIC_VAPID_PUBLIC_KEY')!,
-    Deno.env.get('VAPID_PRIVATE_KEY')!
+    Deno.env.get('VAPID_PRIVATE_KEY')!,
   )
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  // ── Carrega templates (fallback silencioso) ───────────────────
+  const { ano, mes, dia, hora, hojeStr, diaSemana, diasRestantes } = brtHoje()
+  console.log(`[daily-push] executando — ${hojeStr} hora BRT: ${hora}h`)
+
+  // Carrega templates (fallback silencioso)
   const baldes = await carregarBaldes(supabase)
-  console.log('[daily-push] templates carregados do banco:', Object.keys(baldes).length, 'chaves')
 
-  // ── Data atual em BRT (UTC-3) ─────────────────────────────────
-  const agora = new Date()
-  const brt   = new Date(agora.getTime() - 3 * 60 * 60 * 1000)
-  const year  = brt.getUTCFullYear()
-  const month = String(brt.getUTCMonth() + 1).padStart(2, '0')
-  const day   = String(brt.getUTCDate()).padStart(2, '0')
-  const hoje  = `${year}-${month}-${day}`
+  // Busca casais que disparam nesta hora
+  const { data: casaisData, error: casaisErr } = await supabase
+    .from('casais')
+    .select('id, notificacao_hora')
+    .eq('notificacao_hora', hora)
+    .eq('status', 'active')
 
-  const diaSemana     = brt.getUTCDay()
-  const diasNoMes     = new Date(Date.UTC(year, brt.getUTCMonth() + 1, 0)).getUTCDate()
-  const diasRestantes = diasNoMes - brt.getUTCDate()
-
-  console.log(`[daily-push] iniciando — data BRT: ${hoje} (dia semana ${diaSemana}, restam ${diasRestantes} dias)`)
-
-  // ── Buscar todas as subscriptions ativas ─────────────────────
-  const { data: subsData, error: subsError } = await supabase
-    .from('push_subscriptions')
-    .select('user_id, endpoint, p256dh, auth')
-    .eq('ativo', true)
-
-  if (subsError) {
-    console.error('[daily-push] erro ao buscar subscriptions:', subsError.message)
-    return new Response(
-      JSON.stringify({ error: subsError.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+  if (casaisErr) {
+    console.error('[daily-push] erro ao buscar casais:', casaisErr.message)
+    return new Response(JSON.stringify({ error: casaisErr.message }), { status: 500 })
   }
 
-  const allSubs: PushSub[] = subsData ?? []
-
-  // Agrupa subscriptions por user_id
-  const byUser = new Map<string, PushSub[]>()
-  for (const sub of allSubs) {
-    if (!byUser.has(sub.user_id)) byUser.set(sub.user_id, [])
-    byUser.get(sub.user_id)!.push(sub)
+  const casais = (casaisData ?? []) as { id: string; notificacao_hora: number }[]
+  if (casais.length === 0) {
+    console.log('[daily-push] nenhum casal agendado para esta hora')
+    return new Response(JSON.stringify({ enviados: 0, pulados: 0, hora }))
   }
 
-  const userIds = [...byUser.keys()]
-  console.log(`[daily-push] ${userIds.length} usuário(s) com subscriptions ativas`)
+  console.log(`[daily-push] ${casais.length} casal(is) para hora ${hora}h`)
 
   let enviados = 0
   let pulados  = 0
-  let erros    = 0
 
-  // ── Para cada usuário ─────────────────────────────────────────
-  for (const userId of userIds) {
+  for (const casal of casais) {
+    // Status preditivo deste casal
+    const { data: predData } = await supabase
+      .from('v_preditiva_status')
+      .select('casal_id, categoria_id, status, projecao, meta, gasto_acumulado')
+      .eq('casal_id', casal.id)
+      .in('status', ['vai_estourar', 'estourou'])
 
-    // Busca o gasto mais recente até hoje (checa registro de hoje + diasSemRegistrar)
-    const { data: recentExp, error: expError } = await supabase
-      .from('expenses')
-      .select('data_compra')
-      .eq('pagador_id', userId)
-      .lte('data_compra', hoje)
-      .order('data_compra', { ascending: false })
-      .limit(1)
+    const predRisco = (predData ?? []) as PreditivaRow[]
 
-    if (expError) {
-      console.error(`[daily-push] erro ao verificar expenses (${userId}):`, expError.message)
-      erros++
-      continue
+    // Membro(s) do casal com push ativo
+    const { data: subsData } = await supabase
+      .from('push_subscriptions')
+      .select('id, user_id, endpoint, p256dh, auth, ultimo_lembrete, notificado_em')
+      .in('user_id',
+        (await supabase
+          .from('casal_membros')
+          .select('user_id')
+          .eq('casal_id', casal.id)
+        ).data?.map((m: { user_id: string }) => m.user_id) ?? []
+      )
+      .eq('ativo', true)
+
+    const allSubs = (subsData ?? []) as PushSub[]
+
+    // Agrupa por user_id
+    const byUser = new Map<string, PushSub[]>()
+    for (const s of allSubs) {
+      if (!byUser.has(s.user_id)) byUser.set(s.user_id, [])
+      byUser.get(s.user_id)!.push(s)
     }
 
-    const lastDate = recentExp?.[0]?.data_compra ?? null
+    for (const [userId, userSubs] of byUser) {
+      // Idempotência: 1 push/dia por usuário
+      const jaEnviado = userSubs.some(s => s.notificado_em === hojeStr)
+      if (jaEnviado) {
+        console.log(`[daily-push] usuário ${userId} já notificado hoje — pulado`)
+        pulados++
+        continue
+      }
 
-    // Já registrou hoje → pula
-    if (lastDate === hoje) {
-      console.log(`[daily-push] usuário ${userId} já tem gasto hoje — pulado`)
-      pulados++
-      continue
-    }
+      // Verifica se usuário registrou hoje
+      const { data: expHoje } = await supabase
+        .from('expenses')
+        .select('data_compra')
+        .eq('pagador_id', userId)
+        .eq('data_compra', hojeStr)
+        .limit(1)
 
-    // Calcula há quantos dias está sem registrar
-    const diasSemRegistrar = lastDate
-      ? Math.round((new Date(hoje).getTime() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24))
-      : 999
+      const registrouHoje = (expHoje ?? []).length > 0
 
-    // Cadência estrita: envia apenas nos dias 1,2,3,4,7,14,21 de silêncio; dorme após 21.
-    const DIAS_ENVIO = new Set([1, 2, 3, 4, 7, 14, 21])
-    const diasCheck  = Math.min(diasSemRegistrar, 999)  // 999 = nunca registrou → > 21 → dorme
-    if (diasCheck > 21 || !DIAS_ENVIO.has(diasCheck)) {
-      console.log(`[daily-push] usuário ${userId} em silêncio (${diasSemRegistrar}d) — pulado`)
-      pulados++
-      continue
-    }
+      // Calcula diasSemRegistrar para faltaRegistro
+      let diasSem = 0
+      if (!registrouHoje) {
+        const { data: ultimoExp } = await supabase
+          .from('expenses')
+          .select('data_compra')
+          .eq('pagador_id', userId)
+          .lte('data_compra', hojeStr)
+          .order('data_compra', { ascending: false })
+          .limit(1)
 
-    const body     = selecionarLembrete(diasSemRegistrar, diaSemana, diasRestantes, baldes)
-    const userSubs = byUser.get(userId)!
+        const lastDate = (ultimoExp ?? [])[0]?.data_compra ?? null
+        diasSem = lastDate
+          ? Math.round((new Date(hojeStr).getTime() - new Date(lastDate).getTime()) / 86400000)
+          : 999
+      }
 
-    for (const sub of userSubs) {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: sub.endpoint,
-            keys: { p256dh: sub.p256dh, auth: sub.auth },
-          },
-          JSON.stringify({
-            title: '💚 Nosso DinDin',
-            body,
-            url:   '/?modal=novo-gasto',
-          })
-        )
-        enviados++
-        console.log(`[daily-push] ✓ push enviado — usuário ${userId} (${diasSemRegistrar}d sem registrar)`)
-      } catch (err: unknown) {
-        const status = (err as { statusCode?: number }).statusCode
+      const DIAS_ENVIO = new Set([1, 2, 3, 4, 7, 14, 21])
+      const faltaRegistro = !registrouHoje && diasSem <= 21 && DIAS_ENVIO.has(diasSem)
 
-        if (status === 410) {
-          // Subscription revogada pelo usuário → desativa no banco
-          const { error: deactivateErr } = await supabase
-            .from('push_subscriptions')
-            .update({ ativo: false })
-            .eq('endpoint', sub.endpoint)
+      // Verifica risco desta categoria não alertada nos últimos 7 dias
+      let riscoCategoria: PreditivaRow | null = null
+      if (predRisco.length > 0) {
+        for (const row of predRisco) {
+          const { data: alertRecente } = await supabase
+            .from('category_alerts_sent')
+            .select('id')
+            .eq('casal_id', casal.id)
+            .eq('categoria_id', row.categoria_id)
+            .gte('sent_at', new Date(Date.now() - 7 * 86400 * 1000).toISOString())
+            .limit(1)
 
-          if (deactivateErr) {
-            console.error('[daily-push] erro ao desativar subscription:', deactivateErr.message)
-          } else {
-            console.log(`[daily-push] subscription desativada (410): ${sub.endpoint}`)
+          if ((alertRecente ?? []).length === 0) {
+            // Escolhe a de maior risco (maior projecao - meta)
+            if (!riscoCategoria) {
+              riscoCategoria = row
+            } else {
+              const diffAtual  = (riscoCategoria.projecao ?? 0) - (riscoCategoria.meta ?? 0)
+              const diffNovo   = (row.projecao ?? 0) - (row.meta ?? 0)
+              if (diffNovo > diffAtual) riscoCategoria = row
+            }
           }
-        } else {
-          erros++
-          const msg = err instanceof Error ? err.message : String(err)
-          console.error(`[daily-push] erro ao enviar push (${userId}):`, msg)
         }
       }
+
+      const temRisco = riscoCategoria !== null
+
+      if (!temRisco && !faltaRegistro) {
+        console.log(`[daily-push] usuário ${userId} — sem sinal (registrou hoje: ${registrouHoje}) — pulado`)
+        pulados++
+        continue
+      }
+
+      // Gera texto
+      const ultimoLembrete = userSubs[0]?.ultimo_lembrete ?? null
+      let body: string
+      let tipoLog: string
+
+      if (temRisco && faltaRegistro) {
+        body    = await textoRiscoFalta(riscoCategoria!, diasSem, diaSemana, baldes, ultimoLembrete)
+        tipoLog = 'risco+falta'
+      } else if (temRisco) {
+        body    = await textoRisco(riscoCategoria!, diaSemana, baldes, ultimoLembrete)
+        tipoLog = 'risco'
+      } else {
+        body    = await textoFaltaUso(diasSem, diaSemana, diasRestantes, baldes, ultimoLembrete)
+        tipoLog = 'falta_uso'
+      }
+
+      // Envia push para todos os devices do usuário
+      await enviarPush(
+        userSubs.map(s => ({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth })),
+        body,
+        temRisco ? '/resumo' : '/?modal=novo-gasto',
+        supabase,
+      )
+
+      // Marca idempotência + anti-repetição
+      for (const sub of userSubs) {
+        await supabase
+          .from('push_subscriptions')
+          .update({ notificado_em: hojeStr, ultimo_lembrete: body })
+          .eq('id', sub.id)
+      }
+
+      // Registra alerta de risco no dedup
+      if (temRisco && riscoCategoria) {
+        try {
+          await supabase
+            .from('category_alerts_sent')
+            .insert({
+              casal_id:     casal.id,
+              categoria_id: riscoCategoria.categoria_id,
+              mes,
+              ano,
+              nivel: riscoCategoria.status,
+            })
+        } catch {
+          // ignorado — race condition aceitável
+        }
+      }
+
+      enviados++
+      console.log(`[daily-push] ✓ ${userId} — tipo: ${tipoLog}`)
     }
   }
 
-  const resumo = { enviados, pulados, erros, hoje }
+  const resumo = { enviados, pulados, hora, hojeStr }
   console.log('[daily-push] concluído —', JSON.stringify(resumo))
-
-  return new Response(
-    JSON.stringify(resumo),
-    { headers: { 'Content-Type': 'application/json' } }
-  )
+  return new Response(JSON.stringify(resumo), { headers: { 'Content-Type': 'application/json' } })
 })
