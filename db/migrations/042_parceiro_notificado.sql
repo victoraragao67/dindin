@@ -8,3 +8,11 @@
 
 ALTER TABLE public.expenses
   ADD COLUMN IF NOT EXISTS parceiro_notificado_em timestamptz NULL;
+
+-- Backfill: gastos históricos já existentes não precisam ser notificados.
+-- Sem isso, o parceiro-batch enviaria todos os gastos antigos na 1ª execução.
+UPDATE public.expenses
+SET parceiro_notificado_em = NOW()
+WHERE parceiro_notificado_em IS NULL
+  AND cancelado = false
+  AND origem = 'pwa';
