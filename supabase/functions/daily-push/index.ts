@@ -44,6 +44,49 @@ type PreditivaRow = {
 
 type Baldes = Record<string, string[]>
 
+// ── Guardrail inline (espelha web/lib/llm/guardrail.ts) ──────
+
+const REGRAS_TOM_BASE = `
+REGRAS ABSOLUTAS (nunca viole):
+1. Fale SEMPRE com o casal junto ("vocês", "o casal"). PROIBIDO citar ou culpar um parceiro individualmente.
+2. Proporção: estouro é AVISO CONSTRUTIVO calmo ("vale segurar"), nunca tragédia e NUNCA motivo de festa.
+3. PROIBIDO comemorar ou validar estouro. Nada de "parabéns", "mandaram ver", "arrasaram", "🎉", "tá tudo bem ter passado", "foi planejado". Estouro = heads-up.
+4. Elogio SÓ para o que é positivo de verdade. Nunca aplicado a estouro.
+5. Sem culpa/vergonha: nada de "descontrolado", "exageraram", "perderam o controle".
+6. Use EXATAMENTE os números fornecidos. NUNCA invente ou recalcule valor.`.trim()
+
+const _BLOCKLIST_ALARME     = ['preocupante', 'descontrolado', 'perderam o controle', 'exageraram', 'vergonha', 'irresponsáv', 'catástrofe', 'terrível', 'horrível']
+const _BLOCKLIST_COMEMORACAO = ['parabéns', 'mandaram ver', 'arrasaram', 'tá tudo bem ter passado', 'tá tudo certo', 'foi planejado', 'tudo bem ter', 'não tem problema ter passado']
+const _EMOJIS_FESTA          = ['🎉', '🥳', '🎊', '🏆', '🙌']
+
+function validarPushTexto(
+  texto: string,
+  temRisco: boolean,
+  apelidos: string[],
+): { ok: true } | { ok: false; motivo: string } {
+  const lower = texto.toLowerCase()
+  const verbos = ['gastou', 'estourou', 'esqueceu', 'não registrou', 'excedeu', 'passou']
+  for (const a of apelidos) {
+    if (lower.includes(a.toLowerCase())) {
+      for (const v of verbos) {
+        if (lower.includes(v)) return { ok: false, motivo: `culpa_individual: "${a}" + "${v}"` }
+      }
+    }
+  }
+  for (const t of _BLOCKLIST_ALARME) {
+    if (lower.includes(t)) return { ok: false, motivo: `alarme: "${t}"` }
+  }
+  if (temRisco) {
+    for (const t of _BLOCKLIST_COMEMORACAO) {
+      if (lower.includes(t)) return { ok: false, motivo: `comemoracao_estouro: "${t}"` }
+    }
+    for (const e of _EMOJIS_FESTA) {
+      if (texto.includes(e)) return { ok: false, motivo: `emoji_festa_em_estouro: "${e}"` }
+    }
+  }
+  return { ok: true }
+}
+
 // ── Helpers ──────────────────────────────────────────────────
 
 function pick(arr: string[]): string {
@@ -132,24 +175,29 @@ async function textoFaltaUso(
   diasRestantes: number,
   baldes: Baldes,
   ultimoLembrete: string | null,
+  apelidos: string[],
 ): Promise<string> {
-  const nomeDia = DIAS_SEMANA[diaSemana]
-  const tomKey  = diasSem >= 14 ? 'falta_uso.tom_llm' : 'falta_uso.tom_llm'
-  const tom     = baldes[tomKey]?.[0] ?? ''
-  const contexto = `Hoje é ${nomeDia}. O usuário está há ${diasSem} dia${diasSem > 1 ? 's' : ''} sem registrar gastos no app. Faltam ${diasRestantes} dias para o fim do mês.`
+  const nomeDia  = DIAS_SEMANA[diaSemana]
+  const tom      = baldes['falta_uso.tom_llm']?.[0] ?? ''
+  const contexto = `Hoje é ${nomeDia}. O casal está há ${diasSem} dia${diasSem > 1 ? 's' : ''} sem registrar gastos no app. Faltam ${diasRestantes} dias para o fim do mês.`
+  const prompt   = `${REGRAS_TOM_BASE}\n\n${tom}\n\nContexto: ${contexto}`
 
-  const llm = await gerarTextoLLM(`${tom}\n\nContexto: ${contexto}`, ultimoLembrete)
-  if (llm) return llm
+  const llmRaw = await gerarTextoLLM(prompt, ultimoLembrete)
+  if (llmRaw) {
+    const check = validarPushTexto(llmRaw, false, apelidos)
+    if (check.ok) return llmRaw
+    console.warn('[daily-push] guardrail rejeitou falta_uso:', check.motivo)
+  }
 
   // Fallback determinístico
   const get = (k: string) => pick(baldes[k] ?? DEFAULT_BALDES[k] ?? ['Não esqueça de registrar seus gastos!'])
   if (diasSem >= 21) return get('falta_uso.21d')
   if (diasSem >= 14) return get('falta_uso.14d')
   if (diasSem >= 7)  return get('falta_uso.7d')
-  if (diasRestantes  <= 3)  return get('diario.fechamento')
-  if (diaSemana === 1)      return get('diario.recomeco')
+  if (diasRestantes <= 3)  return get('diario.fechamento')
+  if (diaSemana === 1)     return get('diario.recomeco')
   if (diaSemana === 5 || diaSemana === 6) return get('diario.fim_de_semana')
-  if (diaSemana === 0)      return get('diario.balanco')
+  if (diaSemana === 0)     return get('diario.balanco')
   return get('diario.neutro')
 }
 
@@ -158,20 +206,26 @@ async function textoRisco(
   diaSemana: number,
   baldes: Baldes,
   ultimoLembrete: string | null,
+  apelidos: string[],
 ): Promise<string> {
-  const nomeDia   = DIAS_SEMANA[diaSemana]
-  const tom       = baldes['risco.tom_llm']?.[0] ?? ''
-  const diff      = row.projecao != null && row.meta != null ? row.projecao - row.meta : null
-  const contexto  = [
+  const nomeDia  = DIAS_SEMANA[diaSemana]
+  const tom      = baldes['risco.tom_llm']?.[0] ?? ''
+  const diff     = row.projecao != null && row.meta != null ? row.projecao - row.meta : null
+  const contexto = [
     `Hoje é ${nomeDia}.`,
     `Categoria: categoria_id=${row.categoria_id}.`,
     row.status === 'estourou'
       ? `A meta de ${fmt(row.meta ?? 0)} já foi estourada (gasto acumulado: ${fmt(row.gasto_acumulado)}).`
       : `Projeção: ${fmt(row.projecao ?? 0)} vs meta ${fmt(row.meta ?? 0)}${diff != null ? ` (${fmt(diff)} acima)` : ''}.`,
   ].join(' ')
+  const prompt = `${REGRAS_TOM_BASE}\n\n${tom}\n\nContexto: ${contexto}`
 
-  const llm = await gerarTextoLLM(`${tom}\n\nContexto: ${contexto}`, ultimoLembrete)
-  if (llm) return llm
+  const llmRaw = await gerarTextoLLM(prompt, ultimoLembrete)
+  if (llmRaw) {
+    const check = validarPushTexto(llmRaw, true, apelidos)
+    if (check.ok) return llmRaw
+    console.warn('[daily-push] guardrail rejeitou risco:', check.motivo)
+  }
 
   // Fallback
   if (row.status === 'estourou') {
@@ -198,22 +252,28 @@ async function textoRiscoFalta(
   diaSemana: number,
   baldes: Baldes,
   ultimoLembrete: string | null,
+  apelidos: string[],
 ): Promise<string> {
   const nomeDia  = DIAS_SEMANA[diaSemana]
   const tom      = baldes['risco_falta.tom_llm']?.[0] ?? ''
   const diff     = row.projecao != null && row.meta != null ? row.projecao - row.meta : null
   const contexto = [
-    `Hoje é ${nomeDia}. O usuário está há ${diasSem} dia${diasSem > 1 ? 's' : ''} sem registrar gastos.`,
+    `Hoje é ${nomeDia}. O casal está há ${diasSem} dia${diasSem > 1 ? 's' : ''} sem registrar gastos.`,
     row.status === 'estourou'
       ? `Além disso, a meta de ${fmt(row.meta ?? 0)} já foi estourada (gasto acumulado: ${fmt(row.gasto_acumulado)}).`
       : `Além disso, a projeção de ${fmt(row.projecao ?? 0)} está ${fmt(diff ?? 0)} acima da meta de ${fmt(row.meta ?? 0)}.`,
   ].join(' ')
+  const prompt = `${REGRAS_TOM_BASE}\n\n${tom}\n\nContexto: ${contexto}`
 
-  const llm = await gerarTextoLLM(`${tom}\n\nContexto: ${contexto}`, ultimoLembrete)
-  if (llm) return llm
+  const llmRaw = await gerarTextoLLM(prompt, ultimoLembrete)
+  if (llmRaw) {
+    const check = validarPushTexto(llmRaw, true, apelidos)
+    if (check.ok) return llmRaw
+    console.warn('[daily-push] guardrail rejeitou risco_falta:', check.motivo)
+  }
 
   // Fallback combinado
-  return await textoRisco(row, diaSemana, baldes, null)
+  return await textoRisco(row, diaSemana, baldes, null, apelidos)
 }
 
 // ── Fallbacks fixos ───────────────────────────────────────────
@@ -305,6 +365,17 @@ Deno.serve(async (_req: Request) => {
   let pulados  = 0
 
   for (const casal of casais) {
+    // Membros + apelidos do casal (para guardrail de culpa individual)
+    const { data: membrosData } = await supabase
+      .from('casal_membros')
+      .select('user_id, users(apelido)')
+      .eq('casal_id', casal.id)
+
+    const membroIds = (membrosData ?? []).map((m: { user_id: string }) => m.user_id)
+    const apelidos  = (membrosData ?? [])
+      .map((m: { users?: { apelido?: string } }) => m.users?.apelido ?? '')
+      .filter(Boolean) as string[]
+
     // Status preditivo deste casal
     const { data: predData } = await supabase
       .from('v_preditiva_status')
@@ -318,13 +389,7 @@ Deno.serve(async (_req: Request) => {
     const { data: subsData } = await supabase
       .from('push_subscriptions')
       .select('id, user_id, endpoint, p256dh, auth, ultimo_lembrete, notificado_em')
-      .in('user_id',
-        (await supabase
-          .from('casal_membros')
-          .select('user_id')
-          .eq('casal_id', casal.id)
-        ).data?.map((m: { user_id: string }) => m.user_id) ?? []
-      )
+      .in('user_id', membroIds)
       .eq('ativo', true)
 
     const allSubs = (subsData ?? []) as PushSub[]
@@ -414,13 +479,13 @@ Deno.serve(async (_req: Request) => {
       let tipoLog: string
 
       if (temRisco && faltaRegistro) {
-        body    = await textoRiscoFalta(riscoCategoria!, diasSem, diaSemana, baldes, ultimoLembrete)
+        body    = await textoRiscoFalta(riscoCategoria!, diasSem, diaSemana, baldes, ultimoLembrete, apelidos)
         tipoLog = 'risco+falta'
       } else if (temRisco) {
-        body    = await textoRisco(riscoCategoria!, diaSemana, baldes, ultimoLembrete)
+        body    = await textoRisco(riscoCategoria!, diaSemana, baldes, ultimoLembrete, apelidos)
         tipoLog = 'risco'
       } else {
-        body    = await textoFaltaUso(diasSem, diaSemana, diasRestantes, baldes, ultimoLembrete)
+        body    = await textoFaltaUso(diasSem, diaSemana, diasRestantes, baldes, ultimoLembrete, apelidos)
         tipoLog = 'falta_uso'
       }
 
