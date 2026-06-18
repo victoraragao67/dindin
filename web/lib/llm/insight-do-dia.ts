@@ -1,7 +1,7 @@
 import { createAdminClient } from '../supabase/admin'
 import { gerarInsight } from './gemini'
 import { montarPromptInsight, gerarFallbackTemplate } from './insight-prompt'
-import { validarMensagem } from './guardrail'
+import { validarMensagem, calcExcesso } from './guardrail'
 import { getTemplate } from '../copy/get-template'
 import type { PreditivaCategoria } from '../preditiva'
 
@@ -44,6 +44,10 @@ export async function getInsightDoDia(
   const temRisco = preditiva.some(
     c => c.status === 'estourou' || c.status === 'vai_estourar'
   )
+  const excessoMax = preditiva.reduce(
+    (max, c) => Math.max(max, calcExcesso(c.status, c.gastoAcumulado, c.projecao, c.meta)),
+    0,
+  )
   const valoresPermitidos = preditiva.flatMap(c => [
     c.gastoAcumulado, c.meta ?? 0, c.projecao ?? 0,
   ]).filter(v => v > 0)
@@ -52,7 +56,10 @@ export async function getInsightDoDia(
   let resumo: string
 
   if (llm?.resumo) {
-    const check = validarMensagem(llm.resumo, { temRisco, apelidos, valoresPermitidos })
+    const check = validarMensagem(llm.resumo, {
+      temRisco, apelidos, excessoMax, valoresPermitidos,
+      diasPermitidos: [diasRestantes], maxLen: 280,
+    })
     if (check.ok) {
       resumo = llm.resumo.slice(0, 280)
       origem = 'llm'

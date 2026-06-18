@@ -45,46 +45,82 @@ type PreditivaRow = {
 type Baldes = Record<string, string[]>
 
 // ── Guardrail inline (espelha web/lib/llm/guardrail.ts) ──────
+// Deno não pode importar de web/lib — mantido em sincronia manual.
+
+const ESTOURO_MUITO_GRANDE = 0.80 // ≥80% acima → tom enfático permitido
 
 const REGRAS_TOM_BASE = `
 REGRAS ABSOLUTAS (nunca viole):
-1. Fale SEMPRE com o casal junto ("vocês", "o casal"). PROIBIDO citar ou culpar um parceiro individualmente.
-2. Proporção: estouro é AVISO CONSTRUTIVO calmo ("vale segurar"), nunca tragédia e NUNCA motivo de festa.
-3. PROIBIDO comemorar ou validar estouro. Nada de "parabéns", "mandaram ver", "arrasaram", "🎉", "tá tudo bem ter passado", "foi planejado". Estouro = heads-up.
-4. Elogio SÓ para o que é positivo de verdade. Nunca aplicado a estouro.
-5. Sem culpa/vergonha: nada de "descontrolado", "exageraram", "perderam o controle".
-6. Use EXATAMENTE os números fornecidos. NUNCA invente ou recalcule valor.`.trim()
+1. Fale SEMPRE com o casal junto ("vocês", "o casal"). PROIBIDO citar ou culpar um parceiro individualmente. Apelidos só para saudação.
+2. PROIBIDO ataque pessoal ("irresponsáveis", "relapsos", "que vergonha"). Critique o GASTO, nunca as pessoas.
+3. Intensidade PROPORCIONAL ao excesso: até ~30% acima = firme e calmo ("vale segurar"); ~30-80% = forte ("atenção", "cuidado", "frear"); ~80%+ = enfático ("cuidado!!", "preocupante"). A situação é séria — seja honesto, mas proporcional.
+4. PROIBIDO comemorar/validar estouro: "parabéns", "mandaram ver", "arrasaram", emojis de festa (🎉🥳🎊🍾🙌🏆).
+5. PROIBIDO minimizar estouro: "sem drama", "tá tudo bem", "relaxa", "de boa", "foi planejado".
+6. Use EXATAMENTE os números e dias fornecidos. NUNCA invente ou conte datas.`.trim()
 
-const _BLOCKLIST_ALARME     = ['preocupante', 'descontrolado', 'perderam o controle', 'exageraram', 'vergonha', 'irresponsáv', 'catástrofe', 'terrível', 'horrível']
-const _BLOCKLIST_COMEMORACAO = ['parabéns', 'mandaram ver', 'arrasaram', 'tá tudo bem ter passado', 'tá tudo certo', 'foi planejado', 'tudo bem ter', 'não tem problema ter passado']
-const _EMOJIS_FESTA          = ['🎉', '🥳', '🎊', '🏆', '🙌']
+const _ATAQUE_PESSOAL  = ['irresponsáv', 'relapso', 'preguiçoso', 'que vergonha', 'vocês são uns', 'sem noção', 'irresponsabilidade', 'incompeten']
+const _ALARME_DESPROP  = ['cuidado!!', 'preocupante', 'perderam o controle', 'perdendo o controle', 'saiu do controle', 'fora de controle', 'descontrolad', 'catástrofe', 'terrível', 'horrível', 'desastre']
+const _MINIMIZACAO     = ['sem drama', 'tá tudo bem', 'tudo bem ter', 'não tem problema', 'relaxa', 'de boa', 'sem stress', 'sem estresse', 'tá tudo certo', 'foi planejado', 'numa boa']
+const _COMEMORACAO     = ['parabéns', 'mandaram ver', 'arrasaram', 'mandaram bem no']
+const _EMOJIS_FESTA    = ['🎉', '🥳', '🎊', '🍾', '🙌', '🏆']
 
 function validarPushTexto(
   texto: string,
   temRisco: boolean,
   apelidos: string[],
+  excessoMax: number,
+  diasPermitidos: number[],
 ): { ok: true } | { ok: false; motivo: string } {
   const lower = texto.toLowerCase()
+
+  for (const t of _ATAQUE_PESSOAL) {
+    if (lower.includes(t)) return { ok: false, motivo: `ataque_pessoal: "${t}"` }
+  }
+
   const verbos = ['gastou', 'estourou', 'esqueceu', 'não registrou', 'excedeu', 'passou']
   for (const a of apelidos) {
-    if (lower.includes(a.toLowerCase())) {
+    const al = a.toLowerCase()
+    if (al && lower.includes(al)) {
       for (const v of verbos) {
         if (lower.includes(v)) return { ok: false, motivo: `culpa_individual: "${a}" + "${v}"` }
       }
     }
   }
-  for (const t of _BLOCKLIST_ALARME) {
-    if (lower.includes(t)) return { ok: false, motivo: `alarme: "${t}"` }
-  }
+
   if (temRisco) {
-    for (const t of _BLOCKLIST_COMEMORACAO) {
+    for (const t of _COMEMORACAO) {
       if (lower.includes(t)) return { ok: false, motivo: `comemoracao_estouro: "${t}"` }
     }
     for (const e of _EMOJIS_FESTA) {
-      if (texto.includes(e)) return { ok: false, motivo: `emoji_festa_em_estouro: "${e}"` }
+      if (texto.includes(e)) return { ok: false, motivo: `emoji_festa: "${e}"` }
+    }
+    for (const t of _MINIMIZACAO) {
+      if (lower.includes(t)) return { ok: false, motivo: `minimiza_estouro: "${t}"` }
+    }
+    if (excessoMax < ESTOURO_MUITO_GRANDE) {
+      for (const t of _ALARME_DESPROP) {
+        if (lower.includes(t)) return { ok: false, motivo: `alarme_desproporcional: "${t}" (${(excessoMax * 100).toFixed(0)}%)` }
+      }
     }
   }
+
+  // Dias inventados (a IA não conta datas)
+  if (diasPermitidos.length > 0) {
+    for (const m of lower.matchAll(/(\d+)\s*dias?\b/g)) {
+      const d = parseInt(m[1], 10)
+      if (!diasPermitidos.includes(d)) return { ok: false, motivo: `dias_inventados: "${d} dias"` }
+    }
+  }
+
   return { ok: true }
+}
+
+/** Excesso proporcional: (base − meta) / meta. 0 se sem risco. */
+function excessoRow(row: PreditivaRow): number {
+  if (!row.meta || row.meta <= 0) return 0
+  if (row.status !== 'estourou' && row.status !== 'vai_estourar') return 0
+  const base = row.status === 'estourou' ? row.gasto_acumulado : (row.projecao ?? row.gasto_acumulado)
+  return Math.max(0, (base - row.meta) / row.meta)
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -184,7 +220,7 @@ async function textoFaltaUso(
 
   const llmRaw = await gerarTextoLLM(prompt, ultimoLembrete)
   if (llmRaw) {
-    const check = validarPushTexto(llmRaw, false, apelidos)
+    const check = validarPushTexto(llmRaw, false, apelidos, 0, [diasRestantes, diasSem])
     if (check.ok) return llmRaw
     console.warn('[daily-push] guardrail rejeitou falta_uso:', check.motivo)
   }
@@ -204,6 +240,7 @@ async function textoFaltaUso(
 async function textoRisco(
   row: PreditivaRow,
   diaSemana: number,
+  diasRestantes: number,
   baldes: Baldes,
   ultimoLembrete: string | null,
   apelidos: string[],
@@ -211,18 +248,19 @@ async function textoRisco(
   const nomeDia  = DIAS_SEMANA[diaSemana]
   const tom      = baldes['risco.tom_llm']?.[0] ?? ''
   const diff     = row.projecao != null && row.meta != null ? row.projecao - row.meta : null
+  const excesso  = excessoRow(row)
   const contexto = [
-    `Hoje é ${nomeDia}.`,
+    `Hoje é ${nomeDia}. Faltam exatamente ${diasRestantes} dias corridos no mês (use este número, não conte datas).`,
     `Categoria: categoria_id=${row.categoria_id}.`,
     row.status === 'estourou'
-      ? `A meta de ${fmt(row.meta ?? 0)} já foi estourada (gasto acumulado: ${fmt(row.gasto_acumulado)}).`
-      : `Projeção: ${fmt(row.projecao ?? 0)} vs meta ${fmt(row.meta ?? 0)}${diff != null ? ` (${fmt(diff)} acima)` : ''}.`,
+      ? `A meta de ${fmt(row.meta ?? 0)} já foi estourada (gasto acumulado: ${fmt(row.gasto_acumulado)}, ${(excesso * 100).toFixed(0)}% acima).`
+      : `Projeção: ${fmt(row.projecao ?? 0)} vs meta ${fmt(row.meta ?? 0)}${diff != null ? ` (${fmt(diff)} acima, ${(excesso * 100).toFixed(0)}%)` : ''}.`,
   ].join(' ')
   const prompt = `${REGRAS_TOM_BASE}\n\n${tom}\n\nContexto: ${contexto}`
 
   const llmRaw = await gerarTextoLLM(prompt, ultimoLembrete)
   if (llmRaw) {
-    const check = validarPushTexto(llmRaw, true, apelidos)
+    const check = validarPushTexto(llmRaw, true, apelidos, excesso, [diasRestantes])
     if (check.ok) return llmRaw
     console.warn('[daily-push] guardrail rejeitou risco:', check.motivo)
   }
@@ -250,6 +288,7 @@ async function textoRiscoFalta(
   row: PreditivaRow,
   diasSem: number,
   diaSemana: number,
+  diasRestantes: number,
   baldes: Baldes,
   ultimoLembrete: string | null,
   apelidos: string[],
@@ -257,23 +296,24 @@ async function textoRiscoFalta(
   const nomeDia  = DIAS_SEMANA[diaSemana]
   const tom      = baldes['risco_falta.tom_llm']?.[0] ?? ''
   const diff     = row.projecao != null && row.meta != null ? row.projecao - row.meta : null
+  const excesso  = excessoRow(row)
   const contexto = [
-    `Hoje é ${nomeDia}. O casal está há ${diasSem} dia${diasSem > 1 ? 's' : ''} sem registrar gastos.`,
+    `Hoje é ${nomeDia}. O casal está há ${diasSem} dia${diasSem > 1 ? 's' : ''} sem registrar gastos. Faltam exatamente ${diasRestantes} dias corridos no mês (use estes números, não conte datas).`,
     row.status === 'estourou'
-      ? `Além disso, a meta de ${fmt(row.meta ?? 0)} já foi estourada (gasto acumulado: ${fmt(row.gasto_acumulado)}).`
-      : `Além disso, a projeção de ${fmt(row.projecao ?? 0)} está ${fmt(diff ?? 0)} acima da meta de ${fmt(row.meta ?? 0)}.`,
+      ? `Além disso, a meta de ${fmt(row.meta ?? 0)} já foi estourada (gasto acumulado: ${fmt(row.gasto_acumulado)}, ${(excesso * 100).toFixed(0)}% acima).`
+      : `Além disso, a projeção de ${fmt(row.projecao ?? 0)} está ${fmt(diff ?? 0)} acima da meta de ${fmt(row.meta ?? 0)} (${(excesso * 100).toFixed(0)}%).`,
   ].join(' ')
   const prompt = `${REGRAS_TOM_BASE}\n\n${tom}\n\nContexto: ${contexto}`
 
   const llmRaw = await gerarTextoLLM(prompt, ultimoLembrete)
   if (llmRaw) {
-    const check = validarPushTexto(llmRaw, true, apelidos)
+    const check = validarPushTexto(llmRaw, true, apelidos, excesso, [diasRestantes, diasSem])
     if (check.ok) return llmRaw
     console.warn('[daily-push] guardrail rejeitou risco_falta:', check.motivo)
   }
 
   // Fallback combinado
-  return await textoRisco(row, diaSemana, baldes, null, apelidos)
+  return await textoRisco(row, diaSemana, diasRestantes, baldes, null, apelidos)
 }
 
 // ── Fallbacks fixos ───────────────────────────────────────────
@@ -479,10 +519,10 @@ Deno.serve(async (_req: Request) => {
       let tipoLog: string
 
       if (temRisco && faltaRegistro) {
-        body    = await textoRiscoFalta(riscoCategoria!, diasSem, diaSemana, baldes, ultimoLembrete, apelidos)
+        body    = await textoRiscoFalta(riscoCategoria!, diasSem, diaSemana, diasRestantes, baldes, ultimoLembrete, apelidos)
         tipoLog = 'risco+falta'
       } else if (temRisco) {
-        body    = await textoRisco(riscoCategoria!, diaSemana, baldes, ultimoLembrete, apelidos)
+        body    = await textoRisco(riscoCategoria!, diaSemana, diasRestantes, baldes, ultimoLembrete, apelidos)
         tipoLog = 'risco'
       } else {
         body    = await textoFaltaUso(diasSem, diaSemana, diasRestantes, baldes, ultimoLembrete, apelidos)

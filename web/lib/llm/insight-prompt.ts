@@ -1,4 +1,5 @@
 import type { PreditivaCategoria } from '../preditiva'
+import { calcExcesso } from './guardrail'
 
 function fmt(centavos: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(centavos / 100)
@@ -8,28 +9,33 @@ function fmt(centavos: number): string {
 // O template do banco (ritmo.tom_llm) ADICIONA instruções; estas nunca saem.
 export const REGRAS_TOM_BASE = `
 REGRAS ABSOLUTAS (nunca viole):
-1. Fale SEMPRE com o casal junto ("vocês", "o casal"). PROIBIDO citar ou culpar um parceiro individualmente. Apelidos só para saudação amistosa.
-2. Proporção: estouro é AVISO CONSTRUTIVO calmo ("vale segurar"), nunca tragédia e NUNCA motivo de festa. Urgência forte só se projeção muito acima da meta E poucos dias restantes.
-3. PROIBIDO comemorar ou validar estouro. Nada de "parabéns", "mandaram ver", "arrasaram", "🎉", "tá tudo bem ter passado", "foi planejado". Estouro = heads-up.
-4. Elogio SÓ para o que é positivo de verdade: categorias dentro da meta, ritmo bom. Nunca aplicado a estouro. Coexistência ok: "no geral ótimo; só de olho no restaurante".
-5. Sem culpa/vergonha: nada de "descontrolado", "exageraram", "perderam o controle".
-6. Use EXATAMENTE os números fornecidos. NUNCA invente ou recalcule valor.
+1. Fale SEMPRE com o casal junto ("vocês", "o casal"). PROIBIDO citar ou culpar um parceiro individualmente (ex.: "a Gaia gastou", "o Vitim esqueceu"). Apelidos só para saudação amistosa.
+2. PROIBIDO ataque pessoal: nada de "irresponsáveis", "relapsos", "que vergonha", "vocês são...". Critique o GASTO, nunca as pessoas.
+3. Intensidade PROPORCIONAL ao tamanho do estouro (excesso = quanto a projeção/gasto passou da meta):
+   • até ~30% acima → firme e CALMO: "passou da meta, vale segurar". Alarme aqui é ruído.
+   • ~30% a 80% acima → tom FORTE ok: "atenção", "cuidado", "precisa frear", "saiu da linha".
+   • ~80% ou mais acima → ENFÁTICO ok: "cuidado!!", "preocupante", "passou bem do limite". A situação é séria — seja honesto.
+4. PROIBIDO comemorar ou validar estouro: nada de "parabéns", "mandaram ver", "arrasaram", nem emojis de festa (🎉🥳🎊🍾🙌🏆).
+5. PROIBIDO minimizar estouro: nada de "sem drama", "tá tudo bem", "relaxa", "de boa", "foi planejado". Sempre nomeie que passou da meta e que dá pra ajustar.
+6. Elogio e emoji de festa SÓ para o que é positivo de verdade (categoria dentro da meta, ritmo bom). NUNCA para estouro. Podem coexistir: "mercado e transporte no controle 👏; já o lazer saiu da linha — atenção nesse".
+7. Use EXATAMENTE os números e dias fornecidos. NUNCA invente, conte datas nem recalcule.
 
-EXEMPLOS BONS:
-- "No geral vocês estão bem esse mês 👏 Só o restaurante tá puxando — se segurarem os deliveries, fecha tranquilo."
-- "Restaurante passou da meta. Sem drama, mas vale segurar o ritmo pra equilibrar no resto do mês 🙂"
-- "Mercado e transporte dentro da meta, mandaram bem 👏 Só o restaurante que passou — dá pra ajustar."
+EXEMPLOS BONS (o tom escala com o tamanho do estouro):
+- Pequeno (~10%): "Restaurante passou um pouco da meta. Vale segurar daqui pra frente pra fechar no azul."
+- Grande (~50%): "Atenção: o lazer já passou bem da meta. Precisa frear pra não comprometer o resto do mês."
+- Muito grande (~150%): "Cuidado!! Lazer passou da meta em mais de 100% — situação séria, bora puxar o freio agora."
+- Equilíbrio: "Mercado e transporte no controle 👏 já o lazer saiu da linha — esse é o que precisa de atenção."
 
 EXEMPLOS RUINS (NUNCA faça):
-- "A Gaia gastou demais em restaurante."              ← culpa/singulariza parceiro
-- "Cuidado!! Vocês estouraram, preocupante!"          ← alarmista
-- "Vocês perderam o controle dos gastos."             ← culpa/vergonha
-- "Parabéns, mandaram ver no restaurante! 🎉"         ← comemora estouro (PROIBIDO)
-- "Passou da meta, mas se foi planejado tá tudo bem!" ← valida estouro (PROIBIDO)
+- "A Gaia gastou demais em restaurante."              ← culpa/singulariza um parceiro
+- "Vocês são irresponsáveis com o lazer."             ← ataque pessoal
+- "🎉 Vocês mandaram ver no lazer!"                    ← comemora/emoji de festa em estouro
+- "Passou da meta, mas sem drama, tá tudo bem!"       ← minimiza o estouro
+- "Cuidado!! Perderam o controle!" (estouro de ~5%)   ← alarme desproporcional
 `.trim()
 
 const DEFAULT_TOM =
-  'Tom LEVE e DESCONTRAÍDO — como um parceiro que cutuca de leve, sem peso. Pode usar humor suave. Máx. 1 emoji. Foque nas 1-2 categorias mais críticas ou no panorama geral se tudo estiver bem.'
+  'Tom LEVE e DESCONTRAÍDO — como um parceiro que cutuca de leve. Pode usar humor suave. Máx. 1 emoji. Foque nas 1-2 categorias mais críticas ou no panorama geral se tudo estiver bem.'
 
 export function montarPromptInsight(input: {
   apelidos:         [string, string]
@@ -49,10 +55,11 @@ export function montarPromptInsight(input: {
   const diasRestam = diasNoMes - dia
 
   const panorama = comMeta.length > 0
-    ? `Panorama: ${ok.length} em dia, ${noLimite.length} no limite, ${emRisco.length} em risco — de ${comMeta.length} categorias com meta. Faltam ${diasRestam} dias.`
-    : `Nenhuma categoria com meta definida este mês.`
+    ? `Panorama: ${ok.length} em dia, ${noLimite.length} no limite, ${emRisco.length} em risco — de ${comMeta.length} categorias com meta. Faltam exatamente ${diasRestam} dias corridos (não conte datas, use este número).`
+    : `Nenhuma categoria com meta definida este mês. Faltam exatamente ${diasRestam} dias corridos.`
 
-  // Dados por categoria — SEM dados por pessoa (não induz singularização)
+  // Dados por categoria — SEM dados por pessoa (não induz singularização).
+  // Inclui o excesso% para a IA calibrar a intensidade do alerta.
   const linhas = comMeta
     .map(c => {
       const partes = [
@@ -60,6 +67,8 @@ export function montarPromptInsight(input: {
         c.projecao != null ? `projeção ${fmt(c.projecao)}` : 'projeção indefinida',
         `status ${c.status}`,
       ]
+      const excesso = calcExcesso(c.status, c.gastoAcumulado, c.projecao, c.meta)
+      if (excesso > 0) partes.push(`excede ${(excesso * 100).toFixed(0)}% da meta`)
       if (c.ritmoVsMedia != null) {
         partes.push(`ritmo ${(c.ritmoVsMedia * 100).toFixed(0)}% vs média histórica`)
       }
@@ -80,7 +89,8 @@ ${linhas || '(sem dados)'}
 Responda APENAS em JSON: {"resumo": "<2-3 frases para exibir na tela de resumo>"}`
 }
 
-/** Fallback determinístico quando o LLM falha ou é rejeitado pelo guardrail. */
+/** Fallback determinístico quando o LLM falha ou é rejeitado pelo guardrail.
+ *  Respeita a proporção: estouro grande recebe tom mais firme. */
 export function gerarFallbackTemplate(
   categorias: PreditivaCategoria[],
   diasRestantes: number,
@@ -98,11 +108,19 @@ export function gerarFallbackTemplate(
   }
 
   return criticas.map(c => {
+    const excesso = calcExcesso(c.status, c.gastoAcumulado, c.projecao, c.meta)
+    const forte = excesso >= 0.80
+    const medio = excesso >= 0.30
+
     if (c.status === 'estourou') {
-      return `${c.emoji} ${c.nome} passou da meta de ${fmt(c.meta ?? 0)} (em ${fmt(c.gastoAcumulado)}). Vale segurar nos ${diasRestantes} dias restantes.`
+      const abertura = forte ? `${c.emoji} Atenção: ${c.nome} passou bem da meta`
+                     : medio ? `${c.emoji} ${c.nome} passou da meta`
+                     :         `${c.emoji} ${c.nome} passou um pouco da meta`
+      return `${abertura} de ${fmt(c.meta ?? 0)} (em ${fmt(c.gastoAcumulado)}). Vale segurar nos ${diasRestantes} dias que faltam.`
     }
     const projecao = c.projecao ?? 0
     const diff = projecao - (c.meta ?? 0)
-    return `${c.emoji} ${c.nome}: no ritmo atual fecha em ${fmt(projecao)}, ${fmt(diff)} acima da meta.`
+    const abertura = forte ? `${c.emoji} Cuidado com ${c.nome}` : `${c.emoji} ${c.nome}`
+    return `${abertura}: no ritmo atual fecha em ${fmt(projecao)}, ${fmt(diff)} acima da meta.`
   }).join(' ')
 }
