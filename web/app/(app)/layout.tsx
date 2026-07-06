@@ -27,10 +27,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/bloqueado')
   }
 
-  // Busca preferência de tema do usuário
+  // Busca preferência de tema do usuário + nome do casal (p/ o menu)
+  const supabase = createClient()
   let tema: Tema = 'light'
   if (user?.email) {
-    const supabase = createClient()
     const { data } = await supabase
       .from('users')
       .select('tema')
@@ -38,6 +38,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .maybeSingle()
     if (data?.tema === 'dark') tema = 'dark'
   }
+
+  const { data: casalRow } = await supabase
+    .from('casais')
+    .select('nome')
+    .eq('id', casal.casalId)
+    .maybeSingle()
+  const nomeCasal = (casalRow?.nome as string | null) ?? null
 
   return (
     <ThemeProvider initialTema={tema}>
@@ -73,7 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           }}>
             Nosso <span style={{ color: '#7A9E7E' }}>DinDin</span>
           </span>
-          <MenuSheet />
+          <MenuSheet nomeCasal={nomeCasal} apelidos={casal.apelidos} />
         </div>
 
         <PullToRefresh />

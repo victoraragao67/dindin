@@ -16,9 +16,11 @@ export default async function AdminCategoriasPage() {
 
   const supabase = createAdminClient()
 
+  // Gerencia o conjunto TEMPLATE (casal_id IS NULL) — o que casais novos recebem.
   const { data } = await supabase
     .from('categories')
     .select('id, nome, emoji, ordem, ativo')
+    .is('casal_id', null)
     .order('ordem', { ascending: true })
 
   const categorias = (data as CatRow[] | null) ?? []
@@ -40,7 +42,7 @@ export default async function AdminCategoriasPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700 }}>
           Categorias ({categorias.length})
         </h1>
@@ -48,6 +50,11 @@ export default async function AdminCategoriasPage() {
           {ativas.length} ativas · {inativas.length} inativas
         </span>
       </div>
+      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 20, lineHeight: 1.5 }}>
+        Este é o <strong style={{ color: 'rgba(255,255,255,0.6)' }}>conjunto padrão</strong> que
+        casais novos recebem ao entrar. Cada casal gerencia as próprias categorias em
+        Configurações › Categorias — mudanças aqui não afetam casais existentes.
+      </p>
 
       {/* Formulário nova categoria */}
       <div style={{

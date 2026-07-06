@@ -8,6 +8,7 @@ import { HomeAcertoBanner } from '@/components/home-acerto-banner'
 import { HomeInsightCard, HomeInsightCardSkeleton } from '@/components/home-insight-card'
 import { HomeCategoryBars, HomeCategoryBarsSkeleton } from '@/components/home-category-bars'
 import { HomeRecentTx, HomeRecentTxSkeleton } from '@/components/home-recent-tx'
+import { HomeTipCategorias } from '@/components/home-tip-categorias'
 import { BottomNav } from '@/components/bottom-nav'
 import { HomeClient } from '@/components/home-client'
 import { getCasal } from '@/lib/supabase/get-casal'
@@ -463,6 +464,9 @@ export default async function HomePage() {
   return (
     <>
       <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-4" data-scroll-root style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}>
+
+        {/* Novidade: gerenciar categorias (dismissível) */}
+        <HomeTipCategorias />
 
         {/* Balance + Acerto Banner */}
         <Suspense fallback={<HomeBalanceCardSkeleton />}>

@@ -7,22 +7,11 @@ import { toggleRecorrente, removerRecorrente } from '@/app/(app)/actions'
 import { NovoGastoModal, type RecorrenteInitial, type Categoria } from '@/components/novo-gasto-modal'
 import { Toast } from '@/components/toast'
 
-const CATEGORIES: Record<number, { nome: string; emoji: string }> = {
-  1:  { nome: 'Mercado',     emoji: '🛒' },
-  2:  { nome: 'Restaurante', emoji: '🍽️' },
-  3:  { nome: 'Casa',        emoji: '🏠' },
-  4:  { nome: 'Lazer',       emoji: '🎉' },
-  10: { nome: 'Streaming',   emoji: '📺' },
-  5:  { nome: 'Saúde',       emoji: '⚕️' },
-  6:  { nome: 'Transporte',  emoji: '🚗' },
-  7:  { nome: 'Viagem',      emoji: '✈️' },
-  8:  { nome: 'Presente',    emoji: '🎁' },
-  9:  { nome: 'Outros',      emoji: '📦' },
-}
-
 type Template = {
   id: string
   categoria_id: number
+  categoria_nome: string
+  categoria_emoji: string
   valor_centavos: number
   descricao: string
   pagador_apelido: string
@@ -107,7 +96,7 @@ export function ListaRecorrentes({ templates, currentApelido, apelidos, categori
         )}
 
         {templates.map(t => {
-          const cat  = CATEGORIES[t.categoria_id] ?? { nome: 'outros', emoji: '📦' }
+          const cat  = { nome: t.categoria_nome, emoji: t.categoria_emoji }
           const isExpanded = expandedId === t.id
           const isLoading  = loading === t.id
 

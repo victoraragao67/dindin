@@ -481,7 +481,7 @@ export function MetasV2Client({
           border: '1px solid var(--border)',
         }}>
           <p style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 8 }}>
-            Com gasto, sem meta definida:
+            Adicionar meta a uma categoria:
           </p>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {semMetaFinal.map(cat => (

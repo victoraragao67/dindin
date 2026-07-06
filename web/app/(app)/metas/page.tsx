@@ -52,10 +52,11 @@ export default async function MetasPage({
   const hist3Start = mesAtrasStr(3)
 
   const [categoriasRes, metasRes, variaveisRes, recorrentesRes, metasAntRes, historicoRes, histTotalRes] = await Promise.all([
-    // 1. Todas as categorias
+    // 1. Categorias ativas do casal (RLS scopa por casal)
     supabase
       .from('categories')
-      .select('id, nome, emoji')
+      .select('id, nome, emoji, ordem')
+      .eq('ativo', true)
       .order('ordem', { ascending: true }),
 
     // 2. Metas definidas para o mês
@@ -105,7 +106,7 @@ export default async function MetasPage({
   ])
 
   // ── Lookup maps ──────────────────────────────────────────────
-  type CatRow = { id: number; nome: string; emoji: string }
+  type CatRow = { id: number; nome: string; emoji: string; ordem: number }
 
   const categorias = (categoriasRes.data ?? []) as CatRow[]
   const temMetasAnteriores = (metasAntRes.data ?? []).length > 0
@@ -141,7 +142,9 @@ export default async function MetasPage({
     .sort((a, b) => (b.gasto + b.recorrente) - (a.gasto + a.recorrente))
 
   const comMeta = itens.filter(i => i.meta > 0)
-  const semMeta = itens.filter(i => i.meta === 0).map(i => i.categoria)
+  // Todas as categorias ativas SEM meta — inclui as sem nenhum gasto,
+  // para que o casal possa definir meta em qualquer categoria.
+  const semMeta = categorias.filter(cat => !(metasPorCat[cat.id] > 0))
 
   // ── Totais para o card de resumo ─────────────────────────────
   const totalMetas        = comMeta.reduce((s, i) => s + i.meta, 0)
@@ -242,12 +245,12 @@ export default async function MetasPage({
             textAlign: 'center',
             color: 'var(--muted)',
           }}>
-            <p style={{ fontSize: 36, marginBottom: 12 }}>🎯</p>
+            <p style={{ fontSize: 36, marginBottom: 12 }}>🏷️</p>
             <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>
-              Nenhuma meta ainda
+              Nenhuma categoria ativa
             </p>
             <p style={{ fontSize: 13, marginBottom: temMetasAnteriores ? 20 : 0 }}>
-              Registre gastos ou adicione metas para acompanhar seu orçamento.
+              Ative ou crie categorias em Configurações › Categorias para poder definir metas.
             </p>
             {temMetasAnteriores && (
               <MetasEmptyActions mes={mes} ano={ano} />
