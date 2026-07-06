@@ -65,7 +65,8 @@ export default async function RecorrentesPage() {
       split_pagador_pct,
       dia_do_mes,
       ativo,
-      pagador:users!recurring_templates_pagador_id_fkey ( apelido )
+      pagador:users!recurring_templates_pagador_id_fkey ( apelido ),
+      categoria:categories!recurring_templates_categoria_id_fkey ( nome, emoji )
     `)
     .order('dia_do_mes', { ascending: true })
 
@@ -82,21 +83,27 @@ export default async function RecorrentesPage() {
     dia_do_mes: number
     ativo: boolean
     pagador: { apelido: string } | { apelido: string }[] | null
+    categoria: { nome: string; emoji: string } | { nome: string; emoji: string }[] | null
   }
 
-  const normalized = (templates as unknown as RawTemplate[] ?? []).map(t => ({
-    id: t.id,
-    categoria_id: t.categoria_id,
-    valor_centavos: t.valor_centavos,
-    descricao: t.descricao,
-    pagador_apelido: (
-      Array.isArray(t.pagador) ? t.pagador[0]?.apelido : t.pagador?.apelido
-    ) ?? currentApelido,
-    divisao: t.divisao,
-    split_pagador_pct: t.split_pagador_pct,
-    dia_do_mes: t.dia_do_mes,
-    ativo: t.ativo,
-  }))
+  const normalized = (templates as unknown as RawTemplate[] ?? []).map(t => {
+    const cat = Array.isArray(t.categoria) ? t.categoria[0] : t.categoria
+    return {
+      id: t.id,
+      categoria_id: t.categoria_id,
+      categoria_nome: cat?.nome ?? 'Outros',
+      categoria_emoji: cat?.emoji ?? '📦',
+      valor_centavos: t.valor_centavos,
+      descricao: t.descricao,
+      pagador_apelido: (
+        Array.isArray(t.pagador) ? t.pagador[0]?.apelido : t.pagador?.apelido
+      ) ?? currentApelido,
+      divisao: t.divisao,
+      split_pagador_pct: t.split_pagador_pct,
+      dia_do_mes: t.dia_do_mes,
+      ativo: t.ativo,
+    }
+  })
 
   return (
     <>

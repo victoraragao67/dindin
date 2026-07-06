@@ -128,6 +128,18 @@ export default async function ConfigPage() {
                 </div>
                 <span style={{ color: 'var(--muted)' }}>›</span>
               </Link>
+
+              <Link
+                href="/config/categorias"
+                className="flex items-center justify-between rounded-xl px-4 py-4 border"
+                style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🏷️</span>
+                  <span className="text-sm" style={{ color: 'var(--ink)' }}>Categorias</span>
+                </div>
+                <span style={{ color: 'var(--muted)' }}>›</span>
+              </Link>
             </div>
           </div>
 

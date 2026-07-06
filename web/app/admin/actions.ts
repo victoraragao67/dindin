@@ -41,6 +41,7 @@ export async function deletarCasal(casalId: string) {
   await supabase.from('transfers').delete().eq('casal_id', casalId)
   await supabase.from('recurring_templates').delete().eq('casal_id', casalId)
   await supabase.from('spending_goals').delete().eq('casal_id', casalId)
+  await supabase.from('categories').delete().eq('casal_id', casalId)
   await supabase.from('casal_convites').delete().eq('casal_id', casalId)
 
   if (userIds.length > 0) {
@@ -122,10 +123,11 @@ export async function criarCategoria(formData: FormData) {
 
   const supabase = createAdminClient()
 
-  // Descobre a próxima ordem (maior + 1)
+  // Descobre a próxima ordem no TEMPLATE (maior + 1)
   const { data: last } = await supabase
     .from('categories')
     .select('ordem')
+    .is('casal_id', null)
     .order('ordem', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -135,11 +137,12 @@ export async function criarCategoria(formData: FormData) {
   const { error } = await supabase
     .from('categories')
     .insert({
-      nome:    parsed.data.nome.toLowerCase(),
-      emoji:   parsed.data.emoji,
-      aliases: [],
-      ordem:   proximaOrdem,
-      ativo:   true,
+      nome:     parsed.data.nome.toLowerCase(),
+      emoji:    parsed.data.emoji,
+      aliases:  [],
+      ordem:    proximaOrdem,
+      ativo:    true,
+      casal_id: null,   // conjunto template (novos casais)
     })
 
   if (error) return { error: error.message }

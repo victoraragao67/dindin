@@ -489,3 +489,115 @@ export async function renomearCasal(nome: string): Promise<{ error?: string }> {
   revalidatePath('/config/casal')
   return {}
 }
+
+// ── Categorias do casal ──────────────────────────────────────
+// O casal é dono das próprias linhas de categoria (RLS: is_casal_member).
+// Desativar preserva o histórico; some apenas dos formulários de entrada.
+
+const CategoriaCasalSchema = z.object({
+  nome:  z.string().trim().min(1, 'Nome obrigatório').max(30, 'Nome muito longo (máx. 30).'),
+  emoji: z.string().trim().min(1, 'Emoji obrigatório').max(8),
+})
+
+/** Revalida todas as telas que listam categorias. */
+function revalidarCategorias() {
+  revalidatePath('/config/categorias')
+  revalidatePath('/')
+  revalidatePath('/metas')
+  revalidatePath('/gastos')
+  revalidatePath('/recorrentes')
+  revalidatePath('/resumo')
+}
+
+export async function criarCategoria(nome: string, emoji: string): Promise<{ error?: string }> {
+  const parsed = CategoriaCasalSchema.safeParse({ nome, emoji })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
+
+  const casal = await getCasal()
+  if (!casal.casalId || casal.status !== 'active') return { error: 'Nenhum casal ativo.' }
+
+  const supabase = createClient()
+
+  // Próxima ordem = maior ordem do casal + 1
+  const { data: last } = await supabase
+    .from('categories')
+    .select('ordem')
+    .eq('casal_id', casal.casalId)
+    .order('ordem', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const proximaOrdem = ((last as { ordem: number } | null)?.ordem ?? 0) + 1
+
+  const { error } = await supabase
+    .from('categories')
+    .insert({
+      nome:     parsed.data.nome,
+      emoji:    parsed.data.emoji,
+      aliases:  [],
+      ordem:    proximaOrdem,
+      ativo:    true,
+      casal_id: casal.casalId,
+      padrao:   false,   // categoria do casal — nome e ícone editáveis
+    })
+
+  if (error) {
+    if (error.code === '23505') return { error: 'Já existe uma categoria com esse nome.' }
+    console.error('[criarCategoria]', error.message)
+    return { error: 'Erro ao criar categoria. Tente novamente.' }
+  }
+
+  revalidarCategorias()
+  return {}
+}
+
+export async function toggleCategoria(id: number, ativo: boolean): Promise<{ error?: string }> {
+  const casal = await getCasal()
+  if (!casal.casalId || casal.status !== 'active') return { error: 'Nenhum casal ativo.' }
+
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('categories')
+    .update({ ativo })
+    .eq('id', id)
+    .eq('casal_id', casal.casalId)
+
+  if (error) {
+    console.error('[toggleCategoria]', error.message)
+    return { error: 'Erro ao atualizar categoria.' }
+  }
+
+  revalidarCategorias()
+  return {}
+}
+
+export async function editarCategoria(id: number, nome: string, emoji: string): Promise<{ error?: string }> {
+  const parsed = CategoriaCasalSchema.safeParse({ nome, emoji })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' }
+
+  const casal = await getCasal()
+  if (!casal.casalId || casal.status !== 'active') return { error: 'Nenhum casal ativo.' }
+
+  const supabase = createClient()
+  // Só categorias do casal (padrao=false) podem ser editadas.
+  // As padrão têm ícone imutável.
+  const { data: updated, error } = await supabase
+    .from('categories')
+    .update({ nome: parsed.data.nome, emoji: parsed.data.emoji })
+    .eq('id', id)
+    .eq('casal_id', casal.casalId)
+    .eq('padrao', false)
+    .select('id')
+
+  if (error) {
+    if (error.code === '23505') return { error: 'Já existe uma categoria com esse nome.' }
+    console.error('[editarCategoria]', error.message)
+    return { error: 'Erro ao salvar categoria.' }
+  }
+  if (!updated || updated.length === 0) {
+    return { error: 'Categoria padrão não pode ser editada.' }
+  }
+
+  revalidarCategorias()
+  return {}
+}
