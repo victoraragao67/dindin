@@ -26,16 +26,26 @@ const PRIMARY_ACTIONS = [
 
 /* ── Itens secundários — linha discreta ───────────────────── */
 const SECONDARY_ITEMS = [
-  { href: '/resumo', emoji: '📊', label: 'Resumo'        },
-  { href: '/metas',  emoji: '🎯', label: 'Metas'         },
-  { href: '/config', emoji: '⚙️', label: 'Configurações' },
+  { href: '/resumo',            emoji: '📊', label: 'Resumo'        },
+  { href: '/metas',             emoji: '🎯', label: 'Metas'         },
+  { href: '/config/categorias', emoji: '🏷️', label: 'Categorias'    },
+  { href: '/config',            emoji: '⚙️', label: 'Configurações' },
 ]
 
-export function MenuSheet() {
+export function MenuSheet({
+  nomeCasal = null,
+  apelidos  = null,
+}: {
+  nomeCasal?: string | null
+  apelidos?:  [string, string] | null
+} = {}) {
   const [open, setOpen]               = useState(false)
   const [confirmSair, setConfirmSair] = useState(false)
   const [loading, setLoading]         = useState(false)
   const router = useRouter()
+
+  const membros     = apelidos ? apelidos.join(' & ') : null
+  const displayName = nomeCasal || membros || 'Nosso DinDin'
 
   async function handleLogout() {
     setLoading(true)
@@ -82,29 +92,52 @@ export function MenuSheet() {
             <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
           </div>
 
-          {/* Cabeçalho — logo + fechar */}
-          <div className="flex items-center justify-between px-5 pt-3 pb-4">
-            <Drawer.Title asChild>
-              <div aria-label="Nosso DinDin">
+          {/* Cabeçalho — identidade do casal (toque p/ nomear) + fechar */}
+          <div className="flex items-center justify-between gap-3 px-5 pt-3 pb-4">
+            <Link
+              href="/config/casal"
+              onClick={handleClose}
+              className="flex items-center gap-3 flex-1 min-w-0 transition-opacity active:opacity-70"
+            >
+              <div
+                className="w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0"
+                style={{ background: 'color-mix(in srgb, var(--sage) 16%, transparent)' }}
+              >
+                💑
+              </div>
+              <div className="min-w-0">
                 <span
-                  className="block text-xs font-medium tracking-wide"
+                  className="block text-[10px] font-semibold tracking-widest uppercase"
                   style={{ color: 'var(--muted)' }}
                 >
-                  Nosso
+                  Nosso DinDin
                 </span>
-                <span
-                  className="block text-xl font-bold leading-tight"
-                  style={{ fontFamily: 'Georgia, serif', color: 'var(--ink)' }}
-                >
-                  Din<span style={{ color: 'var(--sage)' }}>Din</span>
-                </span>
+                <Drawer.Title asChild>
+                  <span
+                    className="block text-lg font-bold leading-tight truncate"
+                    style={{ fontFamily: 'Georgia, serif', color: 'var(--ink)' }}
+                  >
+                    {displayName}
+                  </span>
+                </Drawer.Title>
+                {nomeCasal
+                  ? membros && (
+                      <span className="block text-xs truncate" style={{ color: 'var(--muted)' }}>
+                        {membros}
+                      </span>
+                    )
+                  : (
+                      <span className="block text-xs font-medium" style={{ color: 'var(--sage)' }}>
+                        Toque para dar um nome ao casal ›
+                      </span>
+                    )}
               </div>
-            </Drawer.Title>
+            </Link>
 
             <button
               onClick={handleClose}
               aria-label="Fechar menu"
-              className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity active:opacity-70"
+              className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 transition-opacity active:opacity-70"
               style={{ background: 'var(--bg-2)', color: 'var(--muted)' }}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
