@@ -601,3 +601,68 @@ export async function editarCategoria(id: number, nome: string, emoji: string): 
   revalidarCategorias()
   return {}
 }
+
+// ── Lançamentos de um mês passado (drill-down do gráfico) ────
+
+export type GastoMesItem = {
+  installment_valor: number
+  data_competencia:  string
+  expense_id:        string
+  descricao:         string | null
+  pagador_apelido:   string
+  categoria_id:      number
+  categoria_nome:    string
+  categoria_emoji:   string
+}
+
+/** Lançamentos individuais (variável + recorrente) de um mês.
+ *  Usado pelo modal do gráfico "Últimos 6 meses" para meses que não
+ *  estão carregados na página (só o mês corrente vem no ResumoData). */
+export async function getGastosDoMes(
+  mesStr: string,
+): Promise<{ data?: GastoMesItem[]; error?: string }> {
+  const casal = await getCasal()
+  if (!casal.casalId || casal.status !== 'active') return { error: 'Nenhum casal ativo.' }
+
+  if (!/^\d{4}-\d{2}-01$/.test(mesStr)) return { error: 'Mês inválido.' }
+  const [ano, mes] = mesStr.split('-').map(Number)
+  const start   = `${ano}-${String(mes).padStart(2, '0')}-01`
+  const lastDay = new Date(ano, mes, 0).getDate()
+  const end     = `${ano}-${String(mes).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+  const supabase = createClient()
+  // RLS filtra por casal via expenses. Mesma fonte do gráfico (var + recorrente).
+  const { data, error } = await supabase
+    .from('expense_installments')
+    .select('valor_centavos, data_competencia, expenses!inner(id, descricao, cancelado, origem, pagador:users!expenses_pagador_id_fkey(apelido), categoria:categories(id, nome, emoji))')
+    .gte('data_competencia', start)
+    .lte('data_competencia', end)
+    .eq('expenses.cancelado', false)
+    .in('expenses.origem', ['pwa', 'recorrente'])
+    .order('data_competencia', { ascending: false })
+
+  if (error) {
+    console.error('[getGastosDoMes]', error.message)
+    return { error: 'Erro ao carregar os gastos do mês.' }
+  }
+
+  const items: GastoMesItem[] = ((data ?? []) as any[]).flatMap(row => {
+    const exp = row.expenses
+    if (!exp) return []
+    const pag = Array.isArray(exp.pagador)   ? exp.pagador[0]   : exp.pagador
+    const cat = Array.isArray(exp.categoria) ? exp.categoria[0] : exp.categoria
+    if (!cat) return []
+    return [{
+      installment_valor: row.valor_centavos,
+      data_competencia:  row.data_competencia,
+      expense_id:        exp.id,
+      descricao:         exp.descricao ?? null,
+      pagador_apelido:   pag?.apelido ?? '?',
+      categoria_id:      cat.id,
+      categoria_nome:    cat.nome,
+      categoria_emoji:   cat.emoji,
+    }]
+  })
+
+  return { data: items }
+}
