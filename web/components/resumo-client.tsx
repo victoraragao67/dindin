@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/bottom-nav'
 import { formatCurrency } from '@/lib/money'
 import { InfoTooltip } from '@/components/info-tooltip'
+import { getGastosDoMes, type GastoMesItem } from '@/app/(app)/actions'
 import type { ResumoData, CompraItem, ParcelaEmAberto, CustoRealRow, SerieCatMesRow } from '@/app/(app)/resumo/page'
 import { RitmoCard } from '@/components/ritmo-card'
 import {
@@ -35,6 +36,11 @@ function mesLabel(mesStr: string): string {
   return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
 }
 
+function mesLongoLabel(mesStr: string): string {
+  const [y, m] = mesStr.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+}
+
 function formatDataCompra(d: string): string {
   const [, m, day] = d.split('-')
   return `${day}/${m}`
@@ -56,8 +62,33 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
   const [modoCategoria, setModoCategoria]     = useState<'variavel' | 'com_recorrentes'>('variavel')
   const [catGrafico, setCatGrafico]           = useState<number | null>(null)  // null = Total
 
+  // Modal do mês (clique na barra do gráfico "Últimos 6 meses")
+  const [mesAberto, setMesAberto]             = useState<string | null>(null)
+  const [mesGastos, setMesGastos]             = useState<GastoMesItem[] | null>(null)
+  const [mesGastosLoading, setMesGastosLoading] = useState(false)
+  const [catExpandida, setCatExpandida]       = useState<number | null>(null)
+
   function navMes(mes: string) {
     router.push(`/resumo?mes=${mes}`)
+  }
+
+  function abrirMes(ms: string) {
+    setMesAberto(ms)
+    setMesGastos(null)
+    setCatExpandida(null)
+    setMesGastosLoading(false)
+  }
+
+  // Drill-down: carrega os lançamentos do mês (uma vez) e expande a categoria.
+  async function toggleCategoriaMes(catId: number) {
+    if (catExpandida === catId) { setCatExpandida(null); return }
+    setCatExpandida(catId)
+    if (mesGastos === null && !mesGastosLoading && mesAberto) {
+      setMesGastosLoading(true)
+      const res = await getGastosDoMes(mesAberto)
+      setMesGastosLoading(false)
+      if (res.data) setMesGastos(res.data)
+    }
   }
 
   return (
@@ -525,7 +556,7 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                     margin={{ top: 16, right: 8, left: 8, bottom: 0 }}
                     onClick={(e: any) => {
                       const ms = e?.activePayload?.[0]?.payload?.mesStr
-                      if (ms) router.push(`/resumo?mes=${ms}`)
+                      if (ms) abrirMes(ms)
                     }}
                     style={{ cursor: 'pointer' }}
                   >
@@ -680,6 +711,102 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                   <span className="text-sm" style={{ color: 'var(--muted)' }}>Total</span>
                   <span className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{formatCurrency(totalPessoa)}</span>
                 </div>
+              </div>
+            </div>
+          </>
+        )
+      })()}
+
+      {/* ── Modal do mês (clique na barra do gráfico) ── */}
+      {mesAberto && (() => {
+        const linhasMes = data.serieCategoriaMes
+          .filter(r => r.mes === mesAberto)
+          .sort((a, b) => b.total_centavos - a.total_centavos)
+        const totalMesModal = linhasMes.reduce((s, r) => s + r.total_centavos, 0)
+
+        // Comparação leve com o mês anterior por categoria
+        const mesPrev = mesAnterior(mesAberto)
+        const prevPorCat: Record<number, number> = {}
+        for (const r of data.serieCategoriaMes.filter(r => r.mes === mesPrev)) {
+          prevPorCat[r.categoria_id] = r.total_centavos
+        }
+
+        return (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setMesAberto(null)} aria-hidden="true" />
+            <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl max-h-[85dvh] flex flex-col" style={{ background: 'var(--card)' }}>
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
+              </div>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
+                <div>
+                  <h2 className="font-semibold capitalize" style={{ color: 'var(--ink)' }}>{mesLongoLabel(mesAberto)}</h2>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Total {formatCurrency(totalMesModal)}</p>
+                </div>
+                <button onClick={() => setMesAberto(null)} className="p-1" style={{ color: 'var(--muted)' }}>✕</button>
+              </div>
+
+              {/* Breakdown por categoria (instantâneo) + drill-down */}
+              <div className="overflow-y-auto flex-1" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                {linhasMes.length === 0 ? (
+                  <p className="text-sm text-center py-8" style={{ color: 'var(--muted)' }}>Sem gastos neste mês.</p>
+                ) : (
+                  linhasMes.map((r, i) => {
+                    const pct      = totalMesModal > 0 ? Math.round(r.total_centavos / totalMesModal * 100) : 0
+                    const prev     = prevPorCat[r.categoria_id]
+                    const variaPct = prev && prev > 0 ? Math.round((r.total_centavos - prev) / prev * 100) : null
+                    const expanded = catExpandida === r.categoria_id
+                    const itensCat = (mesGastos ?? []).filter(g => g.categoria_id === r.categoria_id)
+                    return (
+                      <div key={r.categoria_id} style={{ borderTop: i > 0 ? `1px solid var(--border)` : undefined }}>
+                        <button
+                          onClick={() => toggleCategoriaMes(r.categoria_id)}
+                          className="w-full flex items-center justify-between px-5 py-3 gap-3 text-left transition-opacity active:opacity-70"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-lg shrink-0">{r.categoria_emoji}</span>
+                            <span className="text-sm capitalize truncate" style={{ color: 'var(--ink)' }}>{r.categoria_nome}</span>
+                            {variaPct !== null && variaPct !== 0 && (
+                              <span className="text-xs shrink-0" style={{ color: variaPct > 0 ? 'var(--coral)' : 'var(--sage)' }}>
+                                {variaPct > 0 ? '↑' : '↓'}{Math.abs(variaPct)}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="text-right">
+                              <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{formatCurrency(r.total_centavos)}</span>
+                              <span className="text-xs ml-1.5" style={{ color: 'var(--muted)' }}>{pct}%</span>
+                            </div>
+                            <span className="text-xs transition-transform" style={{ color: 'var(--muted)', transform: expanded ? 'rotate(90deg)' : 'none' }}>›</span>
+                          </div>
+                        </button>
+
+                        {/* Nível 2: lançamentos individuais (sob demanda) */}
+                        {expanded && (
+                          <div className="px-5 pb-3" style={{ background: 'var(--bg)' }}>
+                            {mesGastosLoading && mesGastos === null ? (
+                              <p className="text-xs py-3" style={{ color: 'var(--muted)' }}>Carregando lançamentos…</p>
+                            ) : itensCat.length === 0 ? (
+                              <p className="text-xs py-3" style={{ color: 'var(--muted)' }}>Sem lançamentos individuais.</p>
+                            ) : (
+                              itensCat.map((g, j) => (
+                                <div key={j} className="flex items-center justify-between gap-3 py-2" style={{ borderTop: j > 0 ? `1px solid var(--border)` : undefined }}>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm truncate" style={{ color: 'var(--ink)' }}>{g.descricao || r.categoria_nome}</p>
+                                    <p className="text-xs" style={{ color: 'var(--muted)' }}>{g.pagador_apelido} · {formatDataCompra(g.data_competencia)}</p>
+                                  </div>
+                                  <span className="text-sm font-medium shrink-0" style={{ color: 'var(--ink)' }}>{formatCurrency(g.installment_valor)}</span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
               </div>
             </div>
           </>
