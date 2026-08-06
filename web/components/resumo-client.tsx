@@ -575,7 +575,18 @@ export function ResumoClient({ data, mesAtual }: { data: ResumoData; mesAtual: s
                       contentStyle={{ background: '#FFFDF7', border: '1px solid #E2DAD0', borderRadius: 8, color: '#1A1612', fontSize: 12 }}
                       cursor={{ fill: 'rgba(0,0,0,0.08)' }}
                     />
-                    <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                    <Bar
+                      dataKey="valor"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={40}
+                      cursor="pointer"
+                      onClick={(d: any) => {
+                        // Toque na barra em si — confiável no mobile (o onClick do
+                        // BarChart via activePayload falha em touch).
+                        const ms = d?.mesStr ?? d?.payload?.mesStr
+                        if (ms) abrirMes(ms)
+                      }}
+                    >
                       {chartData.map((r, i) => (
                         <Cell
                           key={i}
